@@ -25,10 +25,19 @@ def show(block=True, hspace=0.6, wspace=0.4):
         mng.resize(stdsize[1]*cf.wunit*cf.dpi, stdsize[0]*cf.hunit*cf.dpi)
         fig.set_dpi(cf.dpi)
 
+        for ax in fig.axes:
+            ax.tick_params(axis='x', which='both', top='off')
+            ax.tick_params(axis='y', which='both', right='off')
+            try:
+                ax.get_legend().get_frame().set_linewidth(0.5)
+            except:
+                pass
+
         # colors
         fig.set_facecolor('w')
         fig.set_edgecolor('k')
 
+        # tight layout and suptitle
         if fig._suptitle is not None:
             fig.tight_layout(rect=[0, 0, 1, 0.95])
         else:

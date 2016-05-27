@@ -102,6 +102,12 @@ class Step:
             axisData[gridAxisNo] = ny.dimensionalAxis(self.input.slice('grid'), axis[gridAxisNo], **d)
             if kwargs.get('operation'):
                 axisData[dataAxisNo] = kwargs['operation'](axisData[dataAxisNo])
+
+            conv_grid = cf.conversion.get(axis[gridAxisNo]) or 1.   # convert size of axis depending on conversion factor in config
+            conv_data = cf.conversion.get(keyListTemp[0]) or 1.
+            axisData[dataAxisNo] = axisData[dataAxisNo]*conv_data
+            axisData[gridAxisNo] = axisData[gridAxisNo]*conv_grid
+
             plt.plot(*axisData)
 
             ## Title and axis labels
@@ -109,7 +115,7 @@ class Step:
                 if subplots == 'sublevel':
                     title = combi[subplotIndex]
                 else:
-                    title = subplots + ' = ' + str(combi(subplotIndex))
+                    title = subplots + ' = ' + str(combi[subplotIndex])
                 try:
                     title = cf.names[title]
                 except:

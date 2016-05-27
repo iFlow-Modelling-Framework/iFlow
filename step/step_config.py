@@ -1,8 +1,9 @@
 dpi = 120           # dpi for visualisation
 savedpi = 150       # dpi for saving (only relevant for non-vector images)
 wunit = 10./2.54    # single width unit (inch)
-hunit = 7/2.54    # single height unit (inch)
-fontsize = 11
+hunit = 7/2.54      # single height unit (inch)
+fontsize = 11       # font size for title and axis labels
+fontsize2 = 9      # font size for tick labels and legends
 fontfamily = 'sans-serif'
 
 names = {
@@ -96,8 +97,12 @@ units = {
     'Av4': '$m^2/s$',
     'Av5': '$m^2/s$',
     'Av6': '$m^2/s$',
-    'x': 'm',
+    'x': 'km',
     'z': 'm',
     'f': '',
     'phase': '',
     'R': 'm'}
+
+conversion = {
+    'x': 1/1000.
+}
