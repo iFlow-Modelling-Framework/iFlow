@@ -422,7 +422,7 @@ class DataContainer:
         done = False
 
         keyset = [key]+[i for i in args if isinstance(i, basestring)]
-        indexset = [i for i in args if i not in keyset]
+        indexset = [i for i in args if not isinstance(i, basestring)]
         for i, key in enumerate(keyset):
             if key in value:        # if the key is in the dictionary
                 value = value[key]  # step into dictionary
