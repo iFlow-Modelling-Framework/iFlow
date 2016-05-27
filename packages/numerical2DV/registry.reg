@@ -1,0 +1,178 @@
+# Registry for package numerical2DV
+#
+# date: 	04-11-2015
+# authors: 	Y.M.Dijkstra
+
+########################################################################################################################
+# General
+########################################################################################################################
+## Module RegularGrid: create a regular 2DV grid for numerical computations ##
+module          RegularGrid
+packagePath
+input           L B H xgrid zgrid fgrid xoutputgrid zoutputgrid foutputgrid R
+output          grid outputGrid
+
+module          HigherOrderIterator
+packagePath
+inputInit		maxOrder variables @{variables}+{1,2}
+input			maxOrder variables @{variables}+{2,@{maxOrder}+1}
+output			order maxOrder
+iterative		True
+
+########################################################################################################################
+# Subpackage hydro
+########################################################################################################################
+module          ReferenceLevel
+inputInit		
+input			Q1 grid G OMEGA Av Roughness BottomBC
+output			R
+packagePath		hydro/
+iterative		True
+
+
+## Module HydroLead: numerical coupled frequency perturbation model - leading order ##
+module          HydroLead
+input			A0 phase0 Q0 BottomBC grid Av Roughness OMEGA G
+output			u0 zeta0 w0
+packagePath		hydro/
+submodules		tide river
+
+## Module HydroFirst numerical coupled frequency perturbation model - first order ##
+module          HydroFirst
+input			A1 phase1 Q1 BottomBC grid Av Roughness OMEGA G BETA
+output			u1 zeta1
+packagePath		hydro/
+submodules		tide river baroc stokes nostress adv mixing
+baroc			input		s0
+				output
+stokes			input		u0 zeta0
+				output
+nostress		input		u0 zeta0
+				output
+adv				input		u0 w0
+				output
+mixing			input		u0 Av1
+				output
+
+## Module HydroSecond numerical coupled frequency perturbation model - second order ##
+module          HydroSecond
+packagePath		hydro/
+inputInit		grid Av Roughness OMEGA G BETA
+input			grid Av Roughness OMEGA G BETA
+output			u2 zeta2
+submodules		baroc stokes nostress adv densitydrift
+baroc			inputInit	s0
+				input		s0
+stokes			inputInit	u0 zeta0 u1 zeta1
+				input		u0 zeta0 u1 zeta1
+nostress		input		u0 zeta0 u1 zeta1
+				inputInit	u0 zeta0 u1 zeta1
+adv				input		u0 u1
+				inputInit	u0 u1
+densitydrift	input		u0 zeta0 u1 zeta1
+				inputInit	u0 zeta0 u1 zeta1
+
+module          HydroHigher
+packagePath		hydro/
+input			grid Av Roughness maxOrder maxContributions OMEGA G BETA order
+output			surfder surfstress u+{2,@{maxOrder}+1} zeta+{2,@{maxOrder}+1}
+submodules		baroc stokes nostress adv densitydrift mixing
+baroc			input		s0
+                output
+stokes			input		u0 zeta0 u1 zeta1
+                output
+nostress		input		u0 zeta0 u1 zeta1
+                output
+adv				input		u0 u1
+                output
+densitydrift	input		u0 zeta0 u1 zeta1
+                output
+mixing      	input		u0 zeta0 u1 zeta1 Av+{2,@{maxOrder}+1}
+                output
+
+########################################################################################################################
+# subpackage turbulence
+########################################################################################################################
+module      Uniform
+packagePath	turbulence/
+input       grid Av0amp Av0phase sf0 m n
+output		Av Roughness BottomBC
+
+module      UniformQuadratic
+packagePath	turbulence/
+inputInit   grid Av0amp Av0phase m n roughnessParameter @roughnessParameter
+input       u0
+output		Av Roughness BottomBC
+iterative   True
+
+module      Parabolic
+packagePath	turbulence/
+input       grid Av0amp Av0phase z0* m n
+output		Av Roughness BottomBC
+
+module      ParabolicFirst
+packagePath	turbulence/
+#input       grid Av1amp Av1phase z0* m n
+input       grid Av0amp Av0phase z0* m n zeta0
+output		Av1 Av2 Av3
+
+# k-epsilon fitted models
+module      TurbulenceKepFitted
+packagePath	turbulence/
+inputInit	grid profile roughnessParameter n @roughnessParameter lambda Avmin
+input       grid profile roughnessParameter n @roughnessParameter lambda Avmin u0 zeta0
+output		Av Roughness BottomBC
+iterative	True
+
+module      TurbulenceKepFittedFirst
+packagePath	turbulence/
+inputInit	grid profile roughnessParameter n @roughnessParameter lambda u0 zeta0
+input       grid profile roughnessParameter n @roughnessParameter lambda u0 u1 zeta0 zeta1
+output		Av1 Roughness1
+iterative	True
+
+module      TurbulenceKepFittedHigher
+packagePath	turbulence/
+inputInit	grid profile roughnessParameter n @roughnessParameter order u0 u1 zeta0 zeta1
+input       grid profile roughnessParameter n @roughnessParameter order u+{0,@{maxOrder}+1}
+output		Av+{2,@{maxOrder}+1} Roughness+{2,@{maxOrder}+1}
+iterative	True
+
+module      TurbulenceKepFittedUnscaled
+packagePath	turbulence/
+inputInit	grid profile roughnessParameter n @roughnessParameter Avmin lambda
+input       grid profile roughnessParameter n @roughnessParameter Avmin lambda u+{0,@{maxOrder}+1} zeta+{0,@{maxOrder}+1}
+output		Av Roughness BottomBC
+iterative	True
+########################################################################################################################
+# Subpackage salinity_diagnostic
+########################################################################################################################
+module      SaltHyperbolicTangent
+packagePath	salinity_diagnostic/
+input       L ssea xc xl
+output      s0
+
+module      SaltExponential
+packagePath	salinity_diagnostic/
+input       L ssea Ls
+output      s0
+
+########################################################################################################################
+# Subpackage salinity_prognostic
+########################################################################################################################
+module      SalinityLead
+packagePath	salinity_prognostic/
+input       grid ssea Kh B H u0 Q1
+output      s0 s1var
+
+module      SalinityFirst
+packagePath	salinity_prognostic/
+input       grid Kh B H u0 u1 s0 s1var Q1
+output      s1 s2var
+submodules	advection diffusion nostress
+
+module      SalinitySecond
+packagePath	salinity_prognostic/
+input       grid Kh B H u0 u1 un zeta0 zeta1 s0 s1 s1var s2var Q1
+output      s2 s3var
+submodules	advection diffusion nostress sea
