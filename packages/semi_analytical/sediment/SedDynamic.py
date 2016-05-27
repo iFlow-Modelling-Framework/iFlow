@@ -112,12 +112,12 @@ class SedDynamic:
                 # save results
                 d['hatc']['c12']['M0'][mod1] = c12M0
                 d['hatc']['c12']['M4'][mod1] = c12M4
-                d['T']['M0'][mod0 + '-' + mod1] = np.trapz(u1[:, :, 0] * c00, x=-self.zarr, axis=1)
-                d['T']['M2']['M0'][mod0 + '-' + mod1] = np.trapz((u0 * np.conj(c12M0) + np.conj(u0) * c12M0) / 4.,
+                d['T']['M0'][mod0 + '_' + mod1] = np.trapz(u1[:, :, 0] * c00, x=-self.zarr, axis=1)
+                d['T']['M2']['M0'][mod0 + '_' + mod1] = np.trapz((u0 * np.conj(c12M0) + np.conj(u0) * c12M0) / 4.,
                                                                  x=-self.zarr, axis=1)
-                d['T']['M2']['M4'][mod0 + '-' + mod1] = np.trapz((u0 * np.conj(c12M4) + np.conj(u0) * c12M4) / 4.,
+                d['T']['M2']['M4'][mod0 + '_' + mod1] = np.trapz((u0 * np.conj(c12M4) + np.conj(u0) * c12M4) / 4.,
                                                                  x=-self.zarr, axis=1)
-                d['T']['M4'][mod0 + '-' + mod1] = np.trapz((u1[:, :, 2] * np.conj(c04) +
+                d['T']['M4'][mod0 + '_' + mod1] = np.trapz((u1[:, :, 2] * np.conj(c04) +
                                                             np.conj(u1[:, :, 2]) * c04) / 4., x=-self.zarr, axis=1)
         # place results in datacontainer
         dctrans = DataContainer(d)
@@ -125,7 +125,7 @@ class SedDynamic:
         d['a'] = self.availability(dctrans.v('F'), dctrans.v('T')).reshape(len(self.x), 1)
         # calculate concentration
         d['c'] = d['a'] * dctrans.v('hatc')
-        self.plot_T(dctrans, d)
+        # self.plot_T(dctrans, d)
         return d
 
     def concentration_amplitudes_lead(self, u0, component):
