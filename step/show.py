@@ -9,6 +9,12 @@ import matplotlib.pyplot as plt
 import step_config as cf
 
 def show(block=True, hspace=0.6, wspace=0.4):
+    """Replaces matplotlib.pyplot show().
+    Corrects figure size, backgroundcolor and tightlayout
+
+    Args:
+        block:
+    """
     figures=[manager.canvas.figure for manager in mpl._pylab_helpers.Gcf.get_all_fig_managers()]
 
     for fig in figures:

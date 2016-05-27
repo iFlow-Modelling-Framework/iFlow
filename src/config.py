@@ -1,5 +1,5 @@
-LASTINPUTFILES = ['input/inputRonaldWP14.txt', 'input/inputRonaldSeaScheldt.txt', 'in_scheldt/plot.txt', 'in_scheldt/base_model.txt', 'in_scheldt/manual_calibration.txt']
-CWD = '/Users/RLBrouwer/Box Sync/WL Antwerpen/WL2016R13_103_4_WP1Sed_texfiles/python/WP14'
+LASTINPUTFILES = ['input/base_model.txt', 'input/inputRonaldWP14.txt', 'input/inputRonaldSeaScheldt.txt', 'in_scheldt/plot.txt', 'in_scheldt/base_model.txt']
+CWD = 'D:/Work/PhD/Projects/2. Non-linear Hydrodynamics/Scheldt_hydrodynamics'
 DERMETHOD = 'CENTRAL'
 SECONDDERMETHOD = 'CENTRAL'
 INTMETHOD = 'TRAPEZOIDAL'

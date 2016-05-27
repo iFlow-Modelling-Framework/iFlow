@@ -9,6 +9,12 @@ import step_config as cf
 
 
 def configure(axislimits=3):
+    """Configures font and dpi for saving of all plots.
+    Run before making plots using matplotlib
+
+    Parameters:
+        axislimits (int, optional) - maximum number of decimals on axis
+    """
     mpl.rcParams['mathtext.default'] = 'regular'
     mpl.rcParams['font.size'] = cf.fontsize
     mpl.rcParams['axes.titlesize'] = cf.fontsize
