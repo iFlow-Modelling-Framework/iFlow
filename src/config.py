@@ -1,4 +1,4 @@
-LASTINPUTFILES = ['input/base_model.txt', 'input/inputRonaldWP14.txt', 'input/inputRonaldSeaScheldt.txt', 'in_scheldt/plot.txt', 'in_scheldt/base_model.txt']
+LASTINPUTFILES = ['input/base_model.txt']
 CWD = 'D:/Work/PhD/Projects/2. Non-linear Hydrodynamics/Scheldt_hydrodynamics'
 DERMETHOD = 'CENTRAL'
 SECONDDERMETHOD = 'CENTRAL'
