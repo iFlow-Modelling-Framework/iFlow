@@ -21,7 +21,9 @@ class ReadMultiple:
 
     def run(self):
         self.logger.info('Reading files')
-        folder = self.input.v('folder')
+        cwdpath = self.input.v('CWD') or ''  # path to working directory
+        folder = os.path.join(cwdpath, self.input.v('folder'))
+
         files = ny.toList(self.input.v('files'))
         # If files is 'all' then get all files that have a .p extension
         if files[0] == 'all':
