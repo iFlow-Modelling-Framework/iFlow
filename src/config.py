@@ -1,5 +1,5 @@
-LASTINPUTFILES = ['input/base_model.txt']
-CWD = 'D:/Work/PhD/Projects/2. Non-linear Hydrodynamics/Scheldt_hydrodynamics'
+LASTINPUTFILES = ['input/input1DV_Scheldt.txt', 'input/in_2DV.txt', 'input/input2DV.txt', 'input/plot_exchange.txt', 'input/base_model.txt']
+CWD = 'D:\Work\PhD\Projects/1. Exchange flows\iFlow package\exchangeFlows'
 DERMETHOD = 'CENTRAL'
 SECONDDERMETHOD = 'CENTRAL'
 INTMETHOD = 'TRAPEZOIDAL'
