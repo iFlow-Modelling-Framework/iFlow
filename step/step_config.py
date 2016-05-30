@@ -1,9 +1,9 @@
 dpi = 120           # dpi for visualisation
 savedpi = 150       # dpi for saving (only relevant for non-vector images)
-wunit = 10./2.54    # single width unit (inch)
-hunit = 7/2.54      # single height unit (inch)
+wunit = 3.5         # single width unit (inch)
+hunit = 2.45        # single height unit (inch)
 fontsize = 11       # font size for title and axis labels
-fontsize2 = 9      # font size for tick labels and legends
+fontsize2 = 9       # font size for tick labels and legends
 fontfamily = 'sans-serif'
 
 names = {

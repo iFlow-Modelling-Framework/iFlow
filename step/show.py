@@ -18,13 +18,7 @@ def show(block=True, hspace=0.6, wspace=0.4):
     figures=[manager.canvas.figure for manager in mpl._pylab_helpers.Gcf.get_all_fig_managers()]
 
     for fig in figures:
-        # set size
-        mng = fig.canvas.manager
-        stdsize = fig.get_size_inches()
-        fig.set_size_inches(stdsize[1]*cf.wunit, stdsize[0]*cf.hunit)#, forward=True)
-        mng.resize(stdsize[1]*cf.wunit*cf.dpi, stdsize[0]*cf.hunit*cf.dpi)
-        fig.set_dpi(cf.dpi)
-
+        # axis ticks and legend frame line width
         for ax in fig.axes:
             ax.tick_params(axis='x', which='both', top='off')
             ax.tick_params(axis='y', which='both', right='off')
@@ -37,11 +31,8 @@ def show(block=True, hspace=0.6, wspace=0.4):
         fig.set_facecolor('w')
         fig.set_edgecolor('k')
 
-        # tight layout and suptitle
-        if fig._suptitle is not None:
-            fig.tight_layout(rect=[0, 0, 1, 0.95])
-        else:
-            fig.tight_layout()
+        # tight layout
+        fig.set_tight_layout(True)
     plt.show(block=block)
 
     return
