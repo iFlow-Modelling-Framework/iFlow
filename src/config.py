@@ -20,13 +20,3 @@ DS = 2.e-5                      # Sediment grain size
 R = 0                           # Reference level
 NGODIN = 2.                     # Correction that bottom roughness is felt differently by M2-currents and M0/M4-currents
 TOLERANCEBVP = 1.e-6            # Tolerance of the bvp_solver, i.e. accuracy of the water level solution
-
-
-
-
-
-
-
-
-
-
