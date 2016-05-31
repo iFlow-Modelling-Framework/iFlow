@@ -77,7 +77,7 @@ class Step:
 
         #########
         # plot loop
-        plt.figure(plotno, figsize=(subplotShape[1]*cf.wunit, subplotShape[0]*cf.hunit))
+        plt.figure(plotno, dpi=cf.dpi, figsize=subplotShape)
         plt.hold(True)
 
         # loop over all combinations of the data
@@ -172,11 +172,10 @@ class Step:
                     plt.ylabel('|'+yname+'|'+' ('+yunit+')')
 
         try:
-            plt.suptitle(cf.names[axis[dataAxisNo]]+' over '+axis[gridAxisNo], y=1.02)
+            plt.suptitle(cf.names[axis[dataAxisNo]]+' over '+axis[gridAxisNo])
         except KeyError:
-            plt.suptitle(axis[dataAxisNo]+' over '+axis[gridAxisNo], y=1.05)
+            plt.suptitle(axis[dataAxisNo]+' over '+axis[gridAxisNo])
         plt.draw()
-
 
         return
 
@@ -316,6 +315,5 @@ class Step:
                 plt.suptitle('Im('+value_name+')'+' ('+value_unit+')')
 
         plt.draw()
-
 
         return
