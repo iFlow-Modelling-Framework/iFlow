@@ -3,7 +3,6 @@
 Date: 01-06-15
 Authors: R.L. Brouwer
 """
-import matplotlib.pyplot as plt
 import numpy as np
 import scikits.bvp_solver
 from scipy import integrate
@@ -552,69 +551,3 @@ class HydroFirst:
 
         # self.plot2(zeta, u)
         return zeta, u
-
-    def plot(self):
-        f, ax = plt.subplots(2,1)
-        p1 = ax[0].pcolormesh(np.real(self.input.d('u0', 'tide', range(0, len(self.x)), range(0, len(self.z)), 1, dim='x').T))
-        p2 = ax[1].pcolormesh(np.imag(self.input.d('u0', 'tide', range(0, len(self.x)), range(0, len(self.z)), 1, dim='x').T))
-        plt.colorbar(p1,ax=ax[0])
-        plt.colorbar(p2,ax=ax[1])
-        f.suptitle(r'iflow $u_x$')
-
-        f,ax = plt.subplots(2,1)
-        p1 = ax[0].pcolormesh(np.real(self.input.d('u0', 'tide', range(0, len(self.x)), range(0, len(self.z)), 1, dim='z').T))
-        p2 = ax[1].pcolormesh(np.imag(self.input.d('u0', 'tide', range(0, len(self.x)), range(0, len(self.z)), 1, dim='z').T))
-        plt.colorbar(p1,ax=ax[0])
-        plt.colorbar(p2,ax=ax[1])
-        f.suptitle(r'iflow $u_z$')
-
-        f,ax = plt.subplots(2,1)
-        p1 = ax[0].pcolormesh(np.real(self.input.dd('u0', 'tide', range(0, len(self.x)), range(0, len(self.z)), 1, dim='z').T))
-        p2 = ax[1].pcolormesh(np.imag(self.input.dd('u0', 'tide', range(0, len(self.x)), range(0, len(self.z)), 1, dim='z').T))
-        plt.colorbar(p1, ax=ax[0])
-        plt.colorbar(p2, ax=ax[1])
-        f.suptitle(r'iflow $u_zz$')
-
-    def plot2(self, zeta, u):
-        f, ax = plt.subplots(1, 2)
-        ax[0].plot(np.real(zeta[0, :, 0, 0]), 'b')
-        ax[0].plot(np.abs(zeta[0, :, 0, 2]), 'r')
-        ax[0].set_title(r'surface elevation')
-
-        ax[1].plot(self.x/1e3, self.input.v('Roughness', x=self.x/self.L, f=0)*np.real(u[0, :, -1, 0].T), 'b')
-        # ax[1].plot(np.abs(u[0, :, -1, 2].T), 'r')
-        ax[1].set_title('hor. velocity')
-
-        f.suptitle(self.__F)
-        plt.show()
-
-    def plot3(self):
-        jmax = self.input.v('grid', 'maxIndex', 'x')
-        subList = ['tide', 'river', 'nostress', 'adv', 'baroc', 'stokes']
-        # ZETA1 = np.abs(self.input.v('zeta1', 'tide', x=self.x/self.L, z=0, f=2) +
-        #          self.input.v('zeta1', 'nostress', x=self.x/self.L, z=0, f=2) +
-        #          self.input.v('zeta1', 'stokes', x=self.x/self.L, z=0, f=2) +
-        #          self.input.v('zeta1', 'adv', x=self.x/self.L, z=0, f=2))
-        dpi = 75
-        f, ax = plt.subplots(3, 2, num=1, figsize=(900/dpi, 900/dpi), dpi=dpi, facecolor='w', edgecolor='k')
-        plt.hold(True)
-        for i, mod in enumerate(subList):
-            pos = np.unravel_index(i, (3, 2))
-            for n in range(0, 3):
-                try:
-                    if self.input.v('zeta0', mod) is not None:
-                        wl = self.input.v('zeta0', mod, range(0, jmax+1), 0, n)+self.input.v('zeta1', mod, range(0, jmax+1), 0, n)
-                    else:
-                        wl = self.input.v('zeta1', mod, range(0, jmax+1), 0, n)
-                    ax[pos].plot(self.x/1e3, abs(wl), label='M'+str(2*n))
-                    ax[pos].set_title(mod)
-                    ax[pos].set_xlabel(r'$x$ [km]')
-                    ax[pos].set_ylabel(r'elevation amplitude [m]')
-                except:
-                    pass
-        ax[0, 0].legend(loc=0, fontsize=8, frameon=False)
-
-        f.set_tight_layout(True)
-        plt.show()
-
-
