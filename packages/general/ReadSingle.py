@@ -18,7 +18,9 @@ class ReadSingle:
         return
 
     def run(self):
-        folder = self.input.v('folder')
+        cwdpath = self.input.v('CWD') or ''  # path to working directory
+        folder = os.path.join(cwdpath, self.input.v('folder'))
+
         file = self.input.v('file')
         # If files is 'all' then get all files that have a .p extension
         if file == 'all':

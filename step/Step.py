@@ -99,7 +99,12 @@ class Step:
                     d[looplist[k]] = combi[k]
             #   set axes
             axisData = [None]*2
-            axisData[dataAxisNo] = self.input.v(*keyListTemp, **d)
+            if not kwargs.get('der'):
+                axisData[dataAxisNo] = self.input.v(*keyListTemp, **d)
+            else:
+                d['dim'] = kwargs['der']
+                axisData[dataAxisNo] = self.input.d(*keyListTemp, **d)
+                d.pop('dim')
             axisData[gridAxisNo] = ny.dimensionalAxis(self.input.slice('grid'), axis[gridAxisNo], **d)
             if kwargs.get('operation'):
                 axisData[dataAxisNo] = kwargs['operation'](axisData[dataAxisNo])
