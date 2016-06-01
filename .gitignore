@@ -1,5 +1,5 @@
 $ cat .gitignore
-!src/config.py
+src/config.py
 .*
 !.gitignore
 **/*.pyc
