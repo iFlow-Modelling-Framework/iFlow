@@ -15,6 +15,8 @@ from ModuleList import ModuleList
 from nifty import toList
 from Reader import Reader
 from src.util import importModulePackages
+import matplotlib as mpl
+mpl.use('TkAgg')
 
 
 class Program:

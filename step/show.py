@@ -23,7 +23,7 @@ def show(block=True, hspace=0.6, wspace=0.4):
         stdsize = plt.figure(num=num).get_size_inches()
         fig.set_dpi(cf.dpi)
         fig.set_size_inches(stdsize[1]*cf.wunit, stdsize[0]*cf.hunit, forward=True) # NB forward=True forwards the change in size and dpi to the plotting window
-
+        plt.draw()
         # axis ticks and legend frame line width
         for ax in fig.axes:
             ax.tick_params(axis='x', which='both', top='off')

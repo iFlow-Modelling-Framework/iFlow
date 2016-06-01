@@ -4,7 +4,6 @@ Authors: R.L. Brouwer
 """
 
 import numpy as np
-import matplotlib.pyplot as plt
 from scipy import integrate
 from nifty.harmonicDecomposition import absoluteU, signU
 from src.DataContainer import DataContainer
@@ -125,7 +124,6 @@ class SedDynamic:
         d['a'] = self.availability(dctrans.v('F'), dctrans.v('T')).reshape(len(self.x), 1)
         # calculate concentration
         d['c'] = d['a'] * dctrans.v('hatc')
-        # self.plot_T(dctrans, d)
         return d
 
     def concentration_amplitudes_lead(self, u0, component):
@@ -273,38 +271,3 @@ class SedDynamic:
              np.trapz(self.B, dx=self.dx, axis=0))
         a = A * exponent
         return a
-
-    def plot_T(self, dctrans, d):
-        sublist = ['T', 'M0', 'M2', 'M4']
-        dpi = 75
-        f, ax = plt.subplots(2, 2, num=1, figsize=(900/dpi, 900/dpi), dpi=dpi, facecolor='w', edgecolor='k')
-        plt.hold(True)
-        for i, mod in enumerate(sublist):
-            pos = np.unravel_index(i, (2, 2))
-            if mod is 'T':
-                ax[pos].plot(self.x/1e3, np.real(dctrans.v(mod)), 'k', label=r'$T_{tot}$')
-                ax[pos].plot(self.x/1e3, np.real(dctrans.v(mod, 'stokes'))+np.real(dctrans.v(mod, 'M0')), label=r'$T_{stokes}+T_{M0}$')
-                ax[pos].plot(self.x/1e3, np.real(dctrans.v(mod, 'M2')), label=r'$T_{M2}$')
-                ax[pos].plot(self.x/1e3, np.real(dctrans.v(mod, 'M4')), label=r'$T_{M4}$')
-                ax[pos].plot(self.x/1e3, np.real(dctrans.v(mod, 'diff')), label=r'$T_{diff}$')
-            else:
-                for key, value in d['T'][mod].iteritems():
-                    if type(value) is dict:
-                        for k, v in value.iteritems():
-                            if sum(v) == 0:
-                                pass
-                            else:
-                                ax[pos].plot(self.x/1e3, np.real(v), label=key + ' ' + k)
-                    else:
-                        if sum(value) == 0:
-                            pass
-                        else:
-                            ax[pos].plot(self.x/1e3, np.real(value), label=key)
-            if mod is 'M0':
-                ax[pos].plot(self.x/1e3, np.real(dctrans.v('T', 'stokes')), label='Stokes drift')
-            ax[pos].set_title(mod)
-            ax[pos].set_xlabel(r'$x$ [km]')
-            ax[pos].set_ylabel(r'Transport per unit width')
-            ax[pos].legend(loc=0, fontsize=8, frameon=False)
-            ax[pos].grid()
-        plt.show()

@@ -4,6 +4,7 @@ Step
 Date: 06-Nov-15
 Authors: Y.M. Dijkstra
 """
+import matplotlib as mpl
 import numpy as np
 import matplotlib.pyplot as plt
 import step_config as cf
@@ -11,7 +12,6 @@ from copy import copy
 import nifty as ny
 import itertools
 import math
-import matplotlib as mpl
 
 
 class Step:
