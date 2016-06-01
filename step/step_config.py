@@ -56,7 +56,19 @@ names = {
     'river': 'River',
     'nostress': 'No-stress',
     'densitydrift': 'Density-induced return flow',
-    'R': 'R'}
+    'R': 'R',
+    'T': 'Transport',
+    'tide-baroc': 'Baroclinic',
+    'tide-adv': 'Advection',
+    'tide-stokes': 'Tidal return flow',
+    'tide-tide': 'Tide',
+    'tide-river': 'River',
+    'tide-nostress': 'No-stress',
+    'Tdiff': 'Diffusive transport',
+    'TM0': 'Residual transport',
+    'TM2': 'M$_2$ transport',
+    'TM4': 'M$_4$ transport',
+    'Tstokes' : 'Stokes transport'}
 
 units = {
     'zeta': 'm',
@@ -101,7 +113,8 @@ units = {
     'z': 'm',
     'f': '',
     'phase': '',
-    'R': 'm'}
+    'R': 'm',
+    'T': 'kg/ms'}
 
 conversion = {
     'x': 1/1000.
