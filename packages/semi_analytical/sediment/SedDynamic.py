@@ -50,8 +50,8 @@ class SedDynamic:
                    self.input.d('R', x=self.x / self.L, dim='x').reshape(len(self.x), 1))
         self.B = self.input.v('B', x=self.x/self.L)
         self.Bx = self.input.d('B', x=self.x/self.L, dim='x').reshape(len(self.x), 1)
-        self.sf = np.ones((len(self.x)))*0.004  #self.input.v('Roughness', x=self.x/self.L, f=0).reshape(len(self.x), 1)
-        self.sfx = np.zeros((len(self.x)))  #self.input.d('Roughness', x=self.x/self.L, f=0, dim='x').reshape(len(self.x), 1)
+        self.sf = self.input.v('Roughness', x=self.x/self.L, f=0).reshape(len(self.x), 1)
+        self.sfx = self.input.d('Roughness', x=self.x/self.L, f=0, dim='x').reshape(len(self.x), 1)
         self.submodules0 = self.input.data['u0'].keys()
         self.submodules1 = self.input.data['u1'].keys()
         # Allocate space to save results
