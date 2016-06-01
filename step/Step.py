@@ -4,6 +4,7 @@ Step
 Date: 06-Nov-15
 Authors: Y.M. Dijkstra
 """
+import matplotlib as mpl
 import numpy as np
 import matplotlib.pyplot as plt
 import step_config as cf
@@ -11,7 +12,6 @@ from copy import copy
 import nifty as ny
 import itertools
 import math
-import matplotlib as mpl
 
 
 class Step:
@@ -77,7 +77,7 @@ class Step:
 
         #########
         # plot loop
-        plt.figure(plotno, figsize=(subplotShape[1]*cf.wunit, subplotShape[0]*cf.hunit))
+        plt.figure(plotno, dpi=cf.dpi, figsize=subplotShape)
         plt.hold(True)
 
         # loop over all combinations of the data
@@ -99,7 +99,12 @@ class Step:
                     d[looplist[k]] = combi[k]
             #   set axes
             axisData = [None]*2
-            axisData[dataAxisNo] = self.input.v(*keyListTemp, **d)
+            if not kwargs.get('der'):
+                axisData[dataAxisNo] = self.input.v(*keyListTemp, **d)
+            else:
+                d['dim'] = kwargs['der']
+                axisData[dataAxisNo] = self.input.d(*keyListTemp, **d)
+                d.pop('dim')
             axisData[gridAxisNo] = ny.dimensionalAxis(self.input.slice('grid'), axis[gridAxisNo], **d)
             if kwargs.get('operation'):
                 axisData[dataAxisNo] = kwargs['operation'](axisData[dataAxisNo])
@@ -167,11 +172,10 @@ class Step:
                     plt.ylabel('|'+yname+'|'+' ('+yunit+')')
 
         try:
-            plt.suptitle(cf.names[axis[dataAxisNo]]+' over '+axis[gridAxisNo], y=1.02)
+            plt.suptitle(cf.names[axis[dataAxisNo]]+' over '+axis[gridAxisNo])
         except KeyError:
-            plt.suptitle(axis[dataAxisNo]+' over '+axis[gridAxisNo], y=1.05)
+            plt.suptitle(axis[dataAxisNo]+' over '+axis[gridAxisNo])
         plt.draw()
-
 
         return
 
@@ -311,6 +315,5 @@ class Step:
                 plt.suptitle('Im('+value_name+')'+' ('+value_unit+')')
 
         plt.draw()
-
 
         return

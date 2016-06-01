@@ -15,9 +15,15 @@ def show(block=True, hspace=0.6, wspace=0.4):
     Args:
         block:
     """
-    figures=[manager.canvas.figure for manager in mpl._pylab_helpers.Gcf.get_all_fig_managers()]
+    nums = plt.get_fignums()
+    for num in nums:
+        fig = plt.figure(num=num)       # obtain figure reference from the fig number
 
-    for fig in figures:
+        # reset the size and dpi (for display only)
+        stdsize = plt.figure(num=num).get_size_inches()
+        fig.set_dpi(cf.dpi)
+        fig.set_size_inches(stdsize[1]*cf.wunit, stdsize[0]*cf.hunit, forward=True) # NB forward=True forwards the change in size and dpi to the plotting window
+        plt.draw()
         # axis ticks and legend frame line width
         for ax in fig.axes:
             ax.tick_params(axis='x', which='both', top='off')
@@ -32,7 +38,11 @@ def show(block=True, hspace=0.6, wspace=0.4):
         fig.set_edgecolor('k')
 
         # tight layout
-        fig.set_tight_layout(True)
+        if fig._suptitle is not None:
+            fig.set_tight_layout({'rect':[0, 0, 1, 0.95]})
+        else:
+            fig.set_tight_layout(True)
+
     plt.show(block=block)
 
     return
