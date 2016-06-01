@@ -40,22 +40,22 @@ class SedDynamic:
         self.dx = self.x[1:]-self.x[:-1]
         kmax = self.input.v('grid', 'maxIndex', 'z')
         self.z = self.input.v('grid', 'axis', 'z', 0, range(0, kmax+1))
-        self.zarr = self.z.reshape(1, len(self.z)) * self.input.v('-H', x=self.x/self.L).reshape(len(self.x), 1)
-        # self.dz = -self.zarr[:, 1]
-        self.dz = -self.zarr[:, 1]
+        self.zarr = self.z.reshape(1, len(self.z)) * (self.input.v('-H', x=self.x/self.L).reshape(len(self.x), 1) +
+                                                      self.input.v('R', x=self.x / self.L).reshape(len(self.x), 1))
         self.Av0 = self.input.v('Av', x=self.x/self.L, z=0, f=0).reshape(len(self.x), 1).reshape(len(self.x), 1)
         self.Av0x = self.input.d('Av', x=self.x/self.L, z=0, f=0, dim='x').reshape(len(self.x), 1)
-        self.H = self.input.v('H', x=self.x/self.L).reshape(len(self.x), 1)
-        self.Hx = self.input.d('H', x=self.x/self.L, dim='x').reshape(len(self.x), 1)
+        self.H = (self.input.v('H', x=self.x/self.L).reshape(len(self.x), 1) +
+                  self.input.v('R', x=self.x/self.L).reshape(len(self.x), 1))
+        self.Hx = (self.input.d('H', x=self.x/self.L, dim='x').reshape(len(self.x), 1) +
+                   self.input.d('R', x=self.x / self.L, dim='x').reshape(len(self.x), 1))
         self.B = self.input.v('B', x=self.x/self.L)
         self.Bx = self.input.d('B', x=self.x/self.L, dim='x').reshape(len(self.x), 1)
-        self.sf = self.input.v('Roughness', x=self.x/self.L, f=0).reshape(len(self.x), 1)
-        self.sfx = self.input.d('Roughness', x=self.x/self.L, f=0, dim='x').reshape(len(self.x), 1)
+        self.sf = np.ones((len(self.x)))*0.004  #self.input.v('Roughness', x=self.x/self.L, f=0).reshape(len(self.x), 1)
+        self.sfx = np.zeros((len(self.x)))  #self.input.d('Roughness', x=self.x/self.L, f=0, dim='x').reshape(len(self.x), 1)
         self.submodules0 = self.input.data['u0'].keys()
         self.submodules1 = self.input.data['u1'].keys()
         # Allocate space to save results
         d = dict()
-        d['c'] = {}
         d['hatc'] = {'c00': {}, 'c04': {}, 'c12': {'M0': {'sed adv': {'a': {}, 'ax': {}}},
                                                    'M4': {'sed adv': {'a': {}, 'ax': {}}},
                                                    'M2': {}}}
@@ -87,10 +87,10 @@ class SedDynamic:
             d['hatc']['c00'][mod0] = c00
             d['hatc']['c04'][mod0] = c04
             d['hatc']['c12']['M2'][mod0] = c12M2
-            d['hatc']['c12']['M0']['sed adv a'] = c12M0adv_a
-            d['hatc']['c12']['M0']['sed adv ax'] = c12M0adv_ax
-            d['hatc']['c12']['M4']['sed adv a'] = c12M4adv_a
-            d['hatc']['c12']['M4']['sed adv ax'] = c12M4adv_ax
+            d['hatc']['c12']['M0']['sed adv']['a'] = c12M0adv_a
+            d['hatc']['c12']['M0']['sed adv']['ax'] = c12M0adv_ax
+            d['hatc']['c12']['M4']['sed adv']['a'] = c12M4adv_a
+            d['hatc']['c12']['M4']['sed adv']['ax'] = c12M4adv_ax
             d['T']['diff'][mod0] = - np.trapz(self.KH * c00x, x=-self.zarr, axis=1)
             d['T']['stokes'][mod0] = (2. * (np.conj(u0s) * c00[:, 0].reshape(len(self.x), 1) * zeta0 +
                                             u0s * c00[:, 0].reshape(len(self.x), 1) * np.conj(zeta0)) +
@@ -122,8 +122,6 @@ class SedDynamic:
         dctrans = DataContainer(d)
         # calculate availability
         d['a'] = self.availability(dctrans.v('F'), dctrans.v('T')).reshape(len(self.x), 1)
-        # calculate concentration
-        d['c'] = d['a'] * dctrans.v('hatc')
         return d
 
     def concentration_amplitudes_lead(self, u0, component):
