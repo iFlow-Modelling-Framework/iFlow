@@ -47,6 +47,8 @@ class RegistryChecker:
         else:
             slash1 = '\\'
             slash2 = '/'
+        if len(moduleName.split('.')) < 2:
+            raise KnownError('"'+moduleName + '" is not a valid module entry. Please specify a module as: module [package].[module name]')
         modulePackage = moduleName.split('.')[:-1]
         moduleName = moduleName.split('.')[-1]
 
