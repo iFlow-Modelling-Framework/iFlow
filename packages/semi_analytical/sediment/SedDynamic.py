@@ -60,8 +60,8 @@ class SedDynamic:
                                                    'M4': {'sed adv': {'a': {}, 'ax': {}}},
                                                    'M2': {}}}
         d['a'] = {}
-        d['T'] = {'M0': {}, 'M2': {'M0': {}, 'M4': {}, 'M2': {}}, 'M4': {}, 'diff': {}, 'stokes': {}}
-        d['F'] = {'diff': {}, 'adv': {'M0': {}, 'M4': {}}}
+        d['T'] = {'TM0': {}, 'TM2': {'TM2M0': {}, 'TM2M4': {}, 'TM2M2': {}}, 'TM4': {}, 'Tdiff': {}, 'Tstokes': {}}
+        d['F'] = {'Fdiff': {}, 'Fadv': {'FadvM0': {}, 'FadvM4': {}}}
         # assign values to the concentration amplitudes and calculate the transport function T and F
         for mod0 in self.submodules0:
             # leading order and first order horizontal velocity
@@ -91,17 +91,17 @@ class SedDynamic:
             d['hatc']['c12']['M0']['sed adv']['ax'] = c12M0adv_ax
             d['hatc']['c12']['M4']['sed adv']['a'] = c12M4adv_a
             d['hatc']['c12']['M4']['sed adv']['ax'] = c12M4adv_ax
-            d['T']['diff'][mod0] = - np.trapz(self.KH * c00x, x=-self.zarr, axis=1)
-            d['T']['stokes'][mod0] = (2. * (np.conj(u0s) * c00[:, 0].reshape(len(self.x), 1) * zeta0 +
+            d['T']['Tdiff'][mod0] = - np.trapz(self.KH * c00x, x=-self.zarr, axis=1)
+            d['T']['Tstokes'][mod0] = (2. * (np.conj(u0s) * c00[:, 0].reshape(len(self.x), 1) * zeta0 +
                                             u0s * c00[:, 0].reshape(len(self.x), 1) * np.conj(zeta0)) +
                                       u0s * np.conj(c04[:, 0].reshape(len(self.x), 1)) * zeta0 +
                                       np.conj(u0s) * c04[:, 0].reshape(len(self.x), 1) * np.conj(zeta0)).reshape(len(self.x)) / 8.
-            d['T']['M2']['M2'][mod0] = np.trapz((u0 * np.conj(c12M2) + np.conj(u0) * c12M2) / 4., x=-self.zarr, axis=1)
-            d['T']['M2']['M0']['sed adv'] = np.trapz((u0 * np.conj(c12M0adv_a) + np.conj(u0) * c12M0adv_a) / 4., x=-self.zarr, axis=1)
-            d['T']['M2']['M4']['sed adv'] = np.trapz((u0 * np.conj(c12M4adv_a) + np.conj(u0) * c12M4adv_a) / 4., x=-self.zarr, axis=1)
-            d['F']['diff'][mod0] = - np.trapz(self.KH * c00, x=-self.zarr, axis=1)
-            d['F']['adv']['M0'][mod0] = np.trapz((u0 * np.conj(c12M0adv_ax) + np.conj(u0) * c12M0adv_ax) / 4., x=-self.zarr, axis=1)
-            d['F']['adv']['M4'][mod0] = np.trapz((u0 * np.conj(c12M4adv_ax) + np.conj(u0) * c12M4adv_ax) / 4., x=-self.zarr, axis=1)
+            d['T']['TM2']['TM2M2'][mod0] = np.trapz((u0 * np.conj(c12M2) + np.conj(u0) * c12M2) / 4., x=-self.zarr, axis=1)
+            d['T']['TM2']['TM2M0']['sed adv'] = np.trapz((u0 * np.conj(c12M0adv_a) + np.conj(u0) * c12M0adv_a) / 4., x=-self.zarr, axis=1)
+            d['T']['TM2']['TM2M4']['sed adv'] = np.trapz((u0 * np.conj(c12M4adv_a) + np.conj(u0) * c12M4adv_a) / 4., x=-self.zarr, axis=1)
+            d['F']['Fdiff'][mod0] = - np.trapz(self.KH * c00, x=-self.zarr, axis=1)
+            d['F']['Fadv']['FadvM0'][mod0] = np.trapz((u0 * np.conj(c12M0adv_ax) + np.conj(u0) * c12M0adv_ax) / 4., x=-self.zarr, axis=1)
+            d['F']['Fadv']['FadvM4'][mod0] = np.trapz((u0 * np.conj(c12M4adv_ax) + np.conj(u0) * c12M4adv_ax) / 4., x=-self.zarr, axis=1)
             for mod1 in self.submodules1:
                 # first order horizontal velocity
                 u1 = self.input.v('u1', mod1, range(0, len(self.x)), range(0, len(self.z)), range(0, 3))
@@ -111,12 +111,12 @@ class SedDynamic:
                 # save results
                 d['hatc']['c12']['M0'][mod1] = c12M0
                 d['hatc']['c12']['M4'][mod1] = c12M4
-                d['T']['M0'][mod0 + '_' + mod1] = np.trapz(u1[:, :, 0] * c00, x=-self.zarr, axis=1)
-                d['T']['M2']['M0'][mod0 + '_' + mod1] = np.trapz((u0 * np.conj(c12M0) + np.conj(u0) * c12M0) / 4.,
+                d['T']['TM0'][mod0 + '_' + mod1] = np.trapz(u1[:, :, 0] * c00, x=-self.zarr, axis=1)
+                d['T']['TM2']['TM2M0'][mod0 + '_' + mod1] = np.trapz((u0 * np.conj(c12M0) + np.conj(u0) * c12M0) / 4.,
                                                                  x=-self.zarr, axis=1)
-                d['T']['M2']['M4'][mod0 + '_' + mod1] = np.trapz((u0 * np.conj(c12M4) + np.conj(u0) * c12M4) / 4.,
+                d['T']['TM2']['TM2M4'][mod0 + '_' + mod1] = np.trapz((u0 * np.conj(c12M4) + np.conj(u0) * c12M4) / 4.,
                                                                  x=-self.zarr, axis=1)
-                d['T']['M4'][mod0 + '_' + mod1] = np.trapz((u1[:, :, 2] * np.conj(c04) +
+                d['T']['TM4'][mod0 + '_' + mod1] = np.trapz((u1[:, :, 2] * np.conj(c04) +
                                                             np.conj(u1[:, :, 2]) * c04) / 4., x=-self.zarr, axis=1)
         # place results in datacontainer
         dctrans = DataContainer(d)
