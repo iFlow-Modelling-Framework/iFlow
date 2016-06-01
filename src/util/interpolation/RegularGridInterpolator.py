@@ -87,8 +87,14 @@ class RegularGridInterpolator:
                 argument = kwargs.get(dim)
                 grid = dataContainer.v('grid', 'axis', dim)
                 axis.append(grid.reshape(grid.shape[i]))    # NB. only works for a single grid axis
-                lo.append(axis[-1][0])
-                hi.append(axis[-1][-1])
+                if dataContainer.v('grid', 'low', dim) is not None:
+                    lo.append(0.)
+                else:
+                    lo.append(axis[-1][0])
+                if dataContainer.v('grid', 'high', dim) is not None:
+                    hi.append(1.)
+                else:
+                    hi.append(axis[-1][-1])
 
                 if argument is None:
                     # if argument is not given by the user, take all points on the original grid
@@ -99,8 +105,14 @@ class RegularGridInterpolator:
             else:                               # dimension beyond axes; take data on original grid
                 grid = range(0, v)
                 axis.append(grid)
-                lo.append(axis[-1][0])
-                hi.append(axis[-1][-1])
+                if dataContainer.v('grid', 'low', dim) is not None:
+                    lo.append(0.)
+                else:
+                    lo.append(axis[-1][0])
+                if dataContainer.v('grid', 'high', dim) is not None:
+                    hi.append(1.)
+                else:
+                    hi.append(axis[-1][-1])
                 samplePoints.append(toList(axis[-1])) # add all points to the sample points
 
         #   2c. rewrite sample point to all permutations

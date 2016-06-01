@@ -11,5 +11,5 @@ output          @variables
 iterative       True
 
 module                  ManualCalibrationPlot
-input                   calibration_parameter axis experimentdata Scheldt_measurements
+input                   calibration_parameter axis experimentdata measurementset @measurementset
 visualisationModule     True
