@@ -21,7 +21,7 @@ class ManualCalibrationPlot:
         return
 
     def run(self):
-
+        measurementset = self.input.v('measurementset')
         data = self.input.getKeysOf('experimentdata')
         calib_param = ny.toList(self.input.v('calibration_parameter'))
         label = ny.toList(self.input.v('label'))
@@ -45,17 +45,18 @@ class ManualCalibrationPlot:
             index = [l.index(dc.v(calib_param[i])) for i, l in enumerate(param_range)]
 
             L = dc.v('grid', 'high', 'x')
-            dc.merge(self.input.slice('Scheldt_measurements'))
-            x_obs = dc.v('Scheldt_measurements', 'x_stations')/L
+            H0 = dc.n('grid', 'high', 'z', x=0)
+            dc.merge(self.input.slice(measurementset))
+            x_obs = dc.v(measurementset, 'x_waterlevel')/L
             x_ext = np.zeros(len(x_obs)+2)
             x_ext[1:-1] = x_obs
             x_ext[0] = 0
             x_ext[-1] = 1
-            zeta_obs = dc.v('Scheldt_measurements', 'zeta', x=x_obs, z=0, f=[1,2])
+            zeta_obs = dc.v(measurementset, 'zeta', x=x_obs, z=0, f=[1,2])
 
 
             # Start fix
-            # zeta_obs = dc.data['Scheldt_measurements']['zeta'].im_self.dataContainer.data['value'][:,1:3] #fix
+            # zeta_obs = dc.data[measurementset]['zeta'].im_self.dataContainer.data['value'][:,1:3] #fix
             # from copy import deepcopy                                                                     #fix
             # newgrid = deepcopy(dc.data['zeta0']['tide'].im_self.dataContainer.data['grid']['outputgrid']) #fix
             # i = 0
@@ -159,7 +160,11 @@ class ManualCalibrationPlot:
             plt.contourf(axis1, axis2, np.transpose(cost_range[:, :, 0]), 30)
 
             plt.plot(minlocM2[0], minlocM2[1], 'ro')
-            plt.plot(np.log10(0.003), np.log10(0.061), 'yo')
+            plt.plot(axis1, np.log10(0.5*10**axis2*H0), 'r')
+            plt.xlim(min(axis1), max(axis1))
+            plt.ylim(min(axis2), max(axis2))
+            # plt.plot(np.log10(0.003), np.log10(0.061), 'yo')  # best Scheldt calibration
+            # plt.plot(np.log10(0.098), np.log10(0.019), 'yo')  # best Ems1981 calibration
             plt.title('Cost $M_2$')
             plt.xlabel(label1)
             plt.ylabel(label2)
@@ -168,6 +173,9 @@ class ManualCalibrationPlot:
             plt.figure(2, figsize=(1,1))
             plt.plot(minlocM4[0], minlocM4[1], 'ro')
             plt.contourf(axis1, axis2, np.transpose(cost_range[:, :,1]), 30)
+            plt.plot(axis1, np.log10(0.5*10**axis2*H0), 'r')
+            plt.xlim(min(axis1), max(axis1))
+            plt.ylim(min(axis2), max(axis2))
             plt.title('Cost $M_4$')
             plt.xlabel(label1)
             plt.ylabel(label2)

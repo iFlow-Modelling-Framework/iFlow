@@ -620,7 +620,7 @@ class DataContainer:
         """reshape function output to be conform the order of the dimensions.
         """
         functiondims = functiondims[:]  # make a copy of the list
-        value = np.asarray(value)
+        # value = np.asarray(value)         # YMD bugfix 01-06-2016; does not work for scalars
         dimensions = self.data['grid']['dimensions']
         for i, dim in enumerate(functiondims):
             if dimensions[i]!=dim:
