@@ -57,18 +57,41 @@ names = {
     'nostress': 'No-stress',
     'densitydrift': 'Density-induced return flow',
     'R': 'R',
-    'T': 'Transport',
+    'T': 'T',
     'tide-baroc': 'Baroclinic',
     'tide-adv': 'Advection',
     'tide-stokes': 'Tidal return flow',
     'tide-tide': 'Tide',
     'tide-river': 'River',
     'tide-nostress': 'No-stress',
-    'Tdiff': 'Diffusive transport',
-    'TM0': 'Residual transport',
-    'TM2': 'M$_2$ transport',
+    'Tdiff': '$T_{diff}$',
+    'TM0': '$T_{res}$',
+    'TM2': '$T_{M_2}$',
     'TM4': 'M$_4$ transport',
-    'Tstokes' : 'Stokes transport'}
+    'Tstokes' : '$T_{stokes}$',
+    'TM2M0': '$T_{M_2}^{M_0}$',
+    'TM2M2': '$T_{M_2}^{M_2}$',
+    'TM2M4': '$T_{M_2}^{M_4}$'}
+
+transportlabels = {
+    'T' : 'T',
+    'TM0' : '$T_{M_0}$',
+    'TM2' : '$T_{M_2}$',
+    'TM4' : '$T_{M_4}$',
+    'Tdiff' : '$T_{diff}$',
+    'Tstokes' : '$T_{stokes}$',
+    'TM2M0' : '$T_{M_2}^{M_0}$',
+    'TM2M2' : '$T_{M_2}^{M_2}$',
+    'TM2M4' : '$T_{M_2}^{M_4}$',
+    'tide_baroc': 'baro',
+    'tide_adv': 'adv',
+    'tide_stokes': 'stokes',
+    'tide_tide': 'tide',
+    'tide_river': 'riv',
+    'tide_nostress': 'ns',
+    'sed adv' : 's-adv',
+    'tide' : 'tide'
+}
 
 units = {
     'zeta': 'm',
