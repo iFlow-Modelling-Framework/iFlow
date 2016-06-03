@@ -429,7 +429,7 @@ class Step:
                         sp.plot(*axisData, **l)
                 if len(loopvalues[subplot_number]) > 1 :
                     l = {}
-                    l['label'] = '$T_{tot}$'
+                    l['label'] = 'total'
                     axisData[dataAxisNo] = self.input.v(*subplot_value[:-1])
                     total, = sp.plot(*axisData, **l)
                     plt.setp(total, color='k')
