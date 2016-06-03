@@ -106,8 +106,10 @@ class Step:
                 axisData[dataAxisNo] = self.input.d(*keyListTemp, **d)
                 d.pop('dim')
             axisData[gridAxisNo] = ny.dimensionalAxis(self.input.slice('grid'), axis[gridAxisNo], **d)
-            if kwargs.get('operation'):
+            if kwargs.get('operation') is not np.angle:
                 axisData[dataAxisNo] = kwargs['operation'](axisData[dataAxisNo])
+            else:
+                axisData[dataAxisNo] = -kwargs['operation'](axisData[dataAxisNo]) * 180 / np.pi
 
             conv_grid = cf.conversion.get(axis[gridAxisNo]) or 1.   # convert size of axis depending on conversion factor in config
             conv_data = cf.conversion.get(keyListTemp[0]) or 1.
@@ -189,7 +191,7 @@ class Step:
 
         loopvalues = [None]             # values to loop subplots over
         if subplots == 'sublevel':
-            loopvalues = ny.toList(self.input.getKeysOf(*keyList))
+            loopvalues = ny.toList(self.input.getKeysOf(*keyList)) 
         elif subplots:
             loopvalues = [i for i in ny.toList(kwargs[subplots])]
 
@@ -238,8 +240,10 @@ class Step:
             value = self.input.v(*keyListTemp, **d)
             axis1_dim = ny.dimensionalAxis(self.input.slice('grid'), axis1, **d)
             axis2_dim = ny.dimensionalAxis(self.input.slice('grid'), axis2, **d)
-            if kwargs.get('operation'):
+            if kwargs.get('operation') is not np.angle:
                 value = kwargs['operation'](value)
+            else:
+                value = -kwargs['operation'](value) * 180 / np.pi
 
             conv = cf.conversion.get(axis1) or 1.   # convert size of axis depending on conversion factor in config
             axis1_dim = axis1_dim*conv
@@ -394,11 +398,15 @@ class Step:
             d = {}
             d[axis[gridAxisNo]] = self.input.v('grid', 'axis', axis[gridAxisNo]).reshape(
                 self.input.v('grid', 'maxIndex', axis[gridAxisNo]) + 1)
+            d['z'] = 0.
+            d['f'] = 0.
             # set axes
             axisData = [None] * 2
-            axisData[gridAxisNo] = d['x']
-            conv_grid = cf.conversion.get(
-                axis[gridAxisNo]) or 1.  # convert size of axis depending on conversion factor in config
+            axisData[gridAxisNo] = ny.dimensionalAxis(self.input.slice('grid'), axis[gridAxisNo], **d)
+            if kwargs.get('operation'):
+                axisData[dataAxisNo] = kwargs['operation'](axisData[dataAxisNo])
+            # axisData[gridAxisNo] = d['x']
+            conv_grid = cf.conversion.get(axis[gridAxisNo]) or 1.  # convert size of axis depending on conversion factor in config
             axisData[gridAxisNo] = axisData[gridAxisNo] * conv_grid
             ## plot subplots
             if sublevel:
@@ -421,12 +429,12 @@ class Step:
                         sp.plot(*axisData, **l)
                 if len(loopvalues[subplot_number]) > 1 :
                     l = {}
-                    l['label'] = 'total'
+                    l['label'] = '$T_{tot}$'
                     axisData[dataAxisNo] = self.input.v(*subplot_value[:-1])
                     total, = sp.plot(*axisData, **l)
                     plt.setp(total, color='k')
-                plt.legend(bbox_to_anchor=(1.02, 1), loc=2, borderaxespad=0., fontsize=cf.fontsize2,
-                           labelspacing=0.2, handlelength=0.1, handletextpad=0.4)
+                plt.legend(bbox_to_anchor=(1.02, 0), loc=3, borderaxespad=0., fontsize=cf.fontsize2,
+                           labelspacing=0.1, handlelength=0.1, handletextpad=0.4)
             else:
                 sp = plt.subplot(*(subplotShape+(subplot_number+1,)))
                 if sum(self.input.v(*subplot_values)) != 0:
