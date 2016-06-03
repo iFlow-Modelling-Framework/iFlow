@@ -76,7 +76,7 @@ names = {
 
 transportlabels = {
     'T' : 'T',
-    'TM0' : '$T_{M_0}$',
+    'TM0' : '$T_{res}$',
     'TM2' : '$T_{M_2}$',
     'TM4' : '$T_{M_4}$',
     'Tdiff' : '$T_{diff}$',
