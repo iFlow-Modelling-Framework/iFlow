@@ -57,10 +57,8 @@ class SedDynamic:
         # Allocate space to save results
         d = dict()
         d['c'] = {'M0': {}, 'M2': {}, 'M4': {}}
-        d['hatc'] = {'c00': {}, 'c04': {}, 'c12': {'M0': {},
-                                                   'M4': {},
-                                                   'M2': {}}}
-        d['hatc F'] = {'c12': {'M0': {}, 'M4': {}}}
+        d['hatc a'] = {'c00': {}, 'c04': {}, 'c12': {'M0': {}, 'M4': {}, 'M2': {}}}
+        d['hatc ax'] = {'c12': {'M0': {}, 'M4': {}}}
         d['a'] = {}
         d['T'] = {'TM0': {}, 'TM2': {'TM2M0': {}, 'TM2M4': {}, 'TM2M2': {}}, 'TM4': {}, 'Tdiff': {}, 'Tstokes': {}}
         d['F'] = {'Fdiff': {}, 'Fadv': {'FadvM0': {}, 'FadvM4': {}}}
@@ -86,13 +84,13 @@ class SedDynamic:
                                                                                dummy_u1, w0, zeta0,
                                                                                c00, c00x, c00z, c04, c04x, c04z)
             # save results
-            d['hatc']['c00'][mod0] = c00
-            d['hatc']['c04'][mod0] = c04
-            d['hatc']['c12']['M2'][mod0] = c12M2
-            d['hatc']['c12']['M0']['sed adv'] = c12M0adv_a
-            d['hatc F']['c12']['M0'] = c12M0adv_ax
-            d['hatc']['c12']['M4']['sed adv'] = c12M4adv_a
-            d['hatc F']['c12']['M4'] = c12M4adv_ax
+            d['hatc a']['c00'][mod0] = c00
+            d['hatc a']['c04'][mod0] = c04
+            d['hatc a']['c12']['M2'][mod0] = c12M2
+            d['hatc a']['c12']['M0']['sed adv'] = c12M0adv_a
+            d['hatc ax']['c12']['M0'] = c12M0adv_ax
+            d['hatc a']['c12']['M4']['sed adv'] = c12M4adv_a
+            d['hatc ax']['c12']['M4'] = c12M4adv_ax
             d['T']['Tdiff'][mod0] = np.real(-np.trapz(self.KH * c00x, x=-self.zarr, axis=1))
             d['T']['Tstokes'][mod0] = np.real(2. * (np.conj(u0s) * c00[:, 0].reshape(len(self.x), 1) * zeta0 +
                                             u0s * c00[:, 0].reshape(len(self.x), 1) * np.conj(zeta0)) +
@@ -111,8 +109,8 @@ class SedDynamic:
                 c12M0, c12M4, __, __, __, __, __ = self.concentration_amplitude_first(u0, u1, w0, zeta0, c00, c00x,
                                                                                       c00z, c04, c04x, c04z)
                 # save results
-                d['hatc']['c12']['M0'][mod1] = c12M0
-                d['hatc']['c12']['M4'][mod1] = c12M4
+                d['hatc a']['c12']['M0'][mod1] = c12M0
+                d['hatc a']['c12']['M4'][mod1] = c12M4
                 d['T']['TM0'][mod0 + '_' + mod1] = np.real(np.trapz(u1[:, :, 0] * c00, x=-self.zarr, axis=1))
                 d['T']['TM2']['TM2M0'][mod0 + '_' + mod1] = np.real(np.trapz((u0 * np.conj(c12M0) + np.conj(u0) * c12M0) / 4.,
                                                                  x=-self.zarr, axis=1))
@@ -124,10 +122,11 @@ class SedDynamic:
         dctrans = DataContainer(d)
         # calculate availability
         d['a'] = self.availability(dctrans.v('F'), dctrans.v('T')).reshape(len(self.x), 1)
+        ax = np.gradient(d['a'][:, 0], self.x[1], edge_order=2).reshape(len(self.x), 1)
         # calculate ETM location a * hatc
-        d['c']['M0'] = d['a'] * dctrans.v('hatc', 'c00')
-        d['c']['M2'] = d['a'] * dctrans.v('hatc', 'c12')
-        d['c']['M4'] = d['a'] * dctrans.v('hatc', 'c04')
+        d['c']['M0'] = d['a'] * dctrans.v('hatc a', 'c00')
+        d['c']['M2'] = d['a'] * dctrans.v('hatc a', 'c12') + ax * dctrans.v('hatc ax')
+        d['c']['M4'] = d['a'] * dctrans.v('hatc a', 'c04')
         return d
 
     def concentration_amplitudes_lead(self, u0, component):
