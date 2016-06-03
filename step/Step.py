@@ -106,10 +106,11 @@ class Step:
                 axisData[dataAxisNo] = self.input.d(*keyListTemp, **d)
                 d.pop('dim')
             axisData[gridAxisNo] = ny.dimensionalAxis(self.input.slice('grid'), axis[gridAxisNo], **d)
-            if kwargs.get('operation') is not np.angle:
-                axisData[dataAxisNo] = kwargs['operation'](axisData[dataAxisNo])
-            else:
-                axisData[dataAxisNo] = -kwargs['operation'](axisData[dataAxisNo]) * 180 / np.pi
+            if kwargs.get('operation'):
+                if not np.angle:
+                    axisData[dataAxisNo] = kwargs['operation'](axisData[dataAxisNo])
+                else:
+                    axisData[dataAxisNo] = -kwargs['operation'](axisData[dataAxisNo]) * 180 / np.pi
 
             conv_grid = cf.conversion.get(axis[gridAxisNo]) or 1.   # convert size of axis depending on conversion factor in config
             conv_data = cf.conversion.get(keyListTemp[0]) or 1.
@@ -240,10 +241,11 @@ class Step:
             value = self.input.v(*keyListTemp, **d)
             axis1_dim = ny.dimensionalAxis(self.input.slice('grid'), axis1, **d)
             axis2_dim = ny.dimensionalAxis(self.input.slice('grid'), axis2, **d)
-            if kwargs.get('operation') is not np.angle:
-                value = kwargs['operation'](value)
-            else:
-                value = -kwargs['operation'](value) * 180 / np.pi
+            if kwargs.get('operation'):
+                if not np.angle:
+                    value = kwargs['operation'](value)
+                else:
+                    value = -kwargs['operation'](value) * 180 / np.pi
 
             conv = cf.conversion.get(axis1) or 1.   # convert size of axis depending on conversion factor in config
             axis1_dim = axis1_dim*conv
@@ -404,8 +406,10 @@ class Step:
             axisData = [None] * 2
             axisData[gridAxisNo] = ny.dimensionalAxis(self.input.slice('grid'), axis[gridAxisNo], **d)
             if kwargs.get('operation'):
-                axisData[dataAxisNo] = kwargs['operation'](axisData[dataAxisNo])
-            # axisData[gridAxisNo] = d['x']
+                if not np.angle:
+                    value = kwargs['operation'](value)
+                else:
+                    value = -kwargs['operation'](value) * 180 / np.pi
             conv_grid = cf.conversion.get(axis[gridAxisNo]) or 1.  # convert size of axis depending on conversion factor in config
             axisData[gridAxisNo] = axisData[gridAxisNo] * conv_grid
             ## plot subplots
