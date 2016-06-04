@@ -49,6 +49,9 @@ names = {
     'x': 'x',
     'z': 'z',
     'f': 'f',
+    'H': 'H',
+    '-H': 'H',
+    'B': 'B',
     'baroc': 'Baroclinic',
     'adv': 'Advection',
     'stokes': 'Tidal return flow',
@@ -139,7 +142,10 @@ units = {
     'phase': '$^{\circ}$',
     'R': 'm',
     'T': 'kg/ms',
-    'c': 'mg/l'}
+    'c': 'mg/l',
+    'H': 'm',
+    '-H': 'm',
+    'B': 'm'}
 
 conversion = {
     'x': 1/1000.,

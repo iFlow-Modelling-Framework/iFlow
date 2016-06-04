@@ -107,7 +107,7 @@ class Step:
                 d.pop('dim')
             axisData[gridAxisNo] = ny.dimensionalAxis(self.input.slice('grid'), axis[gridAxisNo], **d)
             if kwargs.get('operation'):
-                if not np.angle:
+                if kwargs.get('operation') is not np.angle:
                     axisData[dataAxisNo] = kwargs['operation'](axisData[dataAxisNo])
                 else:
                     axisData[dataAxisNo] = -kwargs['operation'](axisData[dataAxisNo]) * 180 / np.pi
@@ -242,7 +242,7 @@ class Step:
             axis1_dim = ny.dimensionalAxis(self.input.slice('grid'), axis1, **d)
             axis2_dim = ny.dimensionalAxis(self.input.slice('grid'), axis2, **d)
             if kwargs.get('operation'):
-                if not np.angle:
+                if kwargs.get('operation') is not np.angle:
                     value = kwargs['operation'](value)
                 else:
                     value = -kwargs['operation'](value) * 180 / np.pi
@@ -406,7 +406,7 @@ class Step:
             axisData = [None] * 2
             axisData[gridAxisNo] = ny.dimensionalAxis(self.input.slice('grid'), axis[gridAxisNo], **d)
             if kwargs.get('operation'):
-                if not np.angle:
+                if kwargs.get('operation') is not np.angle:
                     value = kwargs['operation'](value)
                 else:
                     value = -kwargs['operation'](value) * 180 / np.pi
