@@ -44,9 +44,9 @@ def makeCollocatedGridAxis(method, *args):
         grid = (np.exp(steepness*np.linspace(0, 1, nPoints+1))-1.)/(np.exp(steepness)-1.)
 
     if method=='loglin':
-        nPoints = args[0]
-        dzlog = args[1][0]
-        steepness = args[1][1]
+        nPoints = args[0]           # args[0]: number of grid points
+        dzlog = args[1][0]          # args[1]: dimensionless thickness of the logarithmic layer
+        steepness = args[1][1]      # args[2]: steepness (negative results in refinement near upper part of axis)
 
         gamma = abs(steepness)
         dzlog_trans = np.log(dzlog*(np.exp(gamma)-1)+1)/gamma
