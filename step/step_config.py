@@ -34,6 +34,7 @@ names = {
     's1': '$s^1$',
     's2': '$s^2$',
     's3': '$s^3$',
+    'c': 'c',
     'c0': '$c^0$',
     'c1': '$c^1$',
     'c2': '$c^2$',
@@ -48,6 +49,9 @@ names = {
     'x': 'x',
     'z': 'z',
     'f': 'f',
+    'H': 'H',
+    '-H': 'H',
+    'B': 'B',
     'baroc': 'Baroclinic',
     'adv': 'Advection',
     'stokes': 'Tidal return flow',
@@ -56,7 +60,42 @@ names = {
     'river': 'River',
     'nostress': 'No-stress',
     'densitydrift': 'Density-induced return flow',
-    'R': 'R'}
+    'R': 'R',
+    'T': 'T',
+    'tide-baroc': 'Baroclinic',
+    'tide-adv': 'Advection',
+    'tide-stokes': 'Tidal return flow',
+    'tide-tide': 'Tide',
+    'tide-river': 'River',
+    'tide-nostress': 'No-stress',
+    'Tdiff': '$T_{diff}$',
+    'TM0': '$T_{res}$',
+    'TM2': '$T_{M_2}$',
+    'TM4': 'M$_4$ transport',
+    'Tstokes' : '$T_{stokes}$',
+    'TM2M0': '$T_{M_2}^{M_0}$',
+    'TM2M2': '$T_{M_2}^{M_2}$',
+    'TM2M4': '$T_{M_2}^{M_4}$'}
+
+transportlabels = {
+    'T' : 'T',
+    'TM0' : '$T_{res}$',
+    'TM2' : '$T_{M_2}$',
+    'TM4' : '$T_{M_4}$',
+    'Tdiff' : '$T_{diff}$',
+    'Tstokes' : '$T_{stokes}$',
+    'TM2M0' : '$T_{M_2}^{M_0}$',
+    'TM2M2' : '$T_{M_2}^{M_2}$',
+    'TM2M4' : '$T_{M_2}^{M_4}$',
+    'tide_baroc': 'baro',
+    'tide_adv': 'adv',
+    'tide_stokes': 'stokes',
+    'tide_tide': 'tide',
+    'tide_river': 'riv',
+    'tide_nostress': 'ns',
+    'sed adv' : 's-adv',
+    'tide' : 'tide'
+}
 
 units = {
     'zeta': 'm',
@@ -100,9 +139,15 @@ units = {
     'x': 'km',
     'z': 'm',
     'f': '',
-    'phase': '',
-    'R': 'm'}
+    'phase': '$^{\circ}$',
+    'R': 'm',
+    'T': 'kg/ms',
+    'c': 'mg/l',
+    'H': 'm',
+    '-H': 'm',
+    'B': 'm'}
 
 conversion = {
-    'x': 1/1000.
+    'x': 1/1000.,
+    'c': 1000.
 }

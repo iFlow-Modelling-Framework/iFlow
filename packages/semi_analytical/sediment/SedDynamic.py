@@ -40,13 +40,14 @@ class SedDynamic:
         self.dx = self.x[1:]-self.x[:-1]
         kmax = self.input.v('grid', 'maxIndex', 'z')
         self.z = self.input.v('grid', 'axis', 'z', 0, range(0, kmax+1))
-        self.zarr = self.z.reshape(1, len(self.z)) * self.input.v('-H', x=self.x/self.L).reshape(len(self.x), 1)
-        # self.dz = -self.zarr[:, 1]
-        self.dz = -self.zarr[:, 1]
+        self.zarr = self.z.reshape(1, len(self.z)) * (self.input.v('-H', x=self.x/self.L).reshape(len(self.x), 1) +
+                                                      self.input.v('R', x=self.x / self.L).reshape(len(self.x), 1))
         self.Av0 = self.input.v('Av', x=self.x/self.L, z=0, f=0).reshape(len(self.x), 1).reshape(len(self.x), 1)
         self.Av0x = self.input.d('Av', x=self.x/self.L, z=0, f=0, dim='x').reshape(len(self.x), 1)
-        self.H = self.input.v('H', x=self.x/self.L).reshape(len(self.x), 1)
-        self.Hx = self.input.d('H', x=self.x/self.L, dim='x').reshape(len(self.x), 1)
+        self.H = (self.input.v('H', x=self.x/self.L).reshape(len(self.x), 1) +
+                  self.input.v('R', x=self.x/self.L).reshape(len(self.x), 1))
+        self.Hx = (self.input.d('H', x=self.x/self.L, dim='x').reshape(len(self.x), 1) +
+                   self.input.d('R', x=self.x / self.L, dim='x').reshape(len(self.x), 1))
         self.B = self.input.v('B', x=self.x/self.L)
         self.Bx = self.input.d('B', x=self.x/self.L, dim='x').reshape(len(self.x), 1)
         self.sf = self.input.v('Roughness', x=self.x/self.L, f=0).reshape(len(self.x), 1)
@@ -55,13 +56,12 @@ class SedDynamic:
         self.submodules1 = self.input.data['u1'].keys()
         # Allocate space to save results
         d = dict()
-        d['c'] = {}
-        d['hatc'] = {'c00': {}, 'c04': {}, 'c12': {'M0': {'sed adv': {'a': {}, 'ax': {}}},
-                                                   'M4': {'sed adv': {'a': {}, 'ax': {}}},
-                                                   'M2': {}}}
+        d['c'] = {'M0': {}, 'M2': {}, 'M4': {}}
+        d['hatc a'] = {'c00': {}, 'c04': {}, 'c12': {'M0': {}, 'M4': {}, 'M2': {}}}
+        d['hatc ax'] = {'c12': {'M0': {}, 'M4': {}}}
         d['a'] = {}
-        d['T'] = {'M0': {}, 'M2': {'M0': {}, 'M4': {}, 'M2': {}}, 'M4': {}, 'diff': {}, 'stokes': {}}
-        d['F'] = {'diff': {}, 'adv': {'M0': {}, 'M4': {}}}
+        d['T'] = {'TM0': {}, 'TM2': {'TM2M0': {}, 'TM2M4': {}, 'TM2M2': {}}, 'TM4': {}, 'Tdiff': {}, 'Tstokes': {}}
+        d['F'] = {'Fdiff': {}, 'Fadv': {'FadvM0': {}, 'FadvM4': {}}}
         # assign values to the concentration amplitudes and calculate the transport function T and F
         for mod0 in self.submodules0:
             # leading order and first order horizontal velocity
@@ -84,24 +84,24 @@ class SedDynamic:
                                                                                dummy_u1, w0, zeta0,
                                                                                c00, c00x, c00z, c04, c04x, c04z)
             # save results
-            d['hatc']['c00'][mod0] = c00
-            d['hatc']['c04'][mod0] = c04
-            d['hatc']['c12']['M2'][mod0] = c12M2
-            d['hatc']['c12']['M0']['sed adv a'] = c12M0adv_a
-            d['hatc']['c12']['M0']['sed adv ax'] = c12M0adv_ax
-            d['hatc']['c12']['M4']['sed adv a'] = c12M4adv_a
-            d['hatc']['c12']['M4']['sed adv ax'] = c12M4adv_ax
-            d['T']['diff'][mod0] = - np.trapz(self.KH * c00x, x=-self.zarr, axis=1)
-            d['T']['stokes'][mod0] = (2. * (np.conj(u0s) * c00[:, 0].reshape(len(self.x), 1) * zeta0 +
+            d['hatc a']['c00'][mod0] = c00
+            d['hatc a']['c04'][mod0] = c04
+            d['hatc a']['c12']['M2'][mod0] = c12M2
+            d['hatc a']['c12']['M0']['sed adv'] = c12M0adv_a
+            d['hatc ax']['c12']['M0'] = c12M0adv_ax
+            d['hatc a']['c12']['M4']['sed adv'] = c12M4adv_a
+            d['hatc ax']['c12']['M4'] = c12M4adv_ax
+            d['T']['Tdiff'][mod0] = np.real(-np.trapz(self.KH * c00x, x=-self.zarr, axis=1))
+            d['T']['Tstokes'][mod0] = np.real(2. * (np.conj(u0s) * c00[:, 0].reshape(len(self.x), 1) * zeta0 +
                                             u0s * c00[:, 0].reshape(len(self.x), 1) * np.conj(zeta0)) +
                                       u0s * np.conj(c04[:, 0].reshape(len(self.x), 1)) * zeta0 +
                                       np.conj(u0s) * c04[:, 0].reshape(len(self.x), 1) * np.conj(zeta0)).reshape(len(self.x)) / 8.
-            d['T']['M2']['M2'][mod0] = np.trapz((u0 * np.conj(c12M2) + np.conj(u0) * c12M2) / 4., x=-self.zarr, axis=1)
-            d['T']['M2']['M0']['sed adv'] = np.trapz((u0 * np.conj(c12M0adv_a) + np.conj(u0) * c12M0adv_a) / 4., x=-self.zarr, axis=1)
-            d['T']['M2']['M4']['sed adv'] = np.trapz((u0 * np.conj(c12M4adv_a) + np.conj(u0) * c12M4adv_a) / 4., x=-self.zarr, axis=1)
-            d['F']['diff'][mod0] = - np.trapz(self.KH * c00, x=-self.zarr, axis=1)
-            d['F']['adv']['M0'][mod0] = np.trapz((u0 * np.conj(c12M0adv_ax) + np.conj(u0) * c12M0adv_ax) / 4., x=-self.zarr, axis=1)
-            d['F']['adv']['M4'][mod0] = np.trapz((u0 * np.conj(c12M4adv_ax) + np.conj(u0) * c12M4adv_ax) / 4., x=-self.zarr, axis=1)
+            d['T']['TM2']['TM2M2'][mod0] = np.real(np.trapz((u0 * np.conj(c12M2) + np.conj(u0) * c12M2) / 4., x=-self.zarr, axis=1))
+            d['T']['TM2']['TM2M0']['sed adv'] = np.real(np.trapz((u0 * np.conj(c12M0adv_a) + np.conj(u0) * c12M0adv_a) / 4., x=-self.zarr, axis=1))
+            d['T']['TM2']['TM2M4']['sed adv'] = np.real(np.trapz((u0 * np.conj(c12M4adv_a) + np.conj(u0) * c12M4adv_a) / 4., x=-self.zarr, axis=1))
+            d['F']['Fdiff'][mod0] = np.real(-np.trapz(self.KH * c00, x=-self.zarr, axis=1))
+            d['F']['Fadv']['FadvM0'][mod0] = np.real(np.trapz((u0 * np.conj(c12M0adv_ax) + np.conj(u0) * c12M0adv_ax) / 4., x=-self.zarr, axis=1))
+            d['F']['Fadv']['FadvM4'][mod0] = np.real(np.trapz((u0 * np.conj(c12M4adv_ax) + np.conj(u0) * c12M4adv_ax) / 4., x=-self.zarr, axis=1))
             for mod1 in self.submodules1:
                 # first order horizontal velocity
                 u1 = self.input.v('u1', mod1, range(0, len(self.x)), range(0, len(self.z)), range(0, 3))
@@ -109,21 +109,24 @@ class SedDynamic:
                 c12M0, c12M4, __, __, __, __, __ = self.concentration_amplitude_first(u0, u1, w0, zeta0, c00, c00x,
                                                                                       c00z, c04, c04x, c04z)
                 # save results
-                d['hatc']['c12']['M0'][mod1] = c12M0
-                d['hatc']['c12']['M4'][mod1] = c12M4
-                d['T']['M0'][mod0 + '_' + mod1] = np.trapz(u1[:, :, 0] * c00, x=-self.zarr, axis=1)
-                d['T']['M2']['M0'][mod0 + '_' + mod1] = np.trapz((u0 * np.conj(c12M0) + np.conj(u0) * c12M0) / 4.,
-                                                                 x=-self.zarr, axis=1)
-                d['T']['M2']['M4'][mod0 + '_' + mod1] = np.trapz((u0 * np.conj(c12M4) + np.conj(u0) * c12M4) / 4.,
-                                                                 x=-self.zarr, axis=1)
-                d['T']['M4'][mod0 + '_' + mod1] = np.trapz((u1[:, :, 2] * np.conj(c04) +
-                                                            np.conj(u1[:, :, 2]) * c04) / 4., x=-self.zarr, axis=1)
+                d['hatc a']['c12']['M0'][mod1] = c12M0
+                d['hatc a']['c12']['M4'][mod1] = c12M4
+                d['T']['TM0'][mod0 + '_' + mod1] = np.real(np.trapz(u1[:, :, 0] * c00, x=-self.zarr, axis=1))
+                d['T']['TM2']['TM2M0'][mod0 + '_' + mod1] = np.real(np.trapz((u0 * np.conj(c12M0) + np.conj(u0) * c12M0) / 4.,
+                                                                 x=-self.zarr, axis=1))
+                d['T']['TM2']['TM2M4'][mod0 + '_' + mod1] = np.real(np.trapz((u0 * np.conj(c12M4) + np.conj(u0) * c12M4) / 4.,
+                                                                 x=-self.zarr, axis=1))
+                d['T']['TM4'][mod0 + '_' + mod1] = np.real(np.trapz((u1[:, :, 2] * np.conj(c04) +
+                                                            np.conj(u1[:, :, 2]) * c04) / 4., x=-self.zarr, axis=1))
         # place results in datacontainer
         dctrans = DataContainer(d)
         # calculate availability
         d['a'] = self.availability(dctrans.v('F'), dctrans.v('T')).reshape(len(self.x), 1)
-        # calculate concentration
-        d['c'] = d['a'] * dctrans.v('hatc')
+        ax = np.gradient(d['a'][:, 0], self.x[1], edge_order=2).reshape(len(self.x), 1)
+        # calculate ETM location a * hatc
+        d['c']['M0'] = d['a'] * dctrans.v('hatc a', 'c00')
+        d['c']['M2'] = d['a'] * dctrans.v('hatc a', 'c12') + ax * dctrans.v('hatc ax')
+        d['c']['M4'] = d['a'] * dctrans.v('hatc a', 'c04')
         return d
 
     def concentration_amplitudes_lead(self, u0, component):
