@@ -114,12 +114,10 @@ class FunctionBase:
     def negfunction(self, **kwargs):
         """Same as function, but then provides a reference to -1* the value of the function
         """
-        returnval = self.negfunction
-
-        requestSize = sum([dim in kwargs for dim in self.dimNames])  # count the number of dimensions in kwargs (this makes sure that other parameters or irrelevant dimensions are ignored)
-        if requestSize >= len(self.dimNames):
-            kwargs['operation']='n'
-            returnval = self.function(**kwargs)
+        try:
+            returnval = -self.function(**kwargs)
+        except:
+            returnval = self.negfunction
         return returnval
 
     def returnNegative(self, *args, **kwargs):
