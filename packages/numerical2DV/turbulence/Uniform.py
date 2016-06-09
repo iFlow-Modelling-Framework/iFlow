@@ -35,7 +35,7 @@ class Uniform:
         dataRough = self.input.slice('grid')
         dataRough.addData('coef', sf0)
 
-        sf = UniformXF(['x', 'f'], dataRough , self.input.v('n'))
+        sf = UniformXF(['x', 'f'], dataRough, self.input.v('n'))
         Av = UniformXF(['x', 'f'], data, self.input.v('m'))
 
         # prepare output
