@@ -57,7 +57,7 @@ class SedDynamic:
         # Allocate space to save results
         d = dict()
         d['c'] = {'M0': {}, 'M2': {}, 'M4': {}}
-        d['hatc a'] = {'c00': {}, 'c04': {}, 'c12': {'M0': {}, 'M4': {}, 'M2': {}}}
+        d['hatc a'] = {'c00': {}, 'c04': {}, 'c12': {'M0': {}, 'M4': {}, 'M2': {}}, 'c20': {}}
         d['hatc ax'] = {'c12': {'M0': {}, 'M4': {}}}
         d['a'] = {}
         d['T'] = {'TM0': {}, 'TM2': {'TM2M0': {}, 'TM2M4': {}, 'TM2M2': {}}, 'TM4': {}, 'Tdiff': {}, 'Tstokes': {}}
@@ -77,7 +77,7 @@ class SedDynamic:
             # leading order water level
             zeta0 = self.input.v('zeta0', mod0, range(0, len(self.x)), 0, 1).reshape(len(self.x), 1)
             # extract leading order concentration amplitudes due M0 and M4 tide
-            c00, c00x, c00z, c04, c04x, c04z = self.concentration_amplitudes_lead(u0, mod0)
+            c00, c00x, c00z, c04, c04x, c04z, c20 = self.concentration_amplitudes_lead(u0, mod0)
             # extract first order concentration amplitude due to the surface boundary condition
             dummy_u1 = np.resize(u0, (len(self.x), len(self.z), 3))
             __, __, c12M2, c12M0adv_a, c12M4adv_a, c12M0adv_ax, c12M4adv_ax = self.concentration_amplitude_first(u0,
@@ -86,11 +86,15 @@ class SedDynamic:
             # save results
             d['hatc a']['c00'][mod0] = c00
             d['hatc a']['c04'][mod0] = c04
+            d['hatc a']['c20'][mod0] = c20
             d['hatc a']['c12']['M2'][mod0] = c12M2
             d['hatc a']['c12']['M0']['sed adv'] = c12M0adv_a
             d['hatc ax']['c12']['M0'] = c12M0adv_ax
             d['hatc a']['c12']['M4']['sed adv'] = c12M4adv_a
             d['hatc ax']['c12']['M4'] = c12M4adv_ax
+            # Calcuate the river-river interaction when river actually is a leading order contributor
+            uriver = self.input.v('u1', 'river', range(0, len(self.x)), range(0, len(self.z)), 0)
+            d['T']['TM0']['river_river'] = np.real(np.trapz(uriver * c20, x=-self.zarr, axis=1))
             d['T']['Tdiff'][mod0] = np.real(-np.trapz(self.KH * c00x, x=-self.zarr, axis=1))
             d['T']['Tstokes'][mod0] = np.real(2. * (np.conj(u0s) * c00[:, 0].reshape(len(self.x), 1) * zeta0 +
                                             u0s * c00[:, 0].reshape(len(self.x), 1) * np.conj(zeta0)) +
@@ -157,7 +161,21 @@ class SedDynamic:
         c00x[-1, :] = (0.5 * c00[-3, :] - 2 * c00[-2, :]) / (self.x[-1]-self.x[-2])
         c00z = -self.WS * c00 / self.Av0
 
-        #M4 contribution
+        # Make time series of total velocity signal to extract residual velocities at the bottom due to order epsilon terms
+        u1b = self.input.v('u1', range(0, len(self.x)), len(self.z)-1, range(0, 3))
+        T = np.linspace(0, 2*np.pi, 100)
+        u = np.zeros((len(self.x), len(T))).astype('complex')
+        M4flag = 0.
+        for i, t in enumerate(T):
+            u[:, i] = u1b[:, 0] + 0.5 * (u0[:, -1] * np.exp(1j*t) + np.conj(u0[:, -1]) * np.exp(-1j*t) +
+                                         M4flag * (u1b[:, 2] * np.exp(2*1j*t) + np.conj(u1b[:, 2]) * np.exp(-2*1j*t)))
+        uabs_tot = np.mean(np.abs(u), axis=1)
+        uabs_eps = uabs_tot.reshape(len(self.x), 1) - uabs_M0
+        c20 = ((self.RHOS / (self.GPRIME * self.DS)) * self.sf * uabs_eps *
+               np.exp(-self.WS * (self.H + self.zarr) / self.Av0))
+
+
+        # M4 contribution
         uabs_M4 = absoluteU(u0b, 2)
         lambda_M4 = np.sqrt(self.WS**2 + 8 * 1j * self.SIGMA * self.Av0)
         r1_M4 = (lambda_M4 - self.WS) / (2 * self.Av0)
@@ -168,7 +186,7 @@ class SedDynamic:
         c04 = (A1 * np.exp(r1_M4 * self.zarr) + A2 * np.exp(r2_M4 * self.zarr))
         c04x, __ = np.gradient(c04, self.x[1], edge_order=2)
         c04z = (A1 * r1_M4 * np.exp(r1_M4 * self.zarr) + A2 * r2_M4 * np.exp(r2_M4 * self.zarr))
-        return c00, c00x, c00z, c04, c04x, c04z
+        return c00, c00x, c00z, c04, c04x, c04z, c20
 
     def concentration_amplitude_first(self, u0, u1, w0, zeta0, c00, c00x, c00z, c04, c04x, c04z):
         """Calculates the amplitudes of the concentration for each tidal component at first order
