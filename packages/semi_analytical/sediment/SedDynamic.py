@@ -92,9 +92,6 @@ class SedDynamic:
             d['hatc ax']['c12']['M0'] = c12M0adv_ax
             d['hatc a']['c12']['M4']['sed adv'] = c12M4adv_a
             d['hatc ax']['c12']['M4'] = c12M4adv_ax
-            # Calcuate the river-river interaction when river actually is a leading order contributor
-            uriver = self.input.v('u1', 'river', range(0, len(self.x)), range(0, len(self.z)), 0)
-            d['T']['TM0']['river_river'] = np.real(np.trapz(uriver * c20, x=-self.zarr, axis=1))
             d['T']['Tdiff'][mod0] = np.real(-np.trapz(self.KH * c00x, x=-self.zarr, axis=1))
             d['T']['Tstokes'][mod0] = np.real(2. * (np.conj(u0s) * c00[:, 0].reshape(len(self.x), 1) * zeta0 +
                                             u0s * c00[:, 0].reshape(len(self.x), 1) * np.conj(zeta0)) +
@@ -122,13 +119,20 @@ class SedDynamic:
                                                                  x=-self.zarr, axis=1))
                 d['T']['TM4'][mod0 + '_' + mod1] = np.real(np.trapz((u1[:, :, 2] * np.conj(c04) +
                                                             np.conj(u1[:, :, 2]) * c04) / 4., x=-self.zarr, axis=1))
+        # Calcuate the river-river interaction when river actually is a leading order contributor
+        uriver = self.input.v('u1', 'river', range(0, len(self.x)), range(0, len(self.z)), 0)
+        if not d['T']['TM0']['river_river']:
+            d['T']['TM0']['river_river'] = np.real(np.trapz(uriver * c20, x=-self.zarr, axis=1))
+        else:
+            d['T']['TM0']['river_river'] += np.real(np.trapz(uriver * c20, x=-self.zarr, axis=1))
+
         # place results in datacontainer
         dctrans = DataContainer(d)
         # calculate availability
         d['a'] = self.availability(dctrans.v('F'), dctrans.v('T')).reshape(len(self.x), 1)
         ax = np.gradient(d['a'][:, 0], self.x[1], edge_order=2).reshape(len(self.x), 1)
-        # calculate ETM location a * hatc
-        d['c']['M0'] = d['a'] * dctrans.v('hatc a', 'c00')
+        # calculate concentrations for each tidal component a * hatc
+        d['c']['M0'] = d['a'] * dctrans.v('hatc a', 'c00') + d['a'] * dctrans.v('hatc a', 'c20')
         d['c']['M2'] = d['a'] * dctrans.v('hatc a', 'c12') + ax * dctrans.v('hatc ax')
         d['c']['M4'] = d['a'] * dctrans.v('hatc a', 'c04')
         return d
@@ -162,15 +166,16 @@ class SedDynamic:
         c00z = -self.WS * c00 / self.Av0
 
         # Make time series of total velocity signal to extract residual velocities at the bottom due to order epsilon terms
-        u1b = self.input.v('u1', range(0, len(self.x)), len(self.z)-1, range(0, 3))
+        u1b = self.input.v('u1', 'river', range(0, len(self.x)), len(self.z)-1, 0)
         T = np.linspace(0, 2*np.pi, 100)
-        u = np.zeros((len(self.x), len(T))).astype('complex')
-        M4flag = 0.
+        utid = np.zeros((len(self.x), len(T))).astype('complex')
+        ucomb = np.zeros((len(self.x), len(T))).astype('complex')
         for i, t in enumerate(T):
-            u[:, i] = u1b[:, 0] + 0.5 * (u0[:, -1] * np.exp(1j*t) + np.conj(u0[:, -1]) * np.exp(-1j*t) +
-                                         M4flag * (u1b[:, 2] * np.exp(2*1j*t) + np.conj(u1b[:, 2]) * np.exp(-2*1j*t)))
-        uabs_tot = np.mean(np.abs(u), axis=1)
-        uabs_eps = uabs_tot.reshape(len(self.x), 1) - uabs_M0
+            utid[:, i] = 0.5 * (u0[:, -1] * np.exp(1j*t) + np.conj(u0[:, -1]) * np.exp(-1j*t))                      # YMD
+            ucomb[:, i] = u1b + 0.5 * (u0[:, -1] * np.exp(1j*t) + np.conj(u0[:, -1]) * np.exp(-1j*t))
+        uabs_tid = np.mean(np.abs(utid), axis=1)
+        uabs_tot = np.mean(np.abs(ucomb), axis=1)
+        uabs_eps = uabs_tot.reshape(len(self.x), 1) - uabs_tid.reshape(len(self.x), 1)
         c20 = ((self.RHOS / (self.GPRIME * self.DS)) * self.sf * uabs_eps *
                np.exp(-self.WS * (self.H + self.zarr) / self.Av0))
 
@@ -247,11 +252,7 @@ class SedDynamic:
         # Define variables
         var1 = self.WS + self.Av0 * r1_M2
         var2 = self.WS + self.Av0 * r2_M2
-        # B1M2 = -1j * self.SIGMA * np.conj(zeta0) * c04s / (self.WS * (1. - r1_M2 * np.exp((r2_M2 - r1_M2) * self.H) / r2_M2) +
-        #                                                    self.Av0 * r1_M2 * (1. - np.exp((r2_M2 - r1_M2) * self.H)))
         B1M2 = -1j * self.SIGMA * np.conj(zeta0) * c04s / (var1 - (r1_M2 / r2_M2) * var2 * np.exp((r2_M2 - r1_M2) * self.H))
-        # B2M2 = 1j * self.SIGMA * np.conj(zeta0) * c04s / (self.WS * (r2_M2 * np.exp((r1_M2 - r2_M2) * self.H) / r1_M2 - 1.) +
-        #                                                   self.Av0 * r2_M2 * (np.exp((r1_M2 - r2_M2) * self.H) - 1.))
         B2M2 = -1j * self.SIGMA * np.conj(zeta0) * c04s / (var2 - (r2_M2 / r1_M2) * var1 * np.exp((r1_M2 - r2_M2) * self.H))
         # Calculate the amplitude of the first order M2 contribution of the sediment concentration due to the surface
         # boundary condition

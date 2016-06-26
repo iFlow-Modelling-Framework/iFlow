@@ -2,7 +2,7 @@
 Step
 
 Date: 06-Nov-15
-Authors: Y.M. Dijkstra
+Authors: Y.M. Dijkstra, R.L. Brouwer
 """
 import matplotlib as mpl
 import numpy as np
