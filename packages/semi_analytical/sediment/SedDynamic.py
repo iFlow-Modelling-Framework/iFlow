@@ -119,9 +119,9 @@ class SedDynamic:
                                                                  x=-self.zarr, axis=1))
                 d['T']['TM4'][mod0 + '_' + mod1] = np.real(np.trapz((u1[:, :, 2] * np.conj(c04) +
                                                             np.conj(u1[:, :, 2]) * c04) / 4., x=-self.zarr, axis=1))
-        # Calcuate the river-river interaction when river actually is a leading order contributor
+        # Calculate the river-river interaction when river actually is a leading order contributor
         uriver = self.input.v('u1', 'river', range(0, len(self.x)), range(0, len(self.z)), 0)
-        if not d['T']['TM0']['river_river']:
+        if not 'river_river' in d['T']['TM0']:
             d['T']['TM0']['river_river'] = np.real(np.trapz(uriver * c20, x=-self.zarr, axis=1))
         else:
             d['T']['TM0']['river_river'] += np.real(np.trapz(uriver * c20, x=-self.zarr, axis=1))
