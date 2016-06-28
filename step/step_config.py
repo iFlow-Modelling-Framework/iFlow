@@ -61,16 +61,16 @@ names = {
     'nostress': 'No-stress',
     'densitydrift': 'Density-induced return flow',
     'R': 'R',
-    'T': 'T',
+    'T': 'Total transport',
     'tide-baroc': 'Baroclinic',
     'tide-adv': 'Advection',
     'tide-stokes': 'Tidal return flow',
     'tide-tide': 'Tide',
     'tide-river': 'River',
     'tide-nostress': 'No-stress',
-    'Tdiff': '$T_{diff}$',
-    'TM0': '$T_{res}$',
-    'TM2': '$T_{M_2}$',
+    'Tdiff': 'Diff. transport',
+    'TM0': 'Res. transport',
+    'TM2': 'M$_2$ transport',
     'TM4': 'M$_4$ transport',
     'Tstokes' : '$T_{stokes}$',
     'TM2M0': '$T_{M_2}^{M_0}$',
@@ -93,8 +93,9 @@ transportlabels = {
     'tide_tide': 'tide',
     'tide_river': 'riv',
     'tide_nostress': 'ns',
-    'sed adv' : 's-adv',
-    'tide' : 'tide'
+    'river_river': 'riv-riv',
+    'sed adv': 's-adv',
+    'tide': 'tide'
 }
 
 units = {
