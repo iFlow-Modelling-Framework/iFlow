@@ -360,11 +360,16 @@ class Step:
                     for key in self.input.getKeysOf('T', 'TM2', loopvar):
                         tempList.append(['T', 'TM2', loopvar, key])
                     loopvalues[i] = tempList
+                elif loopvar == 'TM0stokes':
+                    tempList = []
+                    for key in self.input.getKeysOf('T', 'TM0', loopvar):
+                        tempList.append(['T', 'TM0', loopvar, key])
+                    loopvalues[i] = tempList
                 else:
-                        tempList = []
-                        for key in self.input.getKeysOf('T', loopvar):
-                            tempList.append(['T', loopvar, key])
-                        loopvalues[i] = tempList
+                    tempList = []
+                    for key in self.input.getKeysOf('T', loopvar):
+                        tempList.append(['T', loopvar, key])
+                    loopvalues[i] = tempList
             else:
                 if loopvar == 'T':
                     loopvalues[i] = loopvar

@@ -60,10 +60,12 @@ class SedDynamic:
         d['hatc a'] = {'c00': {}, 'c04': {}, 'c12': {'M0': {}, 'M4': {}, 'M2': {}}, 'c20': {}}
         d['hatc ax'] = {'c12': {'M0': {}, 'M4': {}}}
         d['a'] = {}
-        d['T'] = {'TM0': {}, 'TM2': {'TM2M0': {}, 'TM2M4': {}, 'TM2M2': {}}, 'TM4': {}, 'Tdiff': {}, 'Tstokes': {}}
+        # d['T'] = {'TM0': {}, 'TM2': {'TM2M0': {}, 'TM2M4': {}, 'TM2M2': {}}, 'TM4': {}, 'Tdiff': {}, 'Tstokes': {}}
+        d['T'] = {'TM0': {'TM0stokes': {}}, 'TM2': {'TM2M0': {}, 'TM2M4': {}, 'TM2M2': {}}, 'TM4': {}, 'Tdiff': {}}
         d['F'] = {'Fdiff': {}, 'Fadv': {'FadvM0': {}, 'FadvM4': {}}}
         # assign values to the concentration amplitudes and calculate the transport function T and F
-        for mod0 in self.submodules0:
+        # for mod0 in self.submodules0:
+        for mod0 in ['tide']:
             # leading order and first order horizontal velocity
             u0 = self.input.v('u0', mod0, range(0, len(self.x)), range(0, len(self.z)), 1)
             w0 = self.input.v('w0', mod0, range(0, len(self.x)), range(0, len(self.z)), 1)
@@ -92,11 +94,15 @@ class SedDynamic:
             d['hatc ax']['c12']['M0'] = c12M0adv_ax
             d['hatc a']['c12']['M4']['sed adv'] = c12M4adv_a
             d['hatc ax']['c12']['M4'] = c12M4adv_ax
-            d['T']['Tdiff'][mod0] = np.real(-np.trapz(self.KH * c00x, x=-self.zarr, axis=1))
-            d['T']['Tstokes'][mod0] = np.real(2. * (np.conj(u0s) * c00[:, 0].reshape(len(self.x), 1) * zeta0 +
-                                            u0s * c00[:, 0].reshape(len(self.x), 1) * np.conj(zeta0)) +
-                                      u0s * np.conj(c04[:, 0].reshape(len(self.x), 1)) * zeta0 +
-                                      np.conj(u0s) * c04[:, 0].reshape(len(self.x), 1) * np.conj(zeta0)).reshape(len(self.x)) / 8.
+            d['T']['Tdiff']['art'] = np.real(-np.trapz(self.KH * c00x, x=-self.zarr, axis=1))
+            # d['T']['Tstokes'][mod0] = np.real(2. * (np.conj(u0s) * c00[:, 0].reshape(len(self.x), 1) * zeta0 +
+            #                                 u0s * c00[:, 0].reshape(len(self.x), 1) * np.conj(zeta0)) +
+            #                           u0s * np.conj(c04[:, 0].reshape(len(self.x), 1)) * zeta0 +
+            #                           np.conj(u0s) * c04[:, 0].reshape(len(self.x), 1) * np.conj(zeta0)).reshape(len(self.x)) / 8.
+            d['T']['TM0']['TM0stokes']['return'] = np.real(2. * (np.conj(u0s) * c00[:, 0].reshape(len(self.x), 1) * zeta0 +
+                                                    u0s * c00[:, 0].reshape(len(self.x), 1) * np.conj(zeta0)) +
+                                              u0s * np.conj(c04[:, 0].reshape(len(self.x), 1)) * zeta0 +
+                                              np.conj(u0s) * c04[:, 0].reshape(len(self.x), 1) * np.conj(zeta0)).reshape(len(self.x)) / 8.
             d['T']['TM2']['TM2M2'][mod0] = np.real(np.trapz((u0 * np.conj(c12M2) + np.conj(u0) * c12M2) / 4., x=-self.zarr, axis=1))
             d['T']['TM2']['TM2M0']['sed adv'] = np.real(np.trapz((u0 * np.conj(c12M0adv_a) + np.conj(u0) * c12M0adv_a) / 4., x=-self.zarr, axis=1))
             d['T']['TM2']['TM2M4']['sed adv'] = np.real(np.trapz((u0 * np.conj(c12M4adv_a) + np.conj(u0) * c12M4adv_a) / 4., x=-self.zarr, axis=1))
@@ -112,7 +118,10 @@ class SedDynamic:
                 # save results
                 d['hatc a']['c12']['M0'][mod1] = c12M0
                 d['hatc a']['c12']['M4'][mod1] = c12M4
-                d['T']['TM0'][mod0 + '_' + mod1] = np.real(np.trapz(u1[:, :, 0] * c00, x=-self.zarr, axis=1))
+                if mod1 == 'stokes':
+                    d['T']['TM0']['TM0stokes']['drift'] = np.real(np.trapz(u1[:, :, 0] * c00, x=-self.zarr, axis=1))
+                else:
+                    d['T']['TM0'][mod0 + '_' + mod1] = np.real(np.trapz(u1[:, :, 0] * c00, x=-self.zarr, axis=1))
                 d['T']['TM2']['TM2M0'][mod0 + '_' + mod1] = np.real(np.trapz((u0 * np.conj(c12M0) + np.conj(u0) * c12M0) / 4.,
                                                                  x=-self.zarr, axis=1))
                 d['T']['TM2']['TM2M4'][mod0 + '_' + mod1] = np.real(np.trapz((u0 * np.conj(c12M4) + np.conj(u0) * c12M4) / 4.,
@@ -120,17 +129,21 @@ class SedDynamic:
                 d['T']['TM4'][mod0 + '_' + mod1] = np.real(np.trapz((u1[:, :, 2] * np.conj(c04) +
                                                             np.conj(u1[:, :, 2]) * c04) / 4., x=-self.zarr, axis=1))
         # Calculate the river-river interaction when river actually is a leading order contributor
-        uriver = self.input.v('u1', 'river', range(0, len(self.x)), range(0, len(self.z)), 0)
-        if not 'river_river' in d['T']['TM0']:
+        if self.input.v('u1', 'river'):
+            uriver = self.input.v('u1', 'river', range(0, len(self.x)), range(0, len(self.z)), 0)
             d['T']['TM0']['river_river'] = np.real(np.trapz(uriver * c20, x=-self.zarr, axis=1))
-        else:
-            d['T']['TM0']['river_river'] += np.real(np.trapz(uriver * c20, x=-self.zarr, axis=1))
+            # if not 'river_river' in d['T']['TM0']:
+            #     d['T']['TM0']['river_river'] = np.real(np.trapz(uriver * c20, x=-self.zarr, axis=1))
+            # else:
+            #     d['T']['TM0']['river_river'] += np.real(np.trapz(uriver * c20, x=-self.zarr, axis=1))
 
         # place results in datacontainer
         dctrans = DataContainer(d)
         # calculate availability
         d['a'] = self.availability(dctrans.v('F'), dctrans.v('T')).reshape(len(self.x), 1)
         ax = np.gradient(d['a'][:, 0], self.x[1], edge_order=2).reshape(len(self.x), 1)
+        # add spatial settling lag diffusive transport to transport function Tdiff_eff
+        # d['T']['Tdiff']['ssl'] = dctrans.v('F', 'Fadv').reshape(len(self.x), 1) * ax / d['a']
         # calculate concentrations for each tidal component a * hatc
         d['c']['M0'] = d['a'] * dctrans.v('hatc a', 'c00') + d['a'] * dctrans.v('hatc a', 'c20')
         d['c']['M2'] = d['a'] * dctrans.v('hatc a', 'c12') + ax * dctrans.v('hatc ax')
@@ -166,18 +179,21 @@ class SedDynamic:
         c00z = -self.WS * c00 / self.Av0
 
         # Make time series of total velocity signal to extract residual velocities at the bottom due to order epsilon terms
-        u1b = self.input.v('u1', 'river', range(0, len(self.x)), len(self.z)-1, 0)
-        T = np.linspace(0, 2*np.pi, 100)
-        utid = np.zeros((len(self.x), len(T))).astype('complex')
-        ucomb = np.zeros((len(self.x), len(T))).astype('complex')
-        for i, t in enumerate(T):
-            utid[:, i] = 0.5 * (u0[:, -1] * np.exp(1j*t) + np.conj(u0[:, -1]) * np.exp(-1j*t))                      # YMD
-            ucomb[:, i] = u1b + 0.5 * (u0[:, -1] * np.exp(1j*t) + np.conj(u0[:, -1]) * np.exp(-1j*t))
-        uabs_tid = np.mean(np.abs(utid), axis=1)
-        uabs_tot = np.mean(np.abs(ucomb), axis=1)
-        uabs_eps = uabs_tot.reshape(len(self.x), 1) - uabs_tid.reshape(len(self.x), 1)
-        c20 = ((self.RHOS / (self.GPRIME * self.DS)) * self.sf * uabs_eps *
+        if self.input.v('u1', 'river'):
+            u1b = self.input.v('u1', 'river', range(0, len(self.x)), len(self.z)-1, 0)
+            T = np.linspace(0, 2*np.pi, 100)
+            utid = np.zeros((len(self.x), len(T))).astype('complex')
+            ucomb = np.zeros((len(self.x), len(T))).astype('complex')
+            for i, t in enumerate(T):
+                utid[:, i] = 0.5 * (u0[:, -1] * np.exp(1j*t) + np.conj(u0[:, -1]) * np.exp(-1j*t))                      # YMD
+                ucomb[:, i] = u1b + 0.5 * (u0[:, -1] * np.exp(1j*t) + np.conj(u0[:, -1]) * np.exp(-1j*t))
+            uabs_tid = np.mean(np.abs(utid), axis=1)
+            uabs_tot = np.mean(np.abs(ucomb), axis=1)
+            uabs_eps = uabs_tot.reshape(len(self.x), 1) - uabs_tid.reshape(len(self.x), 1)
+            c20 = ((self.RHOS / (self.GPRIME * self.DS)) * self.sf * uabs_eps *
                np.exp(-self.WS * (self.H + self.zarr) / self.Av0))
+        else:
+            c20 = np.zeros(self.zarr.shape)
 
 
         # M4 contribution
