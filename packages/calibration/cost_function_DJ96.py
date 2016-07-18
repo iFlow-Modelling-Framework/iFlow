@@ -21,6 +21,8 @@ def cost_function_DJ96(x, zeta_obs, zeta_mod,):
     dzeta = np.abs(zeta_mod)-np.abs(zeta_obs)
     dphi = np.angle(zeta_mod)-np.angle(zeta_obs)
     weights = x[2:]-x[:-2]
+    weights[0] = (x[2]-x[1])*2.     # make sure that the first and last points on the edge are not over-weighed
+    weights[-1] = (x[-2]-x[-3])*2.
     weights = weights/sum(weights)
 
     return np.sum(weights*(np.sqrt( (dzeta)**2.+2.*np.abs(zeta_mod)*np.abs(zeta_obs)*(1.-np.cos(dphi)) )))/len(weights)

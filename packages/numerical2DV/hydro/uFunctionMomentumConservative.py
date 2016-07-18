@@ -25,7 +25,8 @@ def uFunctionMomentumConservative(Av, F, Fsurf, Fbed, data, hasMatrix = False):
             bandwidth = max(bandwidth, n)
 
     if bottomBC == 'PartialSlip':
-        Sf = sfMat(data.v('Roughness', range(0, jmax+1), 0, range(0, fmax+1)))
+        sf = data.v('Roughness', range(0, jmax+1), 0, range(0, fmax+1))
+        Sf = sfMat(sf)
         SfInv = sfMat(data.v('Roughness', range(0, jmax+1), 0, range(0, fmax+1)), True)
 
         # set new bandwidth. This is determined by cf*U*N. However in the code this product is truncated to

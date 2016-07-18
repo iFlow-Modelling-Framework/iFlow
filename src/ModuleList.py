@@ -140,15 +140,16 @@ class ModuleList:
                 if outputModule:
                     outputModule = outputModule[0]
                     outputIterationModule = outputModule.outputIterationModule                              # find with which module the output iterates or None if non-iterative
-                    iterStartModuleName = [mod.getName() for i, mod in enumerate(self.callStack[0]) if (self.callStack[2][i]=='start' and self.callStack[1][i]==iterationNo)][0]    # find the module that started the current iteration loop
-                    if outputIterationModule and outputIterationModule == iterStartModuleName:              # if output iterates with current iterative module, add output module and remove from unplaced list
-                        self.callStack[0].append(outputModule)
-                        self.callStack[1].append(iterationNo)
-                        self.callStack[2].append('')
-                        try:
-                            unplacedList.remove(outputModule)
-                        except Exception as e:
-                            raise KnownError('Output module is supposed to iterate with module %s, which is not used.' % outputIterationModule, e)
+                    iterStartModuleName_list = [mod.getName() for i, mod in enumerate(self.callStack[0]) if (self.callStack[2][i]=='start' and self.callStack[1][i]==iterationNo)]    # find the module(s) that started the current iteration loop
+                    for iterStartModuleName in iterStartModuleName_list:
+                        if outputIterationModule and outputIterationModule == iterStartModuleName:              # if output iterates with current iterative module, add output module and remove from unplaced list
+                            self.callStack[0].append(outputModule)
+                            self.callStack[1].append(iterationNo)
+                            self.callStack[2].append('')
+                            try:
+                                unplacedList.remove(outputModule)
+                            except Exception as e:
+                                raise KnownError('Output module is supposed to iterate with module %s, which is not used.' % outputIterationModule, e)
 
                 # set iteration level back by 1
                 iterationReqList.pop(iterationNo)

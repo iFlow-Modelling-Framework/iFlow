@@ -97,7 +97,7 @@ class Output:
             saveAnalytical = outputVariables
         if 'all' in dontConvert:
             dontConvert = outputVariables
-        self.__convertData(saveData, grid, outputgrid, saveAnalytical, dontConvert)
+        self._convertData(saveData, grid, outputgrid, saveAnalytical, dontConvert)
 
         # rename the outputgrid to grid and replace the original grid in saveData
         saveData.addData('grid', saveData.data[self.outputgridName])
@@ -145,7 +145,7 @@ class Output:
                     reqKeys.append((var,submod))
         return reqKeys
 
-    def __convertData(self, saveData, grid, outputgrid, saveAnalytical, dontConvert, convertGrid = False):
+    def _convertData(self, saveData, grid, outputgrid, saveAnalytical, dontConvert, convertGrid = False):
         """
         """
         # merge grids into one DC
@@ -167,7 +167,7 @@ class Output:
                 else:                           # else, add the output grid to the nf
                     dontConvert_nf = []
                     data.dataContainer.merge(outputgrid.data)
-                self.__convertData(data.dataContainer, nfgrid, outputgrid, [], dontConvert_nf, convertGrid = True) # recursively convert the data inside the numerical function
+                self._convertData(data.dataContainer, nfgrid, outputgrid, [], dontConvert_nf, convertGrid = True) # recursively convert the data inside the numerical function
 
             #   b. Other function + saveAnalytical
             elif isinstance(value, types.MethodType) and isinstance(value.__self__, ny.functionTemplates.FunctionBase) and keys[0] in saveAnalytical:
@@ -179,7 +179,7 @@ class Output:
                     if isinstance(data.__dict__[var], DataContainer):
                         # check for possible endless recursion, where the DC inside the function contains the function itself
                         if data.__dict__[var].v(*keys) is None:
-                            self.__convertData(data.__dict__[var], grid, outputgrid, saveAnalytical, dontConvert)
+                            self._convertData(data.__dict__[var], grid, outputgrid, saveAnalytical, dontConvert)
                         else:
                             self.logger.error('Could not save variable %s as analytical function; variable is not saved.\n'
                                                 'Reason: the function stores itself as class variable, leading to an endless recursion.\n'
@@ -203,7 +203,7 @@ class Output:
                 data, _ = callDataOnGrid(saveData, keys, grid, gridname, False)
 
             # merge into saveData
-            saveData.merge(self.__buildDicts(keys, data))
+            saveData.merge(self._buildDicts(keys, data))
 
         if convertGrid and saveData.v('grid') and 'grid' not in dontConvert:                      # if we are in a numerical function, the grid should be converted to the output grid
             saveData.addData('grid', saveData.data[self.outputgridName])  # rename the outputgrid to grid and replace the original grid in saveData
@@ -211,7 +211,7 @@ class Output:
 
         return
 
-    def __buildDicts(self, keys, data):
+    def _buildDicts(self, keys, data):
         """ """
         d1 = {}
         d2 = {}

@@ -25,6 +25,12 @@ input           @variables path variables filename  # optional 'iteratesWith'
 output          outputDirectory
 outputModule		True
 
+# output module for external applications. Uses cPickle, but only stores numerical data
+module          OutputExternal
+input           @variables path variables filename  # optional 'iteratesWith'
+output          outputDirectory
+outputModule    True
+
 # module to load single output files using cPickle. Directly loads all variables saved in the file
 module          ReadSingle
 input           folder file variables

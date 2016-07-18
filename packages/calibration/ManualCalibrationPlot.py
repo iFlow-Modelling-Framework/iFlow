@@ -26,9 +26,12 @@ class ManualCalibrationPlot:
         calib_param = ny.toList(self.input.v('calibration_parameter'))
         label = ny.toList(self.input.v('label'))
         unit = ny.toList(self.input.v('unit'))
-        if len(calib_param)>2:
+        if len(calib_param)==1:
+            param_range = [[]]
+        elif len(calib_param)==2:
+            param_range = [[], []]
+        else:
             raise KnownError('ManualCalibration not implemented for calibration with more than 3 parameters.')
-        param_range = [[]]*len(calib_param)
 
         # inital loop to determine the parameter ranges
         for i, dat in enumerate(data):
@@ -157,6 +160,7 @@ class ManualCalibrationPlot:
                 label1 = '$'+label[0] + '$ ($'+unit[0]+'$)'
                 label2 = '$'+label[1] + '$ ($'+unit[1]+'$)'
             plt.figure(1, figsize=(1,1))
+            plt.hold(True)
             plt.contourf(axis1, axis2, np.transpose(cost_range[:, :, 0]), 30)
 
             plt.plot(minlocM2[0], minlocM2[1], 'ro')
@@ -171,6 +175,7 @@ class ManualCalibrationPlot:
             #plt.colorbar()
 
             plt.figure(2, figsize=(1,1))
+            plt.hold(True)
             plt.plot(minlocM4[0], minlocM4[1], 'ro')
             plt.contourf(axis1, axis2, np.transpose(cost_range[:, :,1]), 30)
             plt.plot(axis1, np.log10(0.5*10**axis2*H0), 'r')

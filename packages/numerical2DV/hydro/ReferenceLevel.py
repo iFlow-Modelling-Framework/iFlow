@@ -10,6 +10,7 @@ import numpy as np
 import nifty as ny
 from uFunctionMomentumConservative import uFunctionMomentumConservative
 from zetaFunctionMassConservative import zetaFunctionMassConservative
+from nifty.functionTemplates import FunctionBase
 
 
 class ReferenceLevel:
@@ -34,9 +35,9 @@ class ReferenceLevel:
         if self.input.v('Av') is None:
             self.logger.info('Running module ReferenceLevel - init')
             d={}
-
-            d['R'] = 100#10*np.linspace(0,1,251)
-            #d['R'] = np.loadtxt('output/Rtrue.txt')
+            R = initialRef('x', self.input)
+            d['R'] = R.function
+            # self.difference = 0
         else:
             d = self.run()
         return d
@@ -50,7 +51,6 @@ class ReferenceLevel:
         if self.input.v('Av') is None:
             self.logger.info('Running module ReferenceLevel - init')
             d={}
-            #d['R'] = 0
             d['R'] = np.loadtxt('output/Rtrue.txt')
             self.difference = 0.
             return d
@@ -80,7 +80,7 @@ class ReferenceLevel:
         self.difference = np.linalg.norm(R - self.input.v('R', range(0, jmax+1)), np.inf)
         d = {}
         d['R'] = R
-        self.plot(R)
+        #self.plot(R)
         #np.savetxt('output/Rtest.txt', abs(zeta[:,0,0,0]), fmt='%.6e')
         return d
 
@@ -118,3 +118,17 @@ class ReferenceLevel:
         # plt.plot(np.real(f),z,'-')
         # plt.show()
         return f
+
+class initialRef(FunctionBase):
+    def __init__(self, dimNames, data):
+        FunctionBase.__init__(self, dimNames)
+        self.H = data
+        return
+
+    def value(self, x, **kwargs):
+        return np.maximum(self.H.n('H', x=x)+3, 0)
+
+    def derivative(self, x, **kwargs):
+        der = -self.H.d('H', x=x, dim='x')
+        der[np.where(self.H.n('H', x=x)+3 < 0)] = 0
+        return der

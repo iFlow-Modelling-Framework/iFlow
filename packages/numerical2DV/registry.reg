@@ -23,7 +23,7 @@ iterative		True
 # Subpackage hydro
 ########################################################################################################################
 module          ReferenceLevel
-inputInit		
+inputInit		H
 input			Q1 grid G OMEGA Av Roughness BottomBC
 output			R
 packagePath		hydro/
@@ -134,15 +134,22 @@ iterative	True
 module      TurbulenceKepFittedHigher
 packagePath	turbulence/
 inputInit	grid profile roughnessParameter n @roughnessParameter order u0 u1 zeta0 zeta1
-input       grid profile roughnessParameter n @roughnessParameter order u+{0,@{maxOrder}+1}
+input       grid profile roughnessParameter n @roughnessParameter order maxOrder u+{0,@{maxOrder}+1}
 output		Av+{2,@{maxOrder}+1} Roughness+{2,@{maxOrder}+1}
 iterative	True
 
 module      TurbulenceKepFittedUnscaled
 packagePath	turbulence/
 inputInit	grid profile roughnessParameter n @roughnessParameter Avmin lambda
-input       grid profile roughnessParameter n @roughnessParameter Avmin lambda u+{0,@{maxOrder}+1} zeta+{0,@{maxOrder}+1}
+input       grid profile roughnessParameter n @roughnessParameter Avmin lambda maxOrder u+{0,@{maxOrder}+1} zeta+{0,@{maxOrder}+1}
 output		Av Roughness BottomBC
+iterative	True
+
+module      TurbulenceKepFittedUnscaledReference
+packagePath	turbulence/
+inputInit	profile roughnessParameter n @roughnessParameter Avmin lambda
+input       grid profile roughnessParameter n @roughnessParameter Avmin lambda maxOrder u+{0,@{maxOrder}+1} zeta+{0,@{maxOrder}+1}
+output		Av Roughness BottomBC R
 iterative	True
 ########################################################################################################################
 # Subpackage salinity_diagnostic
