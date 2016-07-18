@@ -75,7 +75,8 @@ names = {
     'Tstokes' : '$T_{stokes}$',
     'TM2M0': '$T_{M_2}^{M_0}$',
     'TM2M2': '$T_{M_2}^{M_2}$',
-    'TM2M4': '$T_{M_2}^{M_4}$'}
+    'TM2M4': '$T_{M_2}^{M_4}$',
+    'TM0stokes': 'Stokes transport'}
 
 transportlabels = {
     'T' : 'T',
@@ -87,6 +88,7 @@ transportlabels = {
     'TM2M0' : '$T_{M_2}^{M_0}$',
     'TM2M2' : '$T_{M_2}^{M_2}$',
     'TM2M4' : '$T_{M_2}^{M_4}$',
+    'TM0stokes': 'stokes',
     'tide_baroc': 'baro',
     'tide_adv': 'adv',
     'tide_stokes': 'stokes',
