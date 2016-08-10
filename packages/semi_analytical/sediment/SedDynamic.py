@@ -56,7 +56,9 @@ class SedDynamic:
         self.submodules1 = self.input.data['u1'].keys()
         # Allocate space to save results
         d = dict()
-        d['c'] = {'M0': {}, 'M2': {}, 'M4': {}}
+        # d['c'] = {'M0': {}, 'M2': {}, 'M4': {}}
+        d['c0'] = {}
+        d['c1'] = {}
         d['hatc a'] = {'c00': {}, 'c04': {}, 'c12': {'M0': {}, 'M4': {}, 'M2': {}}, 'c20': {}}
         d['hatc ax'] = {'c12': {'M0': {}, 'M4': {}}}
         d['a'] = {}
@@ -145,9 +147,17 @@ class SedDynamic:
         # add spatial settling lag diffusive transport to transport function Tdiff_eff
         # d['T']['Tdiff']['ssl'] = dctrans.v('F', 'Fadv').reshape(len(self.x), 1) * ax / d['a']
         # calculate concentrations for each tidal component a * hatc
-        d['c']['M0'] = d['a'] * dctrans.v('hatc a', 'c00') + d['a'] * dctrans.v('hatc a', 'c20')
-        d['c']['M2'] = d['a'] * dctrans.v('hatc a', 'c12') + ax * dctrans.v('hatc ax')
-        d['c']['M4'] = d['a'] * dctrans.v('hatc a', 'c04')
+        c0 = np.zeros((len(self.x), len(self.z), 3), dtype=complex)
+        c1 = np.zeros((len(self.x), len(self.z), 3), dtype=complex)
+        c0[:, :, 0] = d['a'] * dctrans.v('hatc a', 'c00') + d['a'] * dctrans.v('hatc a', 'c20')
+        c0[:, :, 2] = d['a'] * dctrans.v('hatc a', 'c04')
+        c1[:, :, 1] = d['a'] * dctrans.v('hatc a', 'c12') + ax * dctrans.v('hatc ax')
+        d['c0'] = c0
+        d['c1'] = c1
+
+        # d['c']['M0'] = d['a'] * dctrans.v('hatc a', 'c00') + d['a'] * dctrans.v('hatc a', 'c20')
+        # d['c']['M2'] = d['a'] * dctrans.v('hatc a', 'c12') + ax * dctrans.v('hatc ax')
+        # d['c']['M4'] = d['a'] * dctrans.v('hatc a', 'c04')
         return d
 
     def concentration_amplitudes_lead(self, u0, component):
