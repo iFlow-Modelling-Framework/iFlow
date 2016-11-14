@@ -129,7 +129,7 @@ class SedDynamic:
                 d['T']['TM4'][mod0 + '_' + mod1] = np.real(np.trapz((u1[:, :, 2] * np.conj(c04) +
                                                             np.conj(u1[:, :, 2]) * c04) / 4., x=-self.zarr, axis=1))
         # Calculate the river-river interaction when river actually is a leading order contributor
-        if self.input.v('u1', 'river'):
+        if self.input.v('u1', 'river') is not None:
             uriver = self.input.v('u1', 'river', range(0, len(self.x)), range(0, len(self.z)), 0)
             d['T']['TM0']['river_river'] = np.real(np.trapz(uriver * c20, x=-self.zarr, axis=1))
             # if not 'river_river' in d['T']['TM0']:
@@ -142,12 +142,10 @@ class SedDynamic:
         # calculate availability
         d['a'] = self.availability(dctrans.v('F'), dctrans.v('T')).reshape(len(self.x), 1)
         ax = np.gradient(d['a'][:, 0], self.x[1], edge_order=2).reshape(len(self.x), 1)
-        # add spatial settling lag diffusive transport to transport function Tdiff_eff
-        # d['T']['Tdiff']['ssl'] = dctrans.v('F', 'Fadv').reshape(len(self.x), 1) * ax / d['a']
         # calculate concentrations for each tidal component a * hatc
         c0 = np.zeros((len(self.x), len(self.z), 3), dtype=complex)
         c1 = np.zeros((len(self.x), len(self.z), 3), dtype=complex)
-        c0[:, :, 0] = d['a'] * dctrans.v('hatc', 'a', 'c00') + d['a'] * dctrans.v('hatc', 'a', 'c20')
+        c0[:, :, 0] = d['a'] * (dctrans.v('hatc', 'a', 'c00') + dctrans.v('hatc', 'a', 'c20'))
         c0[:, :, 2] = d['a'] * dctrans.v('hatc', 'a', 'c04')
         c1[:, :, 1] = d['a'] * dctrans.v('hatc', 'a', 'c12') + ax * dctrans.v('hatc', 'ax')
         d['c0'] = c0
@@ -175,7 +173,7 @@ class SedDynamic:
         uabs_M0 = absoluteU(u0b, 0).reshape(len(self.x), 1)
         uabs_M0_x = np.gradient(uabs_M0[:, 0], self.x[1], edge_order=2).reshape(len(self.x), 1)
         c00 = ((self.RHOS / (self.GPRIME * self.DS)) * self.sf * uabs_M0 *
-               np.exp(-self.WS * (self.H + self.zarr) / self.Av0))
+                np.exp(-self.WS * (self.H + self.zarr) / self.Av0))
         c00x = ((self.RHOS / (self.GPRIME * self.DS)) * np.exp(-self.WS * (self.H + self.zarr) / self.Av0) *
                 (self.sfx * uabs_M0 + self.sf * uabs_M0_x + self.sf * uabs_M0 * self.WS *
                  (self.Av0x * (self.H + self.zarr) - self.Av0 * self.Hx) / self.Av0**2))
@@ -316,7 +314,7 @@ class SedDynamic:
             exponent = np.exp(-integrate.cumtrapz(T / F, dx=self.dx, axis=0, initial=0))
         else:
             exponent = np.append(np.exp(-np.append(0, integrate.cumtrapz(T / F, dx=self.dx, axis=0)[:-1])), 0)
-        A = (self.ASTAR * np.trapz(self.B * exponent, dx=self.dx, axis=0) /
-             np.trapz(self.B, dx=self.dx, axis=0))
+        A = (self.ASTAR * np.trapz(self.B, dx=self.dx, axis=0) /
+             np.trapz(self.B * exponent, dx=self.dx, axis=0))
         a = A * exponent
         return a
