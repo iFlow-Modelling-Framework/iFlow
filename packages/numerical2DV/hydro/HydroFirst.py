@@ -38,6 +38,12 @@ class HydroFirst:
         OMEGA = self.input.v('OMEGA')
         ftot = 2*fmax+1
 
+        # check if the river term should be compensated for by reference level. Only if river is on, non-zero and there is no leading-order contribution
+        if 'river' in self.submodulesToRun and self.input.v('Q1')!=0 and not np.any(self.input.v('zeta0', 'river', range(0,jmax+1),0, 0)):
+            RiverReferenceCompensation = True
+        else:
+            RiverReferenceCompensation = False
+
         ################################################################################################################
         # velocity as function of water level
         ################################################################################################################
@@ -66,7 +72,7 @@ class HydroFirst:
         u0 = self.input.v('u0', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))
         zeta0 = self.input.v('zeta0', range(0, jmax+1), [0], range(0, fmax+1))
 
-        if 'river' in submodulesVelocityForcing:    # for reference level variation
+        if RiverReferenceCompensation:    # for reference level variation
             F[:, :, fmax, submodulesVelocityForcing.index('river')] = -G*self.input.d('R', range(0, jmax+1), dim='x').reshape((jmax+1, 1))*np.ones((1,kmax+1))
 
         if 'adv' in submodulesVelocityForcing:
@@ -158,10 +164,14 @@ class HydroFirst:
         # velocity
         ################################################################################################################
         u = np.empty((jmax+1, kmax+1, ftot, len(self.submodulesToRun)), dtype=uCoef.dtype)
+        uz = np.empty((jmax+1, kmax+1, ftot, len(self.submodulesToRun)), dtype=uCoef.dtype)
         for j in range(0, jmax+1):
             u[j, :, :, :] = np.dot(uCoef[j, :, :, :], -G*zetaxCoef[j, 0, :, :])
+            uz[j, :, :, :] = np.dot(uzCoef[j, :, :, :], -G*zetaxCoef[j, 0, :, :])
         u += uFirst
+        uz += uzFirst
         u = ny.eliminateNegativeFourier(u, 2)
+        uz = ny.eliminateNegativeFourier(uz, 2)
 
         ################################################################################################################
         # vertical velocity
@@ -176,13 +186,14 @@ class HydroFirst:
         d['u1'] = {}
         d['w1'] = {}
         for i, submod in enumerate(self.submodulesToRun):
-
             nf = ny.functionTemplates.NumericalFunctionWrapper(zeta[:, :, :, i], self.input.slice('grid'))
             nf.addDerivative(zetax[:, :, :, i], 'x')
             d['zeta1'][submod] = nf.function
-            d['u1'][submod] = u[:, :, :, i]
-            d['w1'][submod] = w[:, :, :, i]
 
+            nfu = ny.functionTemplates.NumericalFunctionWrapper(u[:, :, :, i], self.input.slice('grid'))
+            nfu.addDerivative(uz[:, :, :, i], 'z')
+            d['u1'][submod] = nfu.function
+            d['w1'][submod] = w[:, :, :, i]
         return d
 
     def verticalVelocity(self, u):

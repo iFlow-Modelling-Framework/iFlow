@@ -1,5 +1,5 @@
 dpi = 120           # dpi for visualisation
-savedpi = 150       # dpi for saving (only relevant for non-vector images)
+savedpi = 600       # dpi for saving (only relevant for non-vector images)
 wunit = 3.5         # single width unit (inch)
 hunit = 2.8        # single height unit (inch)
 fontsize = 11       # font size for title and axis labels
@@ -92,12 +92,12 @@ transportlabels = {
     'tide_baroc': 'baro',
     'tide_adv': 'adv',
     'tide_stokes': 'stokes',
-    'tide_tide': 'tide',
+    'tide_tide': '$M_4$ tide',
     'tide_river': 'riv',
     'tide_nostress': 'ns',
     'river_river': 'riv-riv',
     'sed adv': 's-adv',
-    'tide': 'tide'
+    'tide': '$M_2$ tide'
 }
 
 units = {
@@ -152,5 +152,7 @@ units = {
 
 conversion = {
     'x': 1/1000.,
-    'c': 1000.
+    'c': 1000.,
+    'c0': 1000.,
+    'c1': 1000.
 }

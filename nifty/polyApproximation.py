@@ -8,7 +8,7 @@ Authors: Y.M. Dijkstra
 """
 import math
 import numpy as np
-TOLERANCE = 1.e-4       # remove chebyshev coefficients smaller than this
+TOLERANCE = 1.e-30       # remove chebyshev coefficients smaller than this
 ACCURACY = 100          # number of steps in numerical integration
 
 

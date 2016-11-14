@@ -194,7 +194,7 @@ def sfMat(sf, inv = False):
         Mat[:, bandwidth+n, :-n] = 0.5*sf[:, [n]]*np.ones([1, ftot-n])
         Mat[:, bandwidth-n, n:] = 0.5*np.conj(sf[:, [n]])*np.ones([1, ftot-n])
 
-    if inv: # if TrMate, compMatte the inverse of Mat and cf
+    if inv: # if True, compute the inverse of Mat and cf
         Matinv = np.zeros((jmax+1, ftot, ftot), dtype=complex)
         for j in range(0, jmax+1):
             Matinv[j, Ellipsis] = solve_banded((bandwidth, bandwidth), Mat[j, Ellipsis], np.eye(ftot), overwrite_ab=True, overwrite_b=True)

@@ -5,9 +5,8 @@ Date: 25-Apr-16
 Authors: Y.M. Dijkstra
 """
 from TurbulenceKepFittedUnscaled import TurbulenceKepFittedUnscaled
-import numpy as np
-from nifty.functionTemplates import FunctionBase
 import nifty as ny
+from ..hydro.ReferenceLevel import ReferenceLevel
 
 
 class TurbulenceKepFittedUnscaledReference(TurbulenceKepFittedUnscaled):
@@ -25,8 +24,8 @@ class TurbulenceKepFittedUnscaledReference(TurbulenceKepFittedUnscaled):
 
         # reference level
         d = {}
-        R = initialRef('x', self.input)
-        d['R'] = R.function
+        self.RL = ReferenceLevel(self.input, [])
+        d.update(self.RL.run_init())
         self.input.merge(d)
 
         # grid for initial eddy viscosity
@@ -56,7 +55,7 @@ class TurbulenceKepFittedUnscaledReference(TurbulenceKepFittedUnscaled):
         grid['grid'] = ny.makeRegularGrid(dimensions, axisTypes, axisSize, axisOther, enclosures, contraction)
         self.input.merge(grid)
 
-        dresult = TurbulenceKepFittedUnscaled.run_init(self)
+        dresult = TurbulenceKepFittedUnscaled.run_init(self, init=True)
         d.update(dresult)
 
         # restore old grid
@@ -67,29 +66,50 @@ class TurbulenceKepFittedUnscaledReference(TurbulenceKepFittedUnscaled):
     def run(self):
         d = {}
         jmax = self.input.v('grid', 'maxIndex', 'x')
-        d['R'] = 0.1*(self.input.v('zeta1', 'river', range(0, jmax+1), 0, 0) + self.input.v('R', range(0, jmax+1))) + 0.9*self.input.v('R', range(0, jmax+1))
-        d['R'] = np.maximum(d['R'], 1+self.input.n('H', range(0, jmax+1)))
-        self.input.addData('R', d['R'])
-        import matplotlib.pyplot as plt
-        plt.plot(d['R'])
-        plt.plot(self.input.n('H', range(0, jmax+1)))
-        plt.show()
+        kmax = self.input.v('grid', 'maxIndex', 'z')
+        fmax = self.input.v('grid', 'maxIndex', 'f')
 
+        # run reference level
+        d.update(self.RL.run())
+
+        # trick riverine water level for computation
+        zetariv0 = self.input.v('zeta0', 'river', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))
+        zetariv1 = self.input.v('zeta1', 'river', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))
+        if zetariv0 is not None:
+            self.input.merge({'zeta0':{'river':0*zetariv0}})     # temporarily delete zetariv to prevent oscillation of numerical iteration
+        if zetariv1 is not None:
+            self.input.merge({'zeta1':{'river':0*zetariv1}})     # temporarily delete zetariv to prevent oscillation of numerical iteration
 
         dnew = TurbulenceKepFittedUnscaled.run(self)
         d.update(dnew)
+
+        if zetariv0 is not None:
+            self.input.merge({'zeta0':{'river':zetariv0}})       # place zetariv back
+        if zetariv1 is not None:
+            self.input.merge({'zeta1':{'river':zetariv1}})       # place zetariv back
+
+        # import matplotlib.pyplot as plt
+        # import step as st
+        # st.configure()
+        # plt.figure(1,figsize=(2,2))
+        # plt.subplot(2,2,1)
+        # plt.plot(d['R'], 'b')
+        # plt.plot(self.input.v('R', range(0, jmax+1)), 'b--')
+        # # plt.plot(d['R']+self.input.v('zeta1', range(0, jmax+1),0,0), 'b--')
+        # plt.plot(self.input.n('H', range(0, jmax+1)))
+        # plt.subplot(2,2,2)
+        # try:
+        #     plt.plot(self.input.v('Av', range(0, jmax+1),0,0), 'b--')
+        #     self.input.addData('Av', d['Av'])
+        #     plt.plot(self.input.v('Av', range(0, jmax+1),0,0), 'b')
+        # except:
+        #     pass
+        # plt.subplot(2,2,3)
+        # try:
+        #     plt.plot(self.input.v('zeta1', 'river', range(0, jmax+1),0,0))
+        #     plt.plot(self.input.v('zeta1', range(0, jmax+1),0,0))
+        # except:
+        #     pass
+        # st.show()
+
         return d
-
-class initialRef(FunctionBase):
-    def __init__(self, dimNames, data):
-        FunctionBase.__init__(self, dimNames)
-        self.H = data
-        return
-
-    def value(self, x, **kwargs):
-        return np.maximum(self.H.n('H', x=x)+2, 0)
-
-    def derivative(self, x, **kwargs):
-        der = -self.H.d('H', x=x, dim='x')
-        der[np.where(self.H.n('H', x=x)+2 < 0)] = 0
-        return der

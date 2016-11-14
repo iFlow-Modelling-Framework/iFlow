@@ -25,7 +25,13 @@ class ManualCalibrationPlot:
         data = self.input.getKeysOf('experimentdata')
         calib_param = ny.toList(self.input.v('calibration_parameter'))
         label = ny.toList(self.input.v('label'))
-        unit = ny.toList(self.input.v('unit'))
+        unit_temp = ny.toList(self.input.v('unit'))
+        unit = []
+        for u in unit_temp:
+            if u == '-':
+                unit.append('')
+            else:
+                unit.append('($'+u+'$)')
         if len(calib_param)==1:
             param_range = [[]]
         elif len(calib_param)==2:
@@ -109,12 +115,12 @@ class ManualCalibrationPlot:
 
             if self.input.v('axis')=='log':
                 axis = np.log10(param_range[0])
-                label = '$log_{10}$($'+label[0]+'$) ($'+unit[0]+'$)'
+                label = '$log_{10}$($'+label[0]+'$)' + unit[0]
                 minlocM2 = np.log10(minlocM2)
                 minlocM4 = np.log10(minlocM4)
             else:
                 axis = param_range[0]
-                label = '$'+calib_param[0] + '$ ($'+unit[0]+'$)'
+                label = '$'+calib_param[0] + '$' + unit[0]
 
             plt.figure(1, figsize=(1,1))
             plt.plot(axis, cost_range[:,0], 'k.')
@@ -150,21 +156,21 @@ class ManualCalibrationPlot:
             if self.input.v('axis')=='log':
                 axis1 = np.log10(param_range[0])
                 axis2 = np.log10(param_range[1])
-                label1 = '$log_{10}$($'+label[0]+'$) ($'+unit[0]+'$)'
-                label2 = '$log_{10}$($'+label[1]+'$) ($'+unit[1]+'$)'
+                label1 = '$log_{10}$($'+label[0]+'$)' + unit[0]
+                label2 = '$log_{10}$($'+label[1]+'$)' + unit[1]
                 minlocM2 = [np.log10(i) for i in minlocM2]
                 minlocM4 = [np.log10(i) for i in minlocM4]
             else:
                 axis1 = param_range[0]
                 axis2 = param_range[1]
-                label1 = '$'+label[0] + '$ ($'+unit[0]+'$)'
-                label2 = '$'+label[1] + '$ ($'+unit[1]+'$)'
+                label1 = '$'+label[0] + '$' + unit[0]
+                label2 = '$'+label[1] + '$' + unit[1]
             plt.figure(1, figsize=(1,1))
             plt.hold(True)
             plt.contourf(axis1, axis2, np.transpose(cost_range[:, :, 0]), 30)
 
             plt.plot(minlocM2[0], minlocM2[1], 'ro')
-            plt.plot(axis1, np.log10(0.5*10**axis2*H0), 'r')
+            # plt.plot(axis1, np.log10(0.5*10**axis2*H0), 'r')
             plt.xlim(min(axis1), max(axis1))
             plt.ylim(min(axis2), max(axis2))
             # plt.plot(np.log10(0.003), np.log10(0.061), 'yo')  # best Scheldt calibration
@@ -178,7 +184,7 @@ class ManualCalibrationPlot:
             plt.hold(True)
             plt.plot(minlocM4[0], minlocM4[1], 'ro')
             plt.contourf(axis1, axis2, np.transpose(cost_range[:, :,1]), 30)
-            plt.plot(axis1, np.log10(0.5*10**axis2*H0), 'r')
+            # plt.plot(axis1, np.log10(0.5*10**axis2*H0), 'r')
             plt.xlim(min(axis1), max(axis1))
             plt.ylim(min(axis2), max(axis2))
             plt.title('Cost $M_4$')

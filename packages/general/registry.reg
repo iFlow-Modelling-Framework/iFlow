@@ -10,6 +10,11 @@ packagePath
 input       L B0 H0
 output      L B H -H
 
+module      Geometry2DVCS
+packagePath
+input       L A0 H0
+output      L B H -H
+
 ## Module Sensitivity: general multi-dimensional sensitivity analysis ##
 module          Sensitivity
 packagePath

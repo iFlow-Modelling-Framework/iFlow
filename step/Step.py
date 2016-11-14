@@ -174,10 +174,16 @@ class Step:
                 else:
                     plt.ylabel('|'+yname+'|'+' ('+yunit+')')
 
-        try:
-            plt.suptitle(cf.names[axis[dataAxisNo]]+' over '+axis[gridAxisNo])
-        except KeyError:
-            plt.suptitle(axis[dataAxisNo]+' over '+axis[gridAxisNo])
+        if axis[0] == 'x':
+            plt.xlim(np.min(axisData[gridAxisNo]), np.max(axisData[gridAxisNo]))
+
+        if kwargs.get('suptitle'):
+            plt.suptitle(kwargs.get('suptitle'))
+        else:
+            try:
+                plt.suptitle(cf.names[axis[dataAxisNo]]+' over '+axis[gridAxisNo])
+            except KeyError:
+                plt.suptitle(axis[dataAxisNo]+' over '+axis[gridAxisNo])
         plt.draw()
 
         return

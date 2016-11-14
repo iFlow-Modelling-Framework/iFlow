@@ -23,10 +23,10 @@ class TurbulenceKepFittedUnscaled(TurbulenceKepFitted):
     def stopping_criterion(self, iteration):
         return TurbulenceKepFitted.stopping_criterion(self, iteration)
 
-    def run_init(self):
+    def run_init(self, init=False):
         self.logger.info('Running k-epsilon fitted turbulence model - init')
         # if Av already exists, then do not restart the model, but continue from the previous result
-        if self.input.v('Av') is not None:
+        if self.input.v('Av') is not None and not init:
             init = False
 
             # reset previous iterations by current iteration

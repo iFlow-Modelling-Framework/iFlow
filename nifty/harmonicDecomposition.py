@@ -52,5 +52,5 @@ def signU(u, n):
         # sgnU = -2 * (-1j)**(n + 1) * (u / abs(u))**n / (np.pi * n)
         k = (n-1)/2
         sgnU = (2 * (-1)**k / (np.pi * n)) * (u / abs(u))**n
-        sgnU[-1] = 0
+        # sgnU[-1] = 0
     return sgnU

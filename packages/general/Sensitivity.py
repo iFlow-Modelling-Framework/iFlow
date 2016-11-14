@@ -75,11 +75,12 @@ class Sensitivity:
         if self.input.v('loopstyle') == 'permutations':
             self.numLoops =  [len(self.values[key]) for key in self.variables]
         elif self.input.v('loopstyle') == 'simultaneous':
-            self.numLoops = self.values[self.variables[0]]
+            self.numLoops = [len(self.values[key]) for key in self.variables]
             # verify that number of values is the same in all variables
-            for var in self.variables:
-                    if len(self.values[var]) != len(self.values[self.variables[0]]):
+            for l in self.numLoops:
+                    if l != self.numLoops[0]:
                         raise KnownError('Problem in input of module %s for loopstyle "simultaneous". Number of values in "%s" is unequal to number of values in "%s" ' % (self.__module__, var, self.variables[0]))
+            self.numLoops = self.numLoops[0]
         else:
             raise KnownError('loopstyle "%s" in input of module %s unknown ' % (str(self.values.v('loopstyle')), self.__module__))
 

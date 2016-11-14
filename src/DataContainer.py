@@ -620,11 +620,11 @@ class DataContainer:
         """reshape function output to be conform the order of the dimensions.
         """
         functiondims = functiondims[:]  # make a copy of the list
-        # value = np.asarray(value)         # YMD bugfix 01-06-2016; does not work for scalars
         dimensions = self.data['grid']['dimensions']
         for i, dim in enumerate(functiondims):
             if dimensions[i]!=dim:
                 functiondims.insert(i, 1)
+                value = np.asarray(value)         # YMD bugfix 25-10-2016; previous bugfix gave problems when reshaping scalars to grids. YMD bugfix 01-06-2016; does not work for scalars
                 shape = list(value.shape)
                 shape.insert(i, 1)
                 value = value.reshape(shape)

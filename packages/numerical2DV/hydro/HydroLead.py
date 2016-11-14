@@ -37,16 +37,25 @@ class HydroLead:
         G = self.input.v('G')
         ftot = 2*fmax+1
 
+        # check if the river term should be compensated for by reference level. Only if river is on and non-zero
+        if 'river' in self.submodulesToRun and self.input.v('Q0')!=0:
+            RiverReferenceCompensation = True
+        else:
+            RiverReferenceCompensation = False
+
         ################################################################################################################
         # velocity as function of water level
         ################################################################################################################
         # build, save and solve the velocity matrices in every water column
         Av = self.input.v('Av', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))
-        F = np.zeros([jmax+1, kmax+1, ftot, 0])
-        Fsurf = np.zeros([jmax+1, 1, ftot, 0])
-        Fbed = np.zeros([jmax+1, 1, ftot, 0])
+        F = np.zeros([jmax+1, kmax+1, ftot, RiverReferenceCompensation])
+        Fsurf = np.zeros([jmax+1, 1, ftot, RiverReferenceCompensation])
+        Fbed = np.zeros([jmax+1, 1, ftot, RiverReferenceCompensation])
 
-        uCoef, _, uzCoef, _, velocityMatrix = uFunctionMomentumConservative(Av, F, Fsurf, Fbed, self.input)
+        if RiverReferenceCompensation:    # for reference level variation
+            F[:, :, fmax, 0] = -G*self.input.d('R', range(0, jmax+1), dim='x').reshape((jmax+1, 1))*np.ones((1,kmax+1))
+
+        uCoef, uLead, uzCoef, uzLead, velocityMatrix = uFunctionMomentumConservative(Av, F, Fsurf, Fbed, self.input)
 
         ################################################################################################################
         # water level
@@ -57,9 +66,6 @@ class HydroLead:
         JuCoef = JuCoef.reshape(jmax+1, 1, ftot, ftot)                  # reshape back to original grid
         BJuCoef = -G*JuCoef*self.input.v('B', np.arange(0, jmax+1)).reshape(jmax+1, 1, 1, 1)
 
-        ## RHS terms
-        IntForce = np.zeros([jmax+1, 1, ftot, len(self.submodulesToRun)])
-
         #   open BC: tide
         Fopen = np.zeros([1, 1, ftot, len(self.submodulesToRun)], dtype=complex)
         if 'tide' in self.submodulesToRun:
@@ -67,13 +73,25 @@ class HydroLead:
 
         #   closed BC: river
         Fclosed = np.zeros([1, 1, ftot, len(self.submodulesToRun)], dtype=complex)
-        if 'river' in self.submodulesToRun:
+        if RiverReferenceCompensation:
             Fclosed[0, 0, fmax, self.submodulesToRun.index('river')] = -self.input.v('Q0')
+
+        ## RHS terms
+        IntForce = np.zeros([jmax+1, 1, ftot, len(self.submodulesToRun)], dtype=complex)
+        if RiverReferenceCompensation:
+            utemp = uLead.reshape(uLead.shape[:2]+(1,)+uLead.shape[2:])     # reshape as the 'f' dimension is not grid conform; move it to a higher dimension
+            JuLead = ny.integrate(utemp, 'z', kmax, 0, self.input.slice('grid'))
+            JuLead = JuLead.reshape(jmax+1, 1, ftot)*self.input.v('B', np.arange(0, jmax+1)).reshape(jmax+1, 1, 1)      # reshape back to original grid
+            IntForce[:, :, :,self.submodulesToRun.index('river')] = JuLead[:,:,:]
+            Fclosed[0, 0, :,self.submodulesToRun.index('river')] += -JuLead[jmax, 0, :]
 
         ## Solve equation
         zetaCoef, zetaxCoef, zetaMatrix = zetaFunctionMassConservative(BJuCoef, IntForce, Fopen, Fclosed, self.input)
         zetax = ny.eliminateNegativeFourier(zetaxCoef, 2)
         zeta = ny.eliminateNegativeFourier(zetaCoef, 2)
+
+        # zetax[:,0,0,self.submodulesToRun.index('river')] += - self.input.d('R', range(0, jmax+1), dim='x')
+        # zeta[:,0,0,self.submodulesToRun.index('river')] += - self.input.v('R', range(0, jmax+1))
 
         ################################################################################################################
         # velocity
@@ -83,6 +101,9 @@ class HydroLead:
         for j in range(0, jmax+1):
             u[j, :, :, :] = np.dot(uCoef[j, :, :, :], -G*zetaxCoef[j, 0, :, :])
             uz[j, :, :, :] = np.dot(uzCoef[j, :, :, :], -G*zetaxCoef[j, 0, :, :])
+        if RiverReferenceCompensation:
+            u[:,:,:,self.submodulesToRun.index('river')] += uLead[:,:,:,0]
+            uz[:,:,:,self.submodulesToRun.index('river')] += uzLead[:,:,:,0]
         u = ny.eliminateNegativeFourier(u, 2)
         uz = ny.eliminateNegativeFourier(uz, 2)
         ################################################################################################################

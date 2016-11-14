@@ -23,12 +23,11 @@ iterative		True
 # Subpackage hydro
 ########################################################################################################################
 module          ReferenceLevel
-inputInit		H
-input			Q1 grid G OMEGA Av Roughness BottomBC
+inputInit		H Q0 Q1
+input			grid G H B Av Roughness BottomBC
 output			R
 packagePath		hydro/
 iterative		True
-
 
 ## Module HydroLead: numerical coupled frequency perturbation model - leading order ##
 module          HydroLead
@@ -93,6 +92,11 @@ mixing      	input		u0 zeta0 u1 zeta1 Av+{2,@{maxOrder}+1}
 ########################################################################################################################
 # subpackage turbulence
 ########################################################################################################################
+module      RoughnessProfile
+packagePath	turbulence/
+input       L roughnessParameter @roughnessParameter
+output		@roughnessParameter
+
 module      Uniform
 packagePath	turbulence/
 input       grid Av0amp Av0phase sf0 m n
@@ -117,6 +121,37 @@ input       grid Av0amp Av0phase z0* m n zeta0
 output		Av1 Av2 Av3
 
 # k-epsilon fitted models
+module      KEFittedLead
+packagePath	turbulence/
+inputInit	if{grid,@{referenceLevel}==0} if{Q0,@{referenceLevel}==1} if{Q1,@{referenceLevel}==1} G B H profile roughnessParameter @roughnessParameter n Avmin  lambda referenceLevel ignoreSubmodule
+input       grid u0
+output		Av Roughness BottomBC
+iterative	True
+
+module      KEFittedTruncated
+packagePath	turbulence/
+inputInit	if{grid,@{referenceLevel}==0} if{Q0,@{referenceLevel}==1} if{Q1,@{referenceLevel}==1} G B H profile roughnessParameter @roughnessParameter n Avmin  lambda referenceLevel ignoreSubmodule truncationOrder
+input       grid u+{0,@{truncationOrder}+1} zeta+{0,@{truncationOrder}+1}
+output		Av Roughness BottomBC
+iterative	True
+
+module      KEFittedFirst
+packagePath	turbulence/
+inputInit	grid H profile roughnessParameter @roughnessParameter n lambda ignoreSubmodule u0
+input       grid u0 zeta0  u1
+output		Av1 Roughness1
+iterative	True
+
+module      KEFittedHigher
+packagePath	turbulence/
+inputInit	grid H profile roughnessParameter @roughnessParameter n lambda ignoreSubmodule order u0 u1 zeta0
+input       grid order maxOrder u+{0,@{maxOrder}+1} zeta+{0,@{maxOrder}+1}
+output		Av+{2,@{maxOrder}+1} Roughness+{2,@{maxOrder}+1}
+iterative	True
+
+#OLD
+
+
 module      TurbulenceKepFitted
 packagePath	turbulence/
 inputInit	grid profile roughnessParameter n @roughnessParameter lambda Avmin
@@ -147,8 +182,8 @@ iterative	True
 
 module      TurbulenceKepFittedUnscaledReference
 packagePath	turbulence/
-inputInit	profile roughnessParameter n @roughnessParameter Avmin lambda
-input       grid profile roughnessParameter n @roughnessParameter Avmin lambda maxOrder u+{0,@{maxOrder}+1} zeta+{0,@{maxOrder}+1}
+inputInit	profile roughnessParameter n @roughnessParameter Avmin lambda Q0 Q1 H
+input       grid G H grid B profile roughnessParameter n @roughnessParameter Avmin lambda maxOrder u+{0,@{maxOrder}+1} zeta+{0,@{maxOrder}+1}
 output		Av Roughness BottomBC R
 iterative	True
 ########################################################################################################################
@@ -183,3 +218,39 @@ packagePath	salinity_prognostic/
 input       grid Kh B H u0 u1 un zeta0 zeta1 s0 s1 s1var s2var Q1
 output      s2 s3var
 submodules	advection diffusion nostress sea
+
+########################################################################################################################
+# Subpackage sediment
+########################################################################################################################
+module      SedDynamicLead
+packagePath sediment/
+input       grid G OMEGA RHOS RHO0 DS Av sigma_rho ws u0
+output      hatc0
+
+module      SedDynamicFirst
+packagePath sediment/
+input       grid G OMEGA RHOS RHO0 DS Av sigma_rho ws u0
+output      hatc1_a hatc1_ax
+submodules	adv fallvel mixing erosion noflux
+adv			    input		w0 hatc0
+                output
+fallvel			input		ws1 hatc0
+                output
+mixing			input		Av1 hatc0
+                output
+erosion			input		u1
+                output
+noflux			input		zeta0 hatc0
+                output
+
+module      StaticAvailability
+packagePath sediment/
+input       zeta0 u0 u1 hatc0 hatc1_a hatc1_ax B grid Kh astar
+output      a c0 c1
+
+module      HinderedSettling
+packagePath sediment/
+inputInit   grid cgel RHOS mhs ws0
+input       grid cgel RHOS mhs ws0 c0 c1
+output      ws
+iterative	True

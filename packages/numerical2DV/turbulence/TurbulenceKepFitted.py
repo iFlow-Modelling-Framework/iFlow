@@ -285,6 +285,13 @@ class TurbulenceKepFitted:
             if order == 0:
                 depth = self.input.v('grid', 'low', 'z', x=0) - self.input.v('grid', 'high', 'z', x=0)
                 Av0[:, 0] = 0.49 * roughness.v('Roughness', range(0, jmax + 1)) * depth
+            elif order==None:
+                depth = np.zeros((jmax+1, fmax+1))
+                depth[:,0] = self.input.v('grid', 'low', 'z', range(0,jmax+1)) - self.input.v('grid', 'high', 'z', range(0,jmax+1))
+                i=0
+                while self.input.v('zeta'+str(i)):
+                    depth += self.input.v('zeta'+str(i), range(0, jmax+1), 0, range(0, fmax+1))
+                Av0[:, :] = 0.49 * roughness.v('Roughness', range(0, jmax + 1),0,[0]) * depth
             else:
                 Av0[:, :] = 0.49 * roughness.v('Roughness', range(0, jmax + 1)).reshape((jmax+1, 1)) * self.input.v('zeta'+str(order-1), range(0, jmax+1), 0, range(0, fmax+1))
 
@@ -304,7 +311,7 @@ class TurbulenceKepFitted:
                 Av = UniformXF(['x', 'f'], data, 0.).function
 
             # 2. Roughness
-            if order == 0:
+            if order == 0 or order==None:
                 sf0 = np.zeros((jmax + 1, fmax + 1))
                 sf0[:, 0] = roughness.v('Roughness', range(0, jmax+1))
 

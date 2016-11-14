@@ -129,13 +129,13 @@ class RegistryChecker:
         return
 
     def __refactorUtil(self, inputList, data, **kwargs):
-        """Replace tags @{} and +{}. Do this recursively by removing an item from the inputList, replacing one occurrence
+        """Replace tags @{}, +{} and if{}. Do this recursively by removing an item from the inputList, replacing one occurrence
          of @{} and +{} and putting the result at the back of inputList.
         """
         i = 0
         while i<len(inputList):
             item = inputList[i]
-            if item.find('@')>=0 or item.find('+{')>=0:
+            if item.find('@')>=0 or item.find('+{')>=0 or item.find('if{')>=0:
                 inputList.pop(i)
                 if item.find('@')>=0 and item.find('@{')<0:
                     if '.' in item:
@@ -164,6 +164,17 @@ class RegistryChecker:
                     item = item[:start]+'%s'+item[end+1:]
                     for k in setrange:
                         inputList = inputList + toList(item % k)
+
+                elif item.find('if{')>=0:                   # added YMD 02-11-2016
+                    start = item.find('if{')
+                    end = item.find('}')
+                    item = item[start+3:end]
+
+                    item = item.split(',')
+                    if len(item)!=2:
+                        raise KnownError('error in registry in #{}. Does not have two comma-separated arguments')
+                    if eval(item[1]):
+                        inputList = inputList + toList(item[0])
 
             else:
                 i += 1
