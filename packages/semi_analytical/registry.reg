@@ -20,18 +20,18 @@ packagePath		hydro/
 input 			A1 phase1 Q1 BottomBC grid Av Roughness OMEGA G BETA TOLERANCEBVP NGODIN
 output			u1 zeta1
 submodules		tide river baroc stokes nostress adv
-tide	input
-		output
-river	input
-		output
-baroc	input		s0
-		output
-stokes	input		u0 zeta0
-		output
-nostress	input		u0 zeta0
+tide	    input
+		    output
+river	    input
+		    output
+baroc	    input	s0
+		    output
+stokes	    input   u0 zeta0
+		    output
+nostress	input	u0 zeta0
 			output
-adv		input		u0
-		output
+adv		    input	u0
+		    output
 
 ## Turbulence related - uses packages from Numerical2DV module ##
 
@@ -41,4 +41,11 @@ adv		input		u0
 module		SedDynamic
 packagePath	sediment/
 input		grid zeta0 u0 u1 Av Roughness astar ws Kh OMEGA G RHO0 RHOS DS
-output		c hatc a F T
+output		c0 c1 hatc a F T
+
+
+## Dynamic Availability related ##
+module      DynamicAvailability
+packagePath dynamic_availability/
+input       grid hatc a F T mus fcap csea p Q1 tol
+output      f flux c0bar eigs
