@@ -68,7 +68,7 @@ def importModulePackages(cwd, imports):
 
         # replace separators / or . by \
         path = path.replace(slash1, slash2)
-        path = path.replace('.', slash2)
+        # path = path.replace('.', slash2)      # YMD 15-11-2016. I would like to allow for . in file names
         path = path.split(slash2)
 
         # add parent and child paths
