@@ -42,7 +42,7 @@ class SedDynamic:
         kmax = self.input.v('grid', 'maxIndex', 'z')
         self.z = self.input.v('grid', 'axis', 'z', 0, range(0, kmax+1))
         self.zarr = ny.dimensionalAxis(self.input.slice('grid'), 'z')[:, :, 0]
-        self.Av0 = self.input.v('Av', x=self.x/self.L, z=0, f=0).reshape(len(self.x), 1).reshape(len(self.x), 1)
+        self.Av0 = self.input.v('Av', x=self.x/self.L, z=0, f=0).reshape(len(self.x), 1)
         self.Av0x = self.input.d('Av', x=self.x/self.L, z=0, f=0, dim='x').reshape(len(self.x), 1)
         self.H = (self.input.v('H', x=self.x/self.L).reshape(len(self.x), 1) +
                   self.input.v('R', x=self.x/self.L).reshape(len(self.x), 1))
@@ -56,13 +56,16 @@ class SedDynamic:
         self.submodules1 = self.input.data['u1'].keys()
         # Allocate space to save results
         d = dict()
-        d['c'] = {'M0': {}, 'M2': {}, 'M4': {}}
-        d['hatc a'] = {'c00': {}, 'c04': {}, 'c12': {'M0': {}, 'M4': {}, 'M2': {}}, 'c20': {}}
-        d['hatc ax'] = {'c12': {'M0': {}, 'M4': {}}}
+        # d['c'] = {'M0': {}, 'M2': {}, 'M4': {}}
+        d['c0'] = {}
+        d['c1'] = {}
+        d['hatc'] = {'a': {'c00': {}, 'c04': {}, 'c12': {'M0': {}, 'M4': {}, 'M2': {}}, 'c20': {}},
+                     'ax': {'c12': {'M0': {}, 'M4': {}}}}
+        # d['hatc_ax'] = {'c12': {'M0': {}, 'M4': {}}}
         d['a'] = {}
         # d['T'] = {'TM0': {}, 'TM2': {'TM2M0': {}, 'TM2M4': {}, 'TM2M2': {}}, 'TM4': {}, 'Tdiff': {}, 'Tstokes': {}}
         d['T'] = {'TM0': {'TM0stokes': {}}, 'TM2': {'TM2M0': {}, 'TM2M4': {}, 'TM2M2': {}}, 'TM4': {}, 'Tdiff': {}}
-        d['F'] = {'Fdiff': {}, 'Fadv': {'FadvM0': {}, 'FadvM4': {}}}
+        d['F'] = {'Fdiff': {'c00': {}, 'c20': {}}, 'Fadv': {'FadvM0': {}, 'FadvM4': {}}}
         # assign values to the concentration amplitudes and calculate the transport function T and F
         # for mod0 in self.submodules0:
         for mod0 in ['tide']:
@@ -86,19 +89,15 @@ class SedDynamic:
                                                                                dummy_u1, w0, zeta0,
                                                                                c00, c00x, c00z, c04, c04x, c04z)
             # save results
-            d['hatc a']['c00'][mod0] = c00
-            d['hatc a']['c04'][mod0] = c04
-            d['hatc a']['c20'][mod0] = c20
-            d['hatc a']['c12']['M2'][mod0] = c12M2
-            d['hatc a']['c12']['M0']['sed adv'] = c12M0adv_a
-            d['hatc ax']['c12']['M0'] = c12M0adv_ax
-            d['hatc a']['c12']['M4']['sed adv'] = c12M4adv_a
-            d['hatc ax']['c12']['M4'] = c12M4adv_ax
+            d['hatc']['a']['c00'][mod0] = c00
+            d['hatc']['a']['c04'][mod0] = c04
+            d['hatc']['a']['c20'][mod0] = c20
+            d['hatc']['a']['c12']['M2'][mod0] = c12M2
+            d['hatc']['a']['c12']['M0']['sed adv'] = c12M0adv_a
+            d['hatc']['ax']['c12']['M0'] = c12M0adv_ax
+            d['hatc']['a']['c12']['M4']['sed adv'] = c12M4adv_a
+            d['hatc']['ax']['c12']['M4'] = c12M4adv_ax
             d['T']['Tdiff']['art'] = np.real(-np.trapz(self.KH * c00x, x=-self.zarr, axis=1))
-            # d['T']['Tstokes'][mod0] = np.real(2. * (np.conj(u0s) * c00[:, 0].reshape(len(self.x), 1) * zeta0 +
-            #                                 u0s * c00[:, 0].reshape(len(self.x), 1) * np.conj(zeta0)) +
-            #                           u0s * np.conj(c04[:, 0].reshape(len(self.x), 1)) * zeta0 +
-            #                           np.conj(u0s) * c04[:, 0].reshape(len(self.x), 1) * np.conj(zeta0)).reshape(len(self.x)) / 8.
             d['T']['TM0']['TM0stokes']['return'] = np.real(2. * (np.conj(u0s) * c00[:, 0].reshape(len(self.x), 1) * zeta0 +
                                                     u0s * c00[:, 0].reshape(len(self.x), 1) * np.conj(zeta0)) +
                                               u0s * np.conj(c04[:, 0].reshape(len(self.x), 1)) * zeta0 +
@@ -106,7 +105,8 @@ class SedDynamic:
             d['T']['TM2']['TM2M2'][mod0] = np.real(np.trapz((u0 * np.conj(c12M2) + np.conj(u0) * c12M2) / 4., x=-self.zarr, axis=1))
             d['T']['TM2']['TM2M0']['sed adv'] = np.real(np.trapz((u0 * np.conj(c12M0adv_a) + np.conj(u0) * c12M0adv_a) / 4., x=-self.zarr, axis=1))
             d['T']['TM2']['TM2M4']['sed adv'] = np.real(np.trapz((u0 * np.conj(c12M4adv_a) + np.conj(u0) * c12M4adv_a) / 4., x=-self.zarr, axis=1))
-            d['F']['Fdiff'][mod0] = np.real(-np.trapz(self.KH * c00, x=-self.zarr, axis=1))
+            d['F']['Fdiff']['c00'][mod0] = np.real(-np.trapz(self.KH * c00, x=-self.zarr, axis=1))
+            d['F']['Fdiff']['c20'][mod0] = np.real(-np.trapz(self.KH * c20, x=-self.zarr, axis=1))
             d['F']['Fadv']['FadvM0'][mod0] = np.real(np.trapz((u0 * np.conj(c12M0adv_ax) + np.conj(u0) * c12M0adv_ax) / 4., x=-self.zarr, axis=1))
             d['F']['Fadv']['FadvM4'][mod0] = np.real(np.trapz((u0 * np.conj(c12M4adv_ax) + np.conj(u0) * c12M4adv_ax) / 4., x=-self.zarr, axis=1))
             for mod1 in self.submodules1:
@@ -116,8 +116,8 @@ class SedDynamic:
                 c12M0, c12M4, __, __, __, __, __ = self.concentration_amplitude_first(u0, u1, w0, zeta0, c00, c00x,
                                                                                       c00z, c04, c04x, c04z)
                 # save results
-                d['hatc a']['c12']['M0'][mod1] = c12M0
-                d['hatc a']['c12']['M4'][mod1] = c12M4
+                d['hatc']['a']['c12']['M0'][mod1] = c12M0
+                d['hatc']['a']['c12']['M4'][mod1] = c12M4
                 if mod1 == 'stokes':
                     d['T']['TM0']['TM0stokes']['drift'] = np.real(np.trapz(u1[:, :, 0] * c00, x=-self.zarr, axis=1))
                 else:
@@ -129,7 +129,7 @@ class SedDynamic:
                 d['T']['TM4'][mod0 + '_' + mod1] = np.real(np.trapz((u1[:, :, 2] * np.conj(c04) +
                                                             np.conj(u1[:, :, 2]) * c04) / 4., x=-self.zarr, axis=1))
         # Calculate the river-river interaction when river actually is a leading order contributor
-        if self.input.v('u1', 'river'):
+        if self.input.v('u1', 'river') is not None:
             uriver = self.input.v('u1', 'river', range(0, len(self.x)), range(0, len(self.z)), 0)
             d['T']['TM0']['river_river'] = np.real(np.trapz(uriver * c20, x=-self.zarr, axis=1))
             # if not 'river_river' in d['T']['TM0']:
@@ -142,12 +142,14 @@ class SedDynamic:
         # calculate availability
         d['a'] = self.availability(dctrans.v('F'), dctrans.v('T')).reshape(len(self.x), 1)
         ax = np.gradient(d['a'][:, 0], self.x[1], edge_order=2).reshape(len(self.x), 1)
-        # add spatial settling lag diffusive transport to transport function Tdiff_eff
-        # d['T']['Tdiff']['ssl'] = dctrans.v('F', 'Fadv').reshape(len(self.x), 1) * ax / d['a']
         # calculate concentrations for each tidal component a * hatc
-        d['c']['M0'] = d['a'] * dctrans.v('hatc a', 'c00') + d['a'] * dctrans.v('hatc a', 'c20')
-        d['c']['M2'] = d['a'] * dctrans.v('hatc a', 'c12') + ax * dctrans.v('hatc ax')
-        d['c']['M4'] = d['a'] * dctrans.v('hatc a', 'c04')
+        c0 = np.zeros((len(self.x), len(self.z), 3), dtype=complex)
+        c1 = np.zeros((len(self.x), len(self.z), 3), dtype=complex)
+        c0[:, :, 0] = d['a'] * (dctrans.v('hatc', 'a', 'c00') + dctrans.v('hatc', 'a', 'c20'))
+        c0[:, :, 2] = d['a'] * dctrans.v('hatc', 'a', 'c04')
+        c1[:, :, 1] = d['a'] * dctrans.v('hatc', 'a', 'c12') + ax * dctrans.v('hatc', 'ax')
+        d['c0'] = c0
+        d['c1'] = c1
         return d
 
     def concentration_amplitudes_lead(self, u0, component):
@@ -171,7 +173,7 @@ class SedDynamic:
         uabs_M0 = absoluteU(u0b, 0).reshape(len(self.x), 1)
         uabs_M0_x = np.gradient(uabs_M0[:, 0], self.x[1], edge_order=2).reshape(len(self.x), 1)
         c00 = ((self.RHOS / (self.GPRIME * self.DS)) * self.sf * uabs_M0 *
-               np.exp(-self.WS * (self.H + self.zarr) / self.Av0))
+                np.exp(-self.WS * (self.H + self.zarr) / self.Av0))
         c00x = ((self.RHOS / (self.GPRIME * self.DS)) * np.exp(-self.WS * (self.H + self.zarr) / self.Av0) *
                 (self.sfx * uabs_M0 + self.sf * uabs_M0_x + self.sf * uabs_M0 * self.WS *
                  (self.Av0x * (self.H + self.zarr) - self.Av0 * self.Hx) / self.Av0**2))
@@ -302,10 +304,17 @@ class SedDynamic:
         Returns:
             a - availability of sediment throughout the estuary
         """
-        # Exponent in the availability function. This exponent is set to zero (hard-coded) at the landward boundary
-        # because here the availability is zero too!
-        exponent = np.append(np.exp(-np.append(0, integrate.cumtrapz(T / F, dx=self.dx, axis=0)[:-1])), 0)
-        A = (self.ASTAR * np.trapz(self.B * exponent, dx=self.dx, axis=0) /
-             np.trapz(self.B, dx=self.dx, axis=0))
+        # Exponent in the availability function.
+        # This exponent is set to zero (hard-coded) at the landward boundary because here the availability is zero too!
+        # exponent = np.append(np.exp(-np.append(0, integrate.cumtrapz(T / F, dx=self.dx, axis=0)[:-1])), 0)
+
+        # CORRECTION 13/9/16 R.L. BROUWER: BECAUSE WE INCLUDED THE RIVER-RIVER-RIVER INTERACTION, T AND F, AND THUS a,
+        # ARE NOT 0 AT THE WEIR ANYMORE!!!
+        if self.input.v('Q1') > 0:
+            exponent = np.exp(-integrate.cumtrapz(T / F, dx=self.dx, axis=0, initial=0))
+        else:
+            exponent = np.append(np.exp(-np.append(0, integrate.cumtrapz(T / F, dx=self.dx, axis=0)[:-1])), 0)
+        A = (self.ASTAR * np.trapz(self.B, dx=self.dx, axis=0) /
+             np.trapz(self.B * exponent, dx=self.dx, axis=0))
         a = A * exponent
         return a
