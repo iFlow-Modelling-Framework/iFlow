@@ -284,6 +284,7 @@ class Step:
             plt.plot(axis1_dim[:,0], axis2_dim[:,0], 'k-', linewidth=0.2)
             plt.plot(axis1_dim[-1,:], axis2_dim[-1,:], 'k-', linewidth=0.2)
             plt.plot(axis1_dim[0,:], axis2_dim[0,:], 'k-', linewidth=0.2)
+            plt.gca().set_axis_bgcolor([.75, .75, .75])
             cb = plt.colorbar()
 
             ## Title and axis labels
