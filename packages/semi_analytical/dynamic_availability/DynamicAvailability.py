@@ -92,8 +92,9 @@ class DynamicAvailability:
         # self.Qt = 10 * np.cos(2 * np.pi * self.t / (365 * self.dt)) * 2 * np.pi / (365 * self.dt)
         ### tangent hyperbolic profile ###
         self.Q = -17.5*np.tanh((self.t - self.dt*200)/2e6) + 42.5
-        self.Q = np.append(self.Q, 17.5*np.tanh((self.t - self.dt*200)/2e6) + 42.5)
-        self.t = np.arange(0, 2 * 366 * self.dt, self.dt/self.step)
+        # self.Q = np.append(self.Q, 17.5*np.tanh((self.t - self.dt*200)/2e6) + 42.5)
+        # self.t = np.arange(0, 2 * 366 * self.dt, self.dt/self.step)
+        self.t = np.arange(0, 366 * self.dt, self.dt/self.step)
         # self.Qt = np.gradient(self.Q, self.dt, edge_order=2)
         ### fitted data Scheldt ###
         # data = np.loadtxt('/Users/RLBrouwer/Box Sync/WL Antwerpen/WL2016R13_103_4_WP1Sed_texfiles/python/WP14/input/tday_Qmeasured_Qfit_dQfitdt.dat')
@@ -245,20 +246,25 @@ class DynamicAvailability:
         # G.append(g)
         g_old = g
         # Initialize availability a
-        T_old, F_old, A_old, C20_old = self.Transport_terms(self.Q[0])
+        T_old, F_old, A_old, C20_old = self.transport_terms(self.Q[0])
         Tt = []
         Tt.append(T_old)
         # # Calculate and append diffusive coefficient F
         Ft = []
         Ft.append(F_old)
-        a_old = self.availability(F_old, T_old)
-        a_old = a_old / a_old[0]
+        aeq_old = self.availability(F_old, T_old)
+        aeq_old = aeq_old / aeq_old[0]
+        a_old = aeq_old * self.FSEA
+        a = a_old
+        Xt = []
+        X = np.append(g, a).reshape(2*len(self.x), 1)
+        X_old = np.append(g_old, a_old).reshape(2*len(self.x), 1)
         # Initialize variables to be saved
-        f = []
-        f_old = g_old * a_old
-        f.append(f_old)
+        # f = []
+        # f_old = g_old * a_old
+        # f.append(f_old)
         flux = []
-        flux_old = self.B * F_old * a_old * np.gradient(g, self.dx[0], axis=0, edge_order=2)
+        flux_old = self.B * F_old * aeq_old * np.gradient(g, self.dx[0], axis=0, edge_order=2)
         flux.append(flux_old)
         c0bar = []
         c0bareq = []
@@ -267,55 +273,56 @@ class DynamicAvailability:
         eigvals = []
         eigvecs = []
         for i, q in enumerate(self.Q[1:]):
-            T, F, A, C20 = self.Transport_terms(q)
-            a = self.availability(F, T)
+            T, F, A, C20 = self.transport_terms(q)
+            aeq = self.availability(F, T)
             # scale the availability such that a = 1 at the sea boundary
-            a = a / a[0]
+            aeq = aeq / aeq[0]
             # test if min[1 - cap * a * g] is negative at t=0. If so raise an error
-            cap = 1 - self.FCAP * a * g
-            ind, = np.where(cap[:, 0] < 0.)
-            if not len(ind) == 0:
-                # print 'capped'
-                g[ind] = (1. - 10 * np.finfo(float).eps) / (self.FCAP * a[ind])
+            # cap = 1 - self.FCAP * a * g
+            # ind, = np.where(cap[:, 0] < 0.)
+            # if not len(ind) == 0:
+            #     # print 'capped'
+            #     g[ind] = (1. - 10 * np.finfo(float).eps) / (self.FCAP * a[ind])
             # print min(1 - self.FCAP * a * g)
 
-            if i == 0 and min(1 - self.FCAP * a * g) < 0:
-                maxfcap = 1 / max(a * g)
-                raise KnownError(
-                    'Given the initial and boundary conditions, fcap should be smaller than %.2g' % maxfcap)
+            # if i == 0 and min(1 - self.FCAP * a * g) < 0:
+            #     maxfcap = 1 / max(a * g)
+            #     raise KnownError(
+            #         'Given the initial and boundary conditions, fcap should be smaller than %.2g' % maxfcap)
 
             # Determine eigenvalues of the system for a certain discharge
             if self.FCAP == 0:
-                eigval, eigvec = self.stability(A, T, F, a)
+                eigval, eigvec = self.stability(A, T, F, aeq)
                 eigvals.append(eigval)
                 eigvecs.append(eigvec)
             else:
                 eigvals.append(0.)
                 eigvals.append(0.)
 
-            gvec, jac = self.jacvec(A, A_old, T, T_old, F, F_old, g, g_old, a, a_old)
-            while max(abs(gvec)) > self.TOL:
-                dg = linalg.solve(jac, gvec)
-                g = g - dg.reshape(len(self.x), 1)
-                gvec, jac = self.jacvec(A, A_old, T, T_old, F, F_old, g, g_old, a, a_old)
-            cap = 1 - self.FCAP * a * g
-            ind, = np.where(cap[:, 0] < 0.)
-            if not len(ind) == 0:
-                # print 'capped again'
-                g[ind] = (1. - 10 * np.finfo(float).eps) / (self.FCAP * a[ind])
+            Xvec, jac = self.jacvec2(A, A_old, T, T_old, F, F_old, aeq, aeq_old, X, X_old)
+            while max(abs(Xvec)) > self.TOL:
+                dX = linalg.solve(jac, Xvec)
+                X = X - dX.reshape(len(X), 1)
+                Xvec, jac = self.jacvec2(A, A_old, T, T_old, F, F_old, aeq, aeq_old, X, X_old)
+            # cap = 1 - self.FCAP * aeq * g
+            # ind, = np.where(cap[:, 0] < 0.)
+            # if not len(ind) == 0:
+            #     # print 'capped again'
+            #     g[ind] = (1. - 10 * np.finfo(float).eps) / (self.FCAP * a[ind])
             # print min(1 - self.FCAP * a * g)
-            g_old = g
-            a_old = a
+            # g_old = g
+            aeq_old = aeq
+            X_old = X
             T_old = T
             F_old = F
             A_old = A
-            fnew = a * g
+            fnew = aeq * X[:len(self.x)]
             c0barnew = (self.c00 + C20) * fnew.reshape(len(self.x), 1)
-            c0bareqnew = (self.c00 + C20) * (a * self.FSEA).reshape(len(self.x), 1)
+            c0bareqnew = (self.c00 + C20) * (aeq * self.FSEA).reshape(len(self.x), 1)
             # m = np.trapz(self.B * np.trapz(c0barnew, x=-self.zarr, axis=1).reshape(len(self.x), 1), dx=self.dx, axis=0)
             # meq = np.trapz(self.B * np.trapz(c0bareqnew, x=-self.zarr, axis=1).reshape(len(self.z), 1), dx=self.dx[0], axis=0)
-            flux.append(self.B * F * a * np.gradient(g, self.dx[0], axis=0, edge_order=2))
-            f.append(fnew)
+            flux.append(self.B * F * aeq * np.gradient(X[:len(self.x)], self.dx[0], axis=0, edge_order=2))
+            Xt.append(X)
             c0bar.append(c0barnew)
             c0bareq.append(c0bareqnew)
             # M.append(m)
@@ -330,10 +337,14 @@ class DynamicAvailability:
                 spaces = ' ' * (10 - len(hashes))
                 sys.stdout.write("\rProgress: [{0}] {1}%".format(hashes + spaces, int(round(percent * 100))))
                 sys.stdout.flush()
-        return {'f': np.array(f)[::self.step], 'flux': np.array(flux)[::self.step], 'Tt': np.array(Tt)[::self.step],
+        return {'Xt': np.array(X)[::self.step], 'flux': np.array(flux)[::self.step], 'Tt': np.array(Tt)[::self.step],
                 'c0bar': {'t': np.array(c0bar)[::self.step], 'eq': np.array(c0bareq)[::self.step]},
                 'Ft': np.array(Ft)[::self.step], 'eigs': {'eigvals': np.array(eigvals)[::self.step],
                                                           'eigvecs': np.array(eigvecs)[::self.step]}}
+        # return {'f': np.array(f)[::self.step], 'flux': np.array(flux)[::self.step], 'Tt': np.array(Tt)[::self.step],
+        #         'c0bar': {'t': np.array(c0bar)[::self.step], 'eq': np.array(c0bareq)[::self.step]},
+        #         'Ft': np.array(Ft)[::self.step], 'eigs': {'eigvals': np.array(eigvals)[::self.step],
+        #                                                   'eigvecs': np.array(eigvecs)[::self.step]}}
 
     def river_river_interaction(self, q):
         u0 = self.input.v('u0', 'tide', range(0, len(self.x)), len(self.z) - 1, 1)
@@ -374,6 +385,47 @@ class DynamicAvailability:
              np.trapz(self.B * exponent, dx=self.dx, axis=0))
         a = A * exponent
         return a
+
+    def jacvec2(self, A, A_old, T, T_old, F, F_old, aeq, aeq_old, X, X_old):
+        # Initiate jacobian matrix, Xvec and local variable N
+        jac = sps.csc_matrix((len(X), len(X)))
+        Xvec, N = np.zeros((len(X), 1)), np.zeros((len(self.x), 1))
+        # define length of xgrid
+        lx = len(self.x)
+        ivec = range(1, lx-1)
+        # Define local variable N^(n+1)
+        N[ivec] = self.gamma * aeq[1:-1] * (F[1:-1] * (X[2:lx] - 2 * X[ivec] + X[:lx-2]) / self.dx[0]**2 +
+                                              (A[1:-1] - T[1:-1]) * (X[2:lx] - X[:lx-2]) / (2 * self.dx[0]))
+        # Fill interior points of Xvec related g for the differential equation (1)
+        Xvec[ivec] += self.dt * N[ivec] / 2.
+        # Fill interior points of the jacobian matrix related to g for Eq. (1)
+        jval_c_g = -self.dt * self.gamma * aeq[1:-1, 0] * F[1:-1, 0] / self.dx[0]**2
+        jac += sps.csc_matrix((jval_c_g, (ivec, ivec)), shape=jac.shape)
+        jval_l_g = self.dt * self.gamma * aeq[1:-1, 0] * (F[1:-1, 0] / self.dx[0] - (A[1:-1, 0] - T[1:-1, 0]) / 2.) / (2 * self.dx[0])
+        jac += sps.csc_matrix((jval_l_g, (ivec, range(lx-2))), shape=jac.shape)
+        jval_r_g = self.dt * self.gamma * aeq[1:-1, 0] * (F[1:-1, 0] / self.dx[0] + (A[1:-1, 0] - T[1:-1, 0]) / 2.) / (2 * self.dx[0])
+        jac += sps.csc_matrix((jval_r_g, (ivec, range(2, lx))), shape=jac.shape)
+        # Boundary condition at sea
+        Xvec[0] = X[0] - self.FSEA
+        jac += sps.csc_matrix(([1.], ([0.], [0.])), shape=jac.shape)
+        # Boundary condition at weir
+        Xvec[lx-1] = (3. * X[lx-1] - 4. * X[lx-2] + X[lx-3])
+        jac += sps.csc_matrix(([3., -4., 1.], ([lx-1, lx-1, lx-1], [lx-1, lx-2, lx-3])), shape=jac.shape)
+        # Fill interior points of Xvec and diagonal of jacobian related to a for Eq. (1)
+        Xvec[lx+1:-1] += X[lx+1:-1]
+        jac += sps.csc_matrix((np.ones(lx-2), (ivec, range(lx+1, len(X)-1))), shape=jac.shape)
+        # Fill Xvec and jacobian for the algebraic relation between g and a, Eq. (2)
+        Xvec[lx:] = aeq * X[:lx] + self.FCAP * aeq * X[:lx] * X[lx:] - X[lx:]
+        jac += sps.csc_matrix((self.FCAP * aeq[:, 0] * X[:lx, 0] - 1., (range(lx, 2*lx), range(lx, 2*lx))), shape=jac.shape)
+        jac += sps.csc_matrix((aeq[:, 0] + self.FCAP * aeq[:, 0] * X[lx:, 0], (range(lx, 2*lx), range(lx))), shape=jac.shape)
+        # Convert jacobian matrix to dense matrix
+        jac = jac.todense()
+        # Inhomogeneous part of the PDE related to a and g at interior points
+        Xvec[lx:] += -X_old[lx:]
+        N[ivec] = self.gamma * aeq_old[1:-1] * (F_old[1:-1] * (X_old[2:lx] - 2 * X_old[ivec] + X_old[:lx-2]) / self.dx[0]**2 +
+                                                (A_old[1:-1] - T_old[1:-1]) * (X_old[2:lx] - X_old[:lx-2]) / (2 * self.dx[0]))
+        Xvec[ivec] += self.dt * N[ivec] / 2.
+        return Xvec, jac
 
     def jacvec(self, A, A_old, T, T_old, F, F_old, g, g_old, a, a_old):
         gvec, M, N = np.zeros((len(self.x),1)), np.zeros((len(self.x),1)), np.zeros((len(self.x),1))
