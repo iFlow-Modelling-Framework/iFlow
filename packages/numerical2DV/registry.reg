@@ -248,6 +248,11 @@ packagePath sediment/
 input       zeta0 u0 u1 hatc0 hatc1_a hatc1_ax B grid Kh astar
 output      a c0 c1
 
+module      StaticAvailabilityLead
+packagePath sediment/
+input       zeta0 u0 u1 hatc0 grid
+output      a0
+
 module      HinderedSettling
 packagePath sediment/
 inputInit   grid cgel RHOS mhs ws0

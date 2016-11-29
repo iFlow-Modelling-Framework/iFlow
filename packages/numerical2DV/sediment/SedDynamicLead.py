@@ -34,13 +34,14 @@ class SedDynamicLead:
         ################################################################################################################
         # Left hand side
         ################################################################################################################
-        PrSchm = self.input.v('sigma_rho', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))
+        PrSchm = self.input.v('sigma_rho', range(0, jmax+1), range(0, kmax+1), [0])  #TODO: better input for PrSchm
         Av = self.input.v('Av', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))
         Kv = Av/PrSchm
 
         # ws = np.zeros((jmax+1, kmax+1, fmax+1))
         # ws[:,:,0] = self.input.v('ws0', range(0, jmax+1), range(0, kmax+1), 0)
         ws = self.input.v('ws', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))
+        ws[:,:,1:] = 0                                                                 #TODO: better input for Ws
 
         ################################################################################################################
         # Forcing terms
