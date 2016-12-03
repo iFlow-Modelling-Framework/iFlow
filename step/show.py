@@ -8,7 +8,8 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import step_config as cf
 
-def show(block=True, hspace=0.6, wspace=0.4):
+
+def show(block=True, fname=None, hspace=0.6, wspace=0.4):
     """Replaces matplotlib.pyplot show().
     Corrects figure size, backgroundcolor and tightlayout
 
@@ -43,6 +44,8 @@ def show(block=True, hspace=0.6, wspace=0.4):
         else:
             fig.set_tight_layout(True)
 
+    if fname != None:
+        plt.savefig(fname, bbox_inches='tight', pad_inches=0.1, dpi=cf.savedpi)
     plt.show(block=block)
 
     return
