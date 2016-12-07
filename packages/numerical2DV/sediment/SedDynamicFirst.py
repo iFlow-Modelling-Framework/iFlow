@@ -39,15 +39,17 @@ class SedDynamicFirst:
         Av = self.input.v('Av', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))
         Kv = Av/PrSchm
 
-        # ws = np.zeros((jmax+1, kmax+1, fmax+1))
-        # ws[:,:,0] = self.input.v('ws0', range(0, jmax+1), range(0, kmax+1), 0)
-        ws = self.input.v('ws', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))
+        ws = np.zeros((jmax+1, kmax+1, fmax+1))
+        ws[:,:,0] = self.input.v('ws0', range(0, jmax+1), range(0, kmax+1), 0)
+        # ws = self.input.v('ws', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))
 
         ################################################################################################################
         # Forcing terms
         ################################################################################################################
-        if 'adv' in self.submodulesToRun:
-            self.submodulesToRun.append('adv_ax')
+        if 'sedadv' in self.submodulesToRun and 'sedadv_ax' not in self.submodulesToRun:
+            self.submodulesToRun.append('sedadv_ax')
+        if 'erosion' in self.submodulesToRun and 'erosion_a1' not in self.submodulesToRun:
+            self.submodulesToRun.append('erosion_a1')
         nRHS = len(self.submodulesToRun)
 
         F = np.zeros([jmax+1, kmax+1, ftot, nRHS], dtype=complex)
@@ -61,16 +63,19 @@ class SedDynamicFirst:
         # 1. Erosion
         if 'erosion' in self.submodulesToRun:
             E = self.erosion_Chernetsky(ws, Kv, 1)
-            Fbed[:,:,fmax:, 0] = -E
+            Fbed[:, :, fmax:, self.submodulesToRun.index('erosion')] = -E
+
+            E = self.erosion_Chernetsky(ws, Kv, 0)
+            Fbed[:, :, fmax:, self.submodulesToRun.index('erosion_a1')] = -E
 
         # 2. Advection
-        if 'adv' in self.submodulesToRun:
+        if 'sedadv' in self.submodulesToRun:
             u0 = self.input.v('u0', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))
             w0 = self.input.v('w0', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))
 
             eta = ny.complexAmplitudeProduct(u0, cx0, 2)+ny.complexAmplitudeProduct(w0, cz0, 2)
-            F[:, :, fmax:, self.submodulesToRun.index('adv')] = -eta
-            F[:, :, fmax:, self.submodulesToRun.index('adv_ax')] = -ny.complexAmplitudeProduct(u0, c0, 2)
+            F[:, :, fmax:, self.submodulesToRun.index('sedadv')] = -eta
+            F[:, :, fmax:, self.submodulesToRun.index('sedadv_ax')] = -ny.complexAmplitudeProduct(u0, c0, 2)
 
         # 3. First-order fall velocity
         if 'settling' in self.submodulesToRun:
@@ -123,12 +128,14 @@ class SedDynamicFirst:
         d = {}
         d['hatc1_a'] = {}
         d['hatc1_ax'] = {}
+        d['hatc1_a1'] = {}
         for i, submod in enumerate(self.submodulesToRun):
-            if submod == 'adv_ax':
-                d['hatc1_ax']['adv'] = c[:, :, :, i]
+            if submod == 'erosion_a1':
+                d['hatc1_a1']['erosion'] = c[:, :, :, i]
+            elif submod == 'sedadv_ax':
+                d['hatc1_ax']['sedadv'] = c[:, :, :, i]
             else:
                 d['hatc1_a'][submod] = c[:, :, :, i]
-
 
         return d
 

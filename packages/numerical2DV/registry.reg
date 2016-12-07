@@ -230,9 +230,9 @@ output      hatc0
 module      SedDynamicFirst
 packagePath sediment/
 input       grid G OMEGA RHOS RHO0 DS Av sigma_rho ws u0
-output      hatc1_a hatc1_ax
-submodules	adv fallvel mixing erosion noflux
-adv			    input		w0 hatc0
+output      hatc1_a hatc1_ax hatc1_a1
+submodules	sedadv fallvel mixing erosion noflux
+sedadv  	    input		w0 hatc0
                 output
 fallvel			input		ws1 hatc0
                 output
@@ -250,7 +250,7 @@ output      a c0 c1
 
 module      StaticAvailabilityLead
 packagePath sediment/
-input       zeta0 u0 u1 hatc0 grid
+input       zeta0 u0 u1 hatc0 hatc1_a hatc1_ax hatc1_a1 grid T F
 output      a0
 
 module      HinderedSettling
