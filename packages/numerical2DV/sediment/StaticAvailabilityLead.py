@@ -7,7 +7,6 @@ Authors: Y.M. Dijkstra
 import logging
 import numpy as np
 import nifty as ny
-from cFunction import cFunction
 import step as st
 import matplotlib.pyplot as plt
 from scipy.linalg import solve_banded
@@ -139,13 +138,19 @@ class StaticAvailabilityLead:
                     tmp = np.zeros(u1_comp.shape, dtype=complex)
                     tmp[:, :, n] = u1_comp[:, :, n]
                     if submod == 'stokes' and n == 0:
-                        d['T']['TM0']['TM0stokes'][submod] = ny.integrate(ny.complexAmplitudeProduct(tmp, c0, 2), 'z', kmax, 0, self.input.slice('grid'))[:, 0, 0]
+                        try:
+                            d['T']['TM0']['TM0stokes'][submod] += ny.integrate(ny.complexAmplitudeProduct(tmp, c0, 2), 'z', kmax, 0, self.input.slice('grid'))[:, 0, 0]
+                        except:
+                            d['T']['TM0']['TM0stokes'][submod] = ny.integrate(ny.complexAmplitudeProduct(tmp, c0, 2), 'z', kmax, 0, self.input.slice('grid'))[:, 0, 0]
                     else:
-                        d['T']['TM'+str(2*n)][submod] = ny.integrate(ny.complexAmplitudeProduct(tmp, c0, 2), 'z', kmax, 0, self.input.slice('grid'))[:, 0, 0]
+                        try:
+                            d['T']['TM'+str(2*n)][submod] += ny.integrate(ny.complexAmplitudeProduct(tmp, c0, 2), 'z', kmax, 0, self.input.slice('grid'))[:, 0, 0]
+                        except:
+                            d['T']['TM'+str(2*n)][submod] = ny.integrate(ny.complexAmplitudeProduct(tmp, c0, 2), 'z', kmax, 0, self.input.slice('grid'))[:, 0, 0]
 
             # T0 component - part 3: u0*c0*zeta0
-            T0 += -ny.complexAmplitudeProduct(ny.complexAmplitudeProduct(u0[:, [0], :], c0[:, [0], :], 2), zeta0, 2)
-            d['T']['TM0']['TM0stokes']['drift'] = -ny.complexAmplitudeProduct(ny.complexAmplitudeProduct(u0[:, [0], :], c0[:, [0], :], 2), zeta0, 2)[:, 0, 0]
+            T0 += ny.complexAmplitudeProduct(ny.complexAmplitudeProduct(u0[:, [0], :], c0[:, [0], :], 2), zeta0, 2)
+            d['T']['TM0']['TM0stokes']['drift'] = ny.complexAmplitudeProduct(ny.complexAmplitudeProduct(u0[:, [0], :], c0[:, [0], :], 2), zeta0, 2)[:, 0, 0]
 
             # T0 component - part 4: diffusive part
             T0 += - Kh*ny.integrate(c0x, 'z', kmax, 0, self.input.slice('grid'))
@@ -169,14 +174,14 @@ class StaticAvailabilityLead:
             a0x_til_M4 = np.zeros(a0x_til.shape, dtype=complex)
             a0_til_M4[:, :, 2] = a0_til[:, :, 2]
             a0x_til_M4[:, :, 2] = a0x_til[:, :, 2]
-            #d['T']['AM4'] = (ny.complexAmplitudeProduct(T0, a0_til_M4, 2) + ny.complexAmplitudeProduct(F0, a0x_til_M4, 2))[:, 0, 0]
+            d['T']['AM4'] = (ny.complexAmplitudeProduct(T0, a0_til_M4, 2) + ny.complexAmplitudeProduct(F0, a0x_til_M4, 2))[:, 0, 0]
 
             # Transport due to T1*a12
             T1 = ny.integrate(ny.complexAmplitudeProduct(u0, c1_a1, 2), 'z', kmax, 0, self.input.slice('grid'))
-            #d['T']['AM2'] = ny.complexAmplitudeProduct(T1, a1_til[:, :, :, 1], 2)[:, 0, 0]
+            d['T']['AM2'] = ny.complexAmplitudeProduct(T1, a1_til[:, :, :, 1], 2)[:, 0, 0]
 
             # Diffusion component due to T1*a12
-            #d['F']['AM2'] = ny.complexAmplitudeProduct(T1, a1_til[:, :, :, 2], 2)[:, 0, 0]
+            d['F']['AM2'] = ny.complexAmplitudeProduct(T1, a1_til[:, :, :, 2], 2)[:, 0, 0]
 
             ## Add all mechanisms & compute a0c
             from src.DataContainer import DataContainer
@@ -230,9 +235,10 @@ class StaticAvailabilityLead:
         for key in dc.getKeysOf('T'):
             p = plt.plot(x/1000., dc.v('T', key, range(0, jmax+1)), label=key)
             try:
-                plt.plot(x/1000., self.input.v('T', key, range(0, jmax+1)), '--', label=key, color=p[0].get_color())
+                plt.plot(x/1000., self.input.v('T', key, range(0, jmax+1)), 'o', label=key, color=p[0].get_color())
             except:
                 pass
+        plt.plot(x/1000., dc.v('T', range(0, jmax+1))-dc.v('T', 'AM2', range(0, jmax+1))-dc.v('T', 'AM4', range(0, jmax+1)), 'k--', label='Total $a_{M0}$')
         plt.plot(x/1000., dc.v('T', range(0, jmax+1)), 'k', label='Total')
         plt.legend(bbox_to_anchor=(1.15, 1.05))
         plt.title('Transport terms')
@@ -244,7 +250,7 @@ class StaticAvailabilityLead:
         for key in dc.getKeysOf('F'):
             p = plt.plot(x/1000., dc.v('F', key, range(0, jmax+1)), label=key)
             try:
-                plt.plot(x/1000., self.input.v('F', key, range(0, jmax+1)), '--', label=key, color=p[0].get_color())
+                plt.plot(x/1000., self.input.v('F', key, range(0, jmax+1)), 'o', label=key, color=p[0].get_color())
             except:
                 pass
         plt.plot(x/1000., dc.v('F', range(0, jmax+1)), 'k', label='Total')

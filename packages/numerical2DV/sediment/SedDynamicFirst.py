@@ -8,8 +8,6 @@ import logging
 import numpy as np
 import nifty as ny
 from cFunction import cFunction
-import step as st
-import matplotlib.pyplot as plt
 
 
 class SedDynamicFirst:
@@ -35,12 +33,12 @@ class SedDynamicFirst:
         ################################################################################################################
         # Left hand side
         ################################################################################################################
-        PrSchm = self.input.v('sigma_rho', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))
+        PrSchm = self.input.v('sigma_rho', range(0, jmax+1), range(0, kmax+1), [0])     # TODO correction
         Av = self.input.v('Av', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))
         Kv = Av/PrSchm
 
-        ws = np.zeros((jmax+1, kmax+1, fmax+1))
-        ws[:,:,0] = self.input.v('ws0', range(0, jmax+1), range(0, kmax+1), 0)
+        ws = np.zeros((jmax+1, kmax+1, fmax+1), dtype=complex)
+        ws[:,:,0] = self.input.v('ws0', range(0, jmax+1), range(0, kmax+1), 0) # TODO correction
         # ws = self.input.v('ws', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))
 
         ################################################################################################################
@@ -107,6 +105,7 @@ class SedDynamicFirst:
         if 'noflux' in self.submodulesToRun:
             zeta0 = self.input.v('zeta0', range(0, jmax+1), [0], range(0, fmax+1))
             D = (np.arange(0, fmax+1)*1j*OMEGA).reshape((1, 1, fmax+1))*np.ones((jmax+1, 1, 1))
+            #c0[0, 0, 2] = -760.740646787+1645.83313472j
             Dc0 = D*c0[:, [0], :]
             chi = ny.complexAmplitudeProduct(Dc0, zeta0, 2)
             Fsurf[:, :, fmax:, self.submodulesToRun.index('noflux')] = -chi
@@ -136,6 +135,15 @@ class SedDynamicFirst:
                 d['hatc1_ax']['sedadv'] = c[:, :, :, i]
             else:
                 d['hatc1_a'][submod] = c[:, :, :, i]
+        if 'erosion' not in self.submodulesToRun:
+            d['hatc1_a1'] = 0
+        if 'sedadv' not in self.submodulesToRun:
+            d['hatc1_ax'] = 0
+
+        # self.input.merge(d)
+        # plt.plot(abs(self.input.v('hatc1_a', x=0.75, z=np.linspace(0,1, 50), f=1)))
+        # plt.plot(abs(self.input.v('hatc a', 'c12', x=0.75, z=np.linspace(0,1, 50), f=1)))
+        # plt.show()
 
         return d
 
@@ -169,6 +177,31 @@ class SedDynamicFirst:
         taub_abs += c[8]*self.umultiply(8, tau_order, taub)
 
         taub_abs = taub_abs*tau_amp
+
+        ########################################################################################################################
+        # Leading order abs - Ronald using absoluteU
+        ########################################################################################################################
+        # taub = [t*tau_amp for t in taub]
+        # taub_abs = np.zeros((taub[0].shape), dtype=complex)
+        # taub[0][:,:,1] += 10**-6
+        # if tau_order == 0:
+        #     taub_abs[:, :, 0] = ny.absoluteU(taub[0][:, :, 1], 0)
+        #     for i in range(1, fmax+1):
+        #         taub_abs[:, :, i] = ny.absoluteU(taub[0][:, :, 1], i)+np.conj(ny.absoluteU(taub[0][:, :, 1], -i))
+        #
+        # else:
+        #     sguM2 = ny.signU(taub[0][:, :, 1], 1)
+        #     sguM6 = ny.signU(taub[0][:, :, 1], 3)
+        #     # Calculate the M2 contribution of u1 * u0 / |u0| at the bottom, which can be separated into a part that is due
+        #     # to the M0-part of u1 and a part that is due to the M4-part of u1
+        #     uM0 = 2. * taub[1][:, :, 0] * sguM2
+        #     uM4 = taub[1][:, :, 2]*np.conj(sguM2) + np.conj(taub[1][:, :, 2]) * sguM6
+        #     taub_abs[:, :, 1] = uM0 + uM4
+        ########################################################################################################################
+        # import matplotlib.pyplot
+        # p = plt.plot(abs(taub_abs[:, 0, 1]))
+        # # # plt.plot(taub_abs2[:, 0, 0], '--', color = p[0].get_color())
+        # plt.show()
 
         ## 2. erosion
         rhos = self.input.v('RHOS')

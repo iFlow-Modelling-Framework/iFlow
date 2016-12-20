@@ -8,8 +8,6 @@ import logging
 import numpy as np
 import nifty as ny
 from cFunction import cFunction
-import step as st
-import matplotlib.pyplot as plt
 
 
 class SedDynamicLead:
@@ -52,6 +50,7 @@ class SedDynamicLead:
 
         # erosion
         E = self.erosion_Chernetsky(ws, Kv)
+
         Fbed[:,:,fmax:, 0] = -E
 
         ################################################################################################################
@@ -94,6 +93,25 @@ class SedDynamicLead:
 
         taub_abs = taub_abs*tau_amp
 
+        ########################################################################################################################
+        # Leading order abs - Ronald using absoluteU
+        ########################################################################################################################
+        # taub = taub*tau_amp
+        # taub_abs = np.zeros((taub.shape), dtype=complex)
+        # taub[:,:,1] += 10**-6
+        # taub_abs[:, :, 0] = ny.absoluteU(taub[:, :, 1], 0)
+        # for i in range(1, fmax+1):
+        #     taub_abs[:, :, i] = ny.absoluteU(taub[:, :, 1], i)+np.conj(ny.absoluteU(taub[:, :, 1], -i))
+        ########################################################################################################################
+        # Plotting
+        ########################################################################################################################
+        # import matplotlib.pyplot
+        # p = plt.plot(taub_abs[:, 0, 0])
+        # # # plt.plot(taub_abs2[:, 0, 0], '--', color = p[0].get_color())
+        # p = plt.plot(abs(taub_abs[:, 0, 2]))
+        # # # plt.plot(abs(taub_abs2[:, 0, 2]), '--', color = p[0].get_color())
+        # plt.show()
+
         ## 2. erosion
         rhos = self.input.v('RHOS')
         rho0 = self.input.v('RHO0')
@@ -102,3 +120,5 @@ class SedDynamicLead:
 
         hatE = rhos/(gred*ds)*ny.complexAmplitudeProduct(ws[:,[kmax],:], taub_abs, 2)
         return hatE
+
+

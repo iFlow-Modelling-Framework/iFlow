@@ -1,5 +1,6 @@
 """
 cFunction
+Uses integral condition; still has problems with the prediction of the phase
 
 Date: 19-12-2016
 Authors: Y.M. Dijkstra
@@ -29,6 +30,8 @@ def cFunction(ws, Kv, F, Fsurf, Fbed, data, hasMatrix = False):
     nRHS = F.shape[-1]
     cMatrix = np.empty([jmax+1, 2*ftot+2*bandwidth+1, ftot*(kmax+1)], dtype=complex)
     cCoef = np.zeros([jmax+1, kmax+1, ftot, nRHS], dtype=complex)
+    cBed = np.zeros([jmax+1, kmax+1, ftot, fmax+1], dtype=complex)
+    cSurf = np.zeros([jmax+1, kmax+1, ftot, fmax+1], dtype=complex)
 
     ####################################################################################################################
     # build, save and solve the matrices in every water column
@@ -68,7 +71,7 @@ def cFunction(ws, Kv, F, Fsurf, Fbed, data, hasMatrix = False):
             a = - 0.5*(N[0:-2, :, :]+N[1:-1, :, :])/dz_down                                         + Ws[0:-2, :, :]      # for k-1: from 1..kmax-1
             b =   0.5*(N[0:-2, :, :]+N[1:-1, :, :])/dz_down + 0.5*(N[1:-1, :, :]+N[2:, :, :])/dz_up - Ws[1:-1, :, :]        # for k: from 1..kmax-1
             c =                                             - 0.5*(N[1:-1, :, :]+N[2:, :, :])/dz_up                       # for k+1: from 1..kmax
-            b[:, bandwidth, :] += 0.5*(np.arange(-fmax, ftot-fmax)*1j*OMEGA).reshape((1, ftot))*dz_up.reshape((kmax-1, 1))
+            b[:, bandwidth, :] += (np.arange(-fmax, ftot-fmax)*1j*OMEGA).reshape((1, ftot))*dz_up.reshape((kmax-1, 1))
 
             a = np.swapaxes(a, 0, 1)
             b = np.swapaxes(b, 0, 1)
@@ -108,20 +111,95 @@ def cFunction(ws, Kv, F, Fsurf, Fbed, data, hasMatrix = False):
             bandwidthA = (A.shape[0]-1)/2
 
         ################################################################################################################
-        # Right hand side
+        # Solve for F
         ################################################################################################################
-        RHS = np.zeros([ftot*(kmax+1), nRHS], dtype=complex)
+        nRHS_F = [i for i in range(0, nRHS) if (F[j, :, :, i]!=0).any() ]
+        if len(nRHS_F) > 0:
 
-        RHS[ftot:-ftot, :] = (F[j, 1:-1, :, :]*dz_up).reshape(((F.shape[1]-2)*F.shape[2], nRHS))
-        RHS[:ftot, :] = Fsurf[j, 0, :, :]
-        RHS[-ftot:, :] += -Fbed[j, 0, :, :]
+            RHS = np.zeros([ftot*(kmax+1), len(nRHS_F)], dtype=complex)
+            RHS[ftot:-ftot, :] = (np.rollaxis(F[j, 1:-1, :, nRHS_F], 0, 3)*dz_up).reshape(((F.shape[1]-2)*F.shape[2], len(nRHS_F)))
+
+            csol = solve_banded((bandwidthA, bandwidthA), A, RHS, overwrite_ab=True, overwrite_b=True)
+            cCoef[j, :, :, nRHS_F] = np.rollaxis(csol.reshape(kmax+1, ftot, len(nRHS_F)), -1, 0)
 
         ################################################################################################################
-        # Solve
+        # Solve for Fbed
         ################################################################################################################
-        cstag = solve_banded((bandwidthA, bandwidthA), A, RHS, overwrite_ab=True, overwrite_b=True)
-        cCoef[j, :, :, :] = cstag.reshape(kmax+1, ftot, nRHS)
+        RHS = np.zeros([ftot*(kmax+1), fmax+1], dtype=complex)
+        RHS[-ftot+fmax:, :] = np.eye(fmax+1)
 
+        ## bed
+        b = np.zeros(N[[1], :, :].shape)
+        b[:, bandwidth, :] = np.ones((1, ftot))
+        b = np.swapaxes(b, 0, 1)
+        A[2*ftot:2*ftot+2*bandwidth+1, -2*ftot:-ftot] = 0
+        A[ftot:ftot+2*bandwidth+1, -ftot:] = b.reshape(b.shape[0], b.shape[1]*b.shape[2])
 
+        csol = solve_banded((bandwidthA, bandwidthA), A, RHS, overwrite_ab=True, overwrite_b=True)
+        cBed[j, :, :, :] = csol.reshape(kmax+1, ftot, fmax+1)
+
+        ################################################################################################################
+        # Solve for FSurf
+        ################################################################################################################
+        RHS = np.zeros([ftot*(kmax+1), fmax+1], dtype=complex)
+        RHS[fmax:ftot, :] = np.eye(fmax+1)
+
+        # surface
+        b = np.zeros(N[[1], :, :].shape)
+        b[:, bandwidth, :] = np.ones((1, ftot))
+        b = np.swapaxes(b, 0, 1)
+        A[ftot:ftot+2*bandwidth+1, :ftot] = b.reshape(b.shape[0], b.shape[1]*b.shape[2])
+        A[:2*bandwidth+1, ftot:2*ftot] = 0
+        # bed
+        a = N[[-1],Ellipsis]/dz[[-1]]
+        b = -N[[-1],Ellipsis]/dz[[-1]]
+        a = np.swapaxes(a, 0, 1)
+        b = np.swapaxes(b, 0, 1)
+        A[2*ftot:2*ftot+2*bandwidth+1, -2*ftot:-ftot] = (a.reshape(a.shape[0], a.shape[1]*a.shape[2]))
+        A[ftot:ftot+2*bandwidth+1, -ftot:] = b.reshape(b.shape[0], b.shape[1]*b.shape[2])
+
+        csol = solve_banded((bandwidthA, bandwidthA), A, RHS, overwrite_ab=True, overwrite_b=True)
+        cSurf[j, :, :, :] = csol.reshape(kmax+1, ftot, fmax+1)
+
+    ####################################################################################################################
+    # Scale bed boundary by integral condition: alpha = fac^-1 rhs
+    ####################################################################################################################
+    cBed = ny.eliminateNegativeFourier(cBed, 2)
+    D = (np.arange(0, fmax+1)*1j*OMEGA).reshape((1, 1, fmax+1, 1))*np.ones(cBed.shape, dtype=complex)
+
+    fac = np.squeeze(ny.integrate(np.expand_dims(D*cBed, 2), 'z', 0, kmax, data.slice('grid')), 2) + ny.complexAmplitudeProduct(ws[:, [-1], Ellipsis], cBed[:, [-1], Ellipsis], 2)
+    rhs = -Fbed[:, :, fmax:]
+
+    # solve integral condition
+    alpha = np.linalg.solve(fac, rhs)
+    for j in range(0, jmax+1):
+        cCoef[j, :, fmax:, :] += np.dot(cBed[j, Ellipsis], alpha[j, 0, :])
+
+    ####################################################################################################################
+    # Scale surface boundary by integral condition: alpha = fac^-1 rhs
+    ####################################################################################################################
+    cSurf = ny.eliminateNegativeFourier(cSurf, 2)
+    fac = np.squeeze(ny.integrate(np.expand_dims(D*cSurf, 2), 'z', 0, kmax, data.slice('grid')), 2) + ny.complexAmplitudeProduct(ws[:, [0], Ellipsis], cSurf[:, [0], Ellipsis], 2)
+    rhs = Fsurf[:, :, fmax:]
+
+    # solve integral condition
+    alpha = np.linalg.solve(fac, rhs)
+    for j in range(0, jmax+1):
+        cCoef[j, :, fmax:, :] += np.dot(cSurf[j, Ellipsis], alpha[j, 0, :])
 
     return cCoef, cMatrix
+
+def bandedMatVec(A, x):
+    shape = list(A.shape)
+    shape[0] = shape[1]
+    Afull = np.zeros(shape, dtype=A.dtype)
+    bandwdA = (A.shape[0]-1)/2
+    size = shape[1]
+
+    Afull[[range(0, size), range(0, size)]] += A[[bandwdA, slice(None)]+[Ellipsis]]
+    for n in range(1, bandwdA+1):
+        Afull[[range(0, size-n), range(n, size)]] += A[[bandwdA-n, slice(n,None)]]
+        Afull[[range(n, size), range(0, size-n)]] += A[[bandwdA+n, slice(None, -n)]]
+
+    return np.dot(Afull, x)
+
