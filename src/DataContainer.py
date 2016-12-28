@@ -451,7 +451,7 @@ class DataContainer:
                     from copy import copy
                     value = copy(dictValue)
                 else:
-                    value += dictValue
+                    value = value + dictValue           #YMD 20-12-2016: old version 'value+= dictValue' introduced errors when summing complex numbers to a real value
             # add the values from the dictionary and subdictionaries if these contain arrays/numbers
             elif isinstance(dictValue, np.ndarray) or isinstance(dictValue, Number) or isinstance(dictValue, types.MethodType) or isinstance(dictValue, types.FunctionType):
                 done = True     # indicates that .v method is no longer required anymore; return the value immediately
@@ -465,7 +465,7 @@ class DataContainer:
                     from copy import copy
                     value = copy(dc.v('key', *args, **kwargs))
                 else:
-                    value += dc.v('key', *args, **kwargs)
+                    value = value + dc.v('key', *args, **kwargs) #YMD 20-12-2016: old version 'value+= dc.v(...)' introduced errors when summing complex numbers to a real value
         if value is None:
             value = dictionary
         return value, done

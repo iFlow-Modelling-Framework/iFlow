@@ -272,7 +272,7 @@ class SedDynamic:
         B2M2 = -1j * self.SIGMA * np.conj(zeta0) * c04s / (var2 - (r2_M2 / r1_M2) * var1 * np.exp((r1_M2 - r2_M2) * self.H))
         # Calculate the amplitude of the first order M2 contribution of the sediment concentration due to the surface
         # boundary condition
-        c12M2 = (B1M2 * np.exp(r1_M2 * self.zarr) + B2M2 * np.exp(r2_M2 * self.zarr))
+        c12M2 = 0 #(B1M2 * np.exp(r1_M2 * self.zarr) + B2M2 * np.exp(r2_M2 * self.zarr))
 
         # CAlCULATE THE PART OF C12 DUE TO THE ADVECTION OF SEDIMENT
         # Extract the forcing term that is a function of a(x) and a_x(x)
@@ -290,6 +290,7 @@ class SedDynamic:
             C = np.fliplr(integrate.cumtrapz(np.fliplr(f * np.exp(-r1_M2 * self.zarr) / (self.Av0 * (r2_M2 - r1_M2))), x=-self.zarr, axis=1, initial=0))
             D = np.fliplr(integrate.cumtrapz(np.fliplr(f * np.exp(-r2_M2 * self.zarr) / (self.Av0 * (r2_M2 - r1_M2))), x=-self.zarr, axis=1, initial=0))
             c12adv.append((A - C) * np.exp(r1_M2 * self.zarr) + (B + D) * np.exp(r2_M2 * self.zarr))
+            c12adv = [0 for i in c12adv]
         return c12M0, c12M4, c12M2, c12adv[0], c12adv[1], c12adv[2], c12adv[3]
 
     def availability(self, F, T):

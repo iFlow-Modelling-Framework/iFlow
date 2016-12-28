@@ -259,3 +259,8 @@ inputInit   grid cgel RHOS mhs ws0
 input       grid cgel RHOS mhs ws0 c0 c1
 output      ws
 iterative	True
+
+module      Converter
+packagePath sediment/
+input       hatc grid
+output      hatc0 hatc1_a #hatc1_ax hatc1_a1

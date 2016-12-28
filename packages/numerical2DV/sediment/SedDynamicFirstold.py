@@ -50,9 +50,9 @@ class SedDynamicFirst:
             self.submodulesToRun.append('erosion_a1')
         nRHS = len(self.submodulesToRun)
 
-        F = np.zeros([jmax+1, kmax+1, ftot, fmax+1, nRHS], dtype=complex)
-        Fsurf = np.zeros([jmax+1, 1, ftot, fmax+1, nRHS], dtype=complex)
-        Fbed = np.zeros([jmax+1, 1, ftot, fmax+1, nRHS], dtype=complex)
+        F = np.zeros([jmax+1, kmax+1, ftot, nRHS], dtype=complex)
+        Fsurf = np.zeros([jmax+1, 1, ftot, nRHS], dtype=complex)
+        Fbed = np.zeros([jmax+1, 1, ftot, nRHS], dtype=complex)
 
         c0 = self.input.v('hatc0', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))
         cx0 = self.input.d('hatc0', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1), dim='x')
@@ -61,14 +61,10 @@ class SedDynamicFirst:
         # 1. Erosion
         if 'erosion' in self.submodulesToRun:
             E = self.erosion_Chernetsky(ws, Kv, 1)
-            ident = np.eye(fmax+1).reshape((1, 1, fmax+1, fmax+1))*np.ones((jmax+1, 1, 1, 1), dtype=complex)
-            ident[:, :, range(0, fmax+1), range(0, fmax+1)] = ident[:, :, range(0, fmax+1), range(0, fmax+1)]*E
-            Fbed[:, :, fmax:, :, self.submodulesToRun.index('erosion')] = -ident
+            Fbed[:, :, fmax:, self.submodulesToRun.index('erosion')] = -E
 
             E = self.erosion_Chernetsky(ws, Kv, 0)
-            ident = np.eye(fmax+1).reshape((1, 1, fmax+1, fmax+1))*np.ones((jmax+1, 1, 1, 1), dtype=complex)
-            ident[:, :, range(0, fmax+1), range(0, fmax+1)] = ident[:, :, range(0, fmax+1), range(0, fmax+1)]*E
-            Fbed[:, :, fmax:, :, self.submodulesToRun.index('erosion_a1')] = -ident
+            Fbed[:, :, fmax:, self.submodulesToRun.index('erosion_a1')] = -E
 
         # 2. Advection
         if 'sedadv' in self.submodulesToRun:
@@ -76,8 +72,8 @@ class SedDynamicFirst:
             w0 = self.input.v('w0', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))
 
             eta = ny.complexAmplitudeProduct(u0, cx0, 2)+ny.complexAmplitudeProduct(w0, cz0, 2)
-            F[:, :, fmax:, :, self.submodulesToRun.index('sedadv')] = -eta
-            F[:, :, fmax:, :, self.submodulesToRun.index('sedadv_ax')] = -ny.complexAmplitudeProduct(u0, c0, 2)
+            F[:, :, fmax:, self.submodulesToRun.index('sedadv')] = -eta
+            F[:, :, fmax:, self.submodulesToRun.index('sedadv_ax')] = -ny.complexAmplitudeProduct(u0, c0, 2)
 
         # 3. First-order fall velocity
         if 'settling' in self.submodulesToRun:
@@ -86,13 +82,11 @@ class SedDynamicFirst:
             ksiz = ny.derivative(ksi, 'z', self.input.slice('grid'))
             zeta0 = self.input.v('zeta0', range(0, jmax+1), 0, range(0, fmax+1))
 
-            F[:, :, fmax:, :, self.submodulesToRun.index('settling')] = ksiz
-            Fsurf[:, 0, fmax:, :, self.submodulesToRun.index('settling')] = -ny.complexAmplitudeProduct(ksiz[:,0,:], zeta0, 1)
+            F[:,:,fmax:,self.submodulesToRun.index('settling')] = ksiz
+            Fsurf[:,0,fmax:,self.submodulesToRun.index('settling')] = -ny.complexAmplitudeProduct(ksiz[:,0,:], zeta0, 1)
 
             E = self.erosion_Chernetsky(ws1, Kv, 0)
-            ident = np.eye(fmax+1).reshape((1, 1, fmax+1, fmax+1))*np.ones((jmax+1, 1, 1, 1), dtype=complex)
-            ident[:, :, range(0, fmax+1), range(0, fmax+1)] = ident[:, :, range(0, fmax+1), range(0, fmax+1)]*E
-            Fbed[:, 0, fmax:, :, self.submodulesToRun.index('settling')] = -ident
+            Fbed[:,0,fmax:,self.submodulesToRun.index('settling')] = -E
 
         # 4. First-order eddy diffusivity
         if 'mixing' in self.submodulesToRun:
@@ -100,23 +94,21 @@ class SedDynamicFirst:
             psi = ny.complexAmplitudeProduct(Kv1, cz0, 2)
             psiz = ny.derivative(psi, 'z', self.input.slice('grid'))
 
-            F[:, :, fmax:, :, self.submodulesToRun.index('mixing')] = psiz
-            Fsurf[:, 0, fmax:, :, self.submodulesToRun.index('mixing')] = -psi[:,0,:]
-            Fbed[:, 0, fmax:, :, self.submodulesToRun.index('mixing')] = -psi[:,-1,:]
+            F[:,:,fmax:,self.submodulesToRun.index('mixing')] = psiz
+            Fsurf[:, 0, fmax:, self.submodulesToRun.index('mixing')] = -psi[:,0,:]
+            Fbed[:, 0, fmax:, self.submodulesToRun.index('mixing')] = -psi[:,-1,:]
 
             E = self.erosion_Chernetsky(ws, Kv1, 0)
-            ident = np.eye(fmax+1).reshape((1, 1, fmax+1, fmax+1))*np.ones((jmax+1, 1, 1, 1), dtype=complex)
-            ident[:, :, range(0, fmax+1), range(0, fmax+1)] = ident[:, :, range(0, fmax+1), range(0, fmax+1)]*E
-            Fbed[:, 0, fmax:, :, self.submodulesToRun.index('mixing')] += -ident
+            Fbed[:, 0, fmax:, self.submodulesToRun.index('mixing')] += -E
 
         # 5. No-flux surface correction
         if 'noflux' in self.submodulesToRun:
             zeta0 = self.input.v('zeta0', range(0, jmax+1), [0], range(0, fmax+1))
-            D = (np.arange(0, fmax+1)*1j*OMEGA).reshape((1, 1, fmax+1))*np.ones((jmax+1, 1, 1, 1))
+            D = (np.arange(0, fmax+1)*1j*OMEGA).reshape((1, 1, fmax+1))*np.ones((jmax+1, 1, 1))
             #c0[0, 0, 2] = -760.740646787+1645.83313472j
-            Dc0 = D*c0[:, [0], Ellipsis]
+            Dc0 = D*c0[:, [0], :]
             chi = ny.complexAmplitudeProduct(Dc0, zeta0, 2)
-            Fsurf[:, :, fmax:, :, self.submodulesToRun.index('noflux')] = -chi
+            Fsurf[:, :, fmax:, self.submodulesToRun.index('noflux')] = -chi
 
         ################################################################################################################
         # Solve equation
@@ -127,7 +119,7 @@ class SedDynamicFirst:
         else:
             c, cMatrix = cFunction(ws, Kv, F, Fsurf, Fbed, self.input, hasMatrix = False)
         c = ny.eliminateNegativeFourier(c, 2)
-        c = c.reshape((jmax+1, kmax+1, fmax+1, fmax+1, nRHS))
+        c = c.reshape((jmax+1, kmax+1, fmax+1, nRHS))
 
         ################################################################################################################
         # Prepare output
@@ -138,11 +130,11 @@ class SedDynamicFirst:
         d['hatc1_a1'] = {}
         for i, submod in enumerate(self.submodulesToRun):
             if submod == 'erosion_a1':
-                d['hatc1_a1']['erosion'] = c[:, :, :, :, i]
+                d['hatc1_a1']['erosion'] = c[:, :, :, i]
             elif submod == 'sedadv_ax':
-                d['hatc1_ax']['sedadv'] = c[:, :, :, :, i]
+                d['hatc1_ax']['sedadv'] = c[:, :, :, i]
             else:
-                d['hatc1_a'][submod] = c[:, :, :, :, i]
+                d['hatc1_a'][submod] = c[:, :, :, i]
         if 'erosion' not in self.submodulesToRun:
             d['hatc1_a1'] = 0
         if 'sedadv' not in self.submodulesToRun:

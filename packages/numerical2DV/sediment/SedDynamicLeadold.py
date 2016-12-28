@@ -44,23 +44,21 @@ class SedDynamicLead:
         ################################################################################################################
         # Forcing terms
         ################################################################################################################
-        F = np.zeros([jmax+1, kmax+1, ftot, fmax+1, 1], dtype=complex)
-        Fsurf = np.zeros([jmax+1, 1, ftot, fmax+1, 1], dtype=complex)
-        Fbed = np.zeros([jmax+1, 1, ftot, fmax+1, 1], dtype=complex)
+        F = np.zeros([jmax+1, kmax+1, ftot, 1], dtype=complex)
+        Fsurf = np.zeros([jmax+1, 1, ftot, 1], dtype=complex)
+        Fbed = np.zeros([jmax+1, 1, ftot, 1], dtype=complex)
 
         # erosion
         E = self.erosion_Chernetsky(ws, Kv)
 
-        ident = np.eye(fmax+1).reshape((1, 1, fmax+1, fmax+1))*np.ones((jmax+1, 1, 1, 1), dtype=complex)
-        ident[:, :, range(0, fmax+1), range(0, fmax+1)] = ident[:, :, range(0, fmax+1), range(0, fmax+1)]*E
-        Fbed[:, :, fmax:, :, 0] = -ident
+        Fbed[:,:,fmax:, 0] = -E
 
         ################################################################################################################
         # Solve equation
         ################################################################################################################
         c, cMatrix = cFunction(ws, Kv, F, Fsurf, Fbed, self.input, hasMatrix = False)
         c = ny.eliminateNegativeFourier(c, 2)
-        c = c.reshape((jmax+1, kmax+1, fmax+1, fmax+1))
+        c = c.reshape((jmax+1, kmax+1, fmax+1))
 
         d = {}
         d['hatc0'] = c
