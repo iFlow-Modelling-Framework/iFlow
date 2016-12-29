@@ -14,7 +14,7 @@ class Geometry2DVCS:
     # Variables
 
     # Methods
-    def __init__(self, input, submodulesToRun):
+    def __init__(self, input):
         """
         """
         self.input = input

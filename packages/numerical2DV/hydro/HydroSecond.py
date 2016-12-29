@@ -18,9 +18,8 @@ class HydroSecond:
     logger = logging.getLogger(__name__)
 
     # Methods
-    def __init__(self, input, submodulesToRun):
+    def __init__(self, input):
         self.input = input
-        self.submodulesToRun = submodulesToRun
         return
 
     def run(self):
@@ -36,6 +35,7 @@ class HydroSecond:
         BETA = self.input.v('BETA')
         OMEGA = self.input.v('OMEGA')
         ftot = 2*fmax+1
+        self.submodulesToRun = self.input.v('submodules')
         try:
             maxContributions = int(self.input.v('maxContributions'))
         except:

@@ -16,9 +16,8 @@ class SalinityFirst:
     logger = logging.getLogger(__name__)
 
     # Methods
-    def __init__(self, input, submodulesToRun):
+    def __init__(self, input):
         self.input = input
-        self.submodulesToRun = submodulesToRun
         return
 
     def run(self):
@@ -30,6 +29,7 @@ class SalinityFirst:
         fmax = self.input.v('grid', 'maxIndex', 'f')
         SIGMASAL = self.input.v('SIGMASAL')
         OMEGA = self.input.v('OMEGA')
+        submodulesToRun = self.input.v('submodules')
 
         sx0 = self.input.d('s0', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1), dim='x')
         u0 = self.input.v('u0', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))
@@ -59,7 +59,7 @@ class SalinityFirst:
         F = np.zeros([jmax+1, kmax+1, fmax+1, nRHS], dtype=complex)
         Fsurf = np.zeros([jmax+1, 1, fmax+1, nRHS], dtype=complex)
         Fbed = np.zeros([jmax+1, 1, fmax+1, nRHS], dtype=complex)
-        if 'advection' in self.submodulesToRun:
+        if 'advection' in submodulesToRun:
             # advection by u0*sx1
             sx1var = self.input.d('s1var', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1), dim='x')
             sz1var = self.input.d('s1var', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1), dim='z')
@@ -79,12 +79,12 @@ class SalinityFirst:
                 F[:, :, :, f_index] = -ny.complexAmplitudeProduct(u1, sx0, 2)
                 del u1
 
-        if 'diffusion' in self.submodulesToRun:
+        if 'diffusion' in submodulesToRun:
             f_index += 1
             f_names.append(['diffusion', 's0'])
             F[:, :, 0, f_index] = (ny.derivative(AKh*sx0[:, 0, 0], 'x', self.input.slice('grid'))/(B*H)).reshape((jmax+1, 1))*np.ones((1, kmax+1))
 
-        if 'nostress' in self.submodulesToRun:
+        if 'nostress' in submodulesToRun:
             D = (np.arange(0, fmax+1)*1j*OMEGA).reshape((1, 1, fmax+1))*np.ones((jmax+1, 1, 1))
             Kvsz1z = D*s1var[:, [0], :] + ny.complexAmplitudeProduct(u0[:, [0], :], sx0[:, [0], :], 2)
 
@@ -117,7 +117,7 @@ class SalinityFirst:
         F = np.zeros([jmax+1, nRHS_clo])
         Fopen = np.zeros([1, nRHS_clo])
         Fclosed = np.zeros([1, nRHS_clo])
-        if 'advection' in self.submodulesToRun:
+        if 'advection' in submodulesToRun:
             # advection by u0*s2
             us = ny.complexAmplitudeProduct(u0, sForced, 2)[:, :, [0], :]
             us = ny.integrate(us, 'z', kmax, 0, self.input.slice('grid')).reshape(jmax+1, nRHS)
@@ -147,7 +147,7 @@ class SalinityFirst:
             F[:, f_index_clo] = -ny.derivative(np.real(B*us), 'x', self.input.slice('grid'))
             del us
 
-        if 'diffusion' in self.submodulesToRun:
+        if 'diffusion' in submodulesToRun:
             # Bed terms
             Hx = self.input.d('H', range(0, jmax+1), dim='x')
             sx1var = self.input.d('s1var', range(0, jmax+1), kmax, 0, dim='x')
@@ -188,7 +188,7 @@ class SalinityFirst:
 
         d['s1'] = {}
         d['s2var'] = {}
-        for submod in self.submodulesToRun:
+        for submod in submodulesToRun:
             if submod in zip(*f_names_clo)[0]:
                 d['s1'][submod] = {}
             if submod in zip(*f_names)[0]:

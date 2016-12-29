@@ -17,7 +17,7 @@ class Parabolic:
     logger = logging.getLogger(__name__)
 
     # Methods
-    def __init__(self, input, submodulesToRun):
+    def __init__(self, input):
         self.input = input
         return
 

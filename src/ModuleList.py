@@ -182,6 +182,10 @@ class ModuleList:
                    raise KnownError('Modules %s could not be placed in the call stack, but seem to contribute to the requested output. '
                                     'Please check the input and output requirements of your modules.' % ', '.join([mod.getName() for mod in unplacedList]))
 
+        # Update submodulesToRun in subsequent iterations of a loop
+        self.__updateSubmodulesToRunIteration()
+
+        # Console information
         self.logger.info('Call stack was built successfully')
 
         # Print call stack to log. Includes information on loops
@@ -214,7 +218,18 @@ class ModuleList:
 
     def __runLoop(self, imin, imax, loopNo, **kwargs):
         """Rebuild the call stack by using recursion and then run
-        All modules in a single iteration loop are grouped and such a group is then called by this method
+        In the rebuilt version of the call stack, loops are represented by one entity. So
+        module1
+        module2
+        module3 Loop 1 start
+        module4 Loop 1
+
+        becomes:
+        module1
+        module2
+        instance of __runLoop(2, 3, 1)
+
+        modules or loopblocks are then called
 
         Parameters:
             imin (int) - index of first element in group wrt to call stack
@@ -228,7 +243,7 @@ class ModuleList:
         for i in range(imax, imin-1, -1):
             if self.callStack[1][i] == loopNo:
                 module = self.callStack[0][i]
-                callList.append((module.run, (), module.getName()))
+                callList.append((module.run, (), module))
             else:
                 end = max(end, i)
                 if self.callStack[1][i]==loopNo+1 and self.callStack[2][i] == 'start':
@@ -246,8 +261,18 @@ class ModuleList:
             for tup in callList:
                 method = tup[0]
                 arguments = tup[1]
+
+                # reset the submodules to run to init (first run) or iter (> 1st run); only works if this entry is a module, else pass
+                try:
+                    mod = tup[2]
+                    mod.addInputData({'submodules': mod.getSubmodulesToRun(iteration)})
+                except:
+                    pass
+
+                # run module and collect output
                 result = method(*arguments, init=(not bool(iteration)))  # only add init=True for iteration==0
 
+                # update data container
                 if result is not None:
                     for module in self.callStack[0]:
                         module.addInputData(result)
@@ -326,4 +351,23 @@ class ModuleList:
             else:
                 inputList_before = inputList_after
 
+        return
+
+    def __updateSubmodulesToRunIteration(self):
+        for i, mod in enumerate(self.callStack[0]):
+            iterno = self.callStack[1][i]
+            if iterno > 0:
+                outputList = []
+                imax = -1
+                for j in range(i, -1, -1):
+                    if self.callStack[1][j] == iterno and self.callStack[2][j] == 'start':
+                        imin = j
+                        break
+                for j in range(i+1, len(self.callStack[0])):
+                    if (self.callStack[1][j] == iterno and self.callStack[2][j] == 'start') or self.callStack[1][j] < iterno:
+                        imax = j
+                        break
+                for mod_other in self.callStack[0][imin:imax]:
+                    outputList = list(set(outputList + toList(mod_other.getOutputVariables())))
+                mod.updateToRunIter(outputList)
         return

@@ -18,7 +18,7 @@ class ReferenceLevel:
     TOLLERANCE = 10**-3         # tollerance for convergence of 1 mm
 
     # Methods
-    def __init__(self, input, submodulesToRun):
+    def __init__(self, input):
         self.input = input
         return
 

@@ -13,7 +13,7 @@ class Geometry2DV:
     # Variables
 
     # Methods
-    def __init__(self, input, submodulesToRun):
+    def __init__(self, input):
         """
         """
         self.input = input

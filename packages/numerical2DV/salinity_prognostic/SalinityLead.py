@@ -18,7 +18,6 @@ class SalinityLead:
     # Methods
     def __init__(self, input, submodulesToRun):
         self.input = input
-        self.submodulesToRun = submodulesToRun
         return
 
     def run(self):

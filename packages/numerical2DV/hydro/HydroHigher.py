@@ -17,10 +17,8 @@ class HydroHigher:
     logger = logging.getLogger(__name__)
 
     # Methods
-    def __init__(self, input, submodulesToRun):
+    def __init__(self, input):
         self.input = input
-        self.submodulesToRun = submodulesToRun
-
         return
 
     def run(self):
@@ -34,6 +32,7 @@ class HydroHigher:
             fmax = self.input.v('grid', 'maxIndex', 'f')
             OMEGA = self.input.v('OMEGA')
             G = self.input.v('G')
+            self.submodulesToRun = self.input.v('submodules')
 
             # initialise arrays with surface stress and velocity data
             self.surf_stress = np.nan*np.empty((jmax+1, 1, fmax+1, maxOrder, maxOrder), dtype=complex) # x, z, f, order, derivative

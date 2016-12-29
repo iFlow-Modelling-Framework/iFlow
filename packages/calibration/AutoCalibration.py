@@ -13,9 +13,8 @@ class AutoCalibration:
     # Variables
 
     # Methods
-    def __init__(self, input, submodulesToRun):
+    def __init__(self, input):
         self.input = input
-        self.submodulesToRun = submodulesToRun
         return
 
     def stopping_criterion(self, iteration):

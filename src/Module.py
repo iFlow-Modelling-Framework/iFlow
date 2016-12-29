@@ -13,17 +13,20 @@ return a boolean.
 
 Date: 26-02-16
 Authors: Y.M. Dijkstra, R.L. Brouwer
+Update  28-12-2016: submodules to run per module, not per variable
+
 """
 import types
 from nifty.dynamicImport import dynamicImport
 from nifty import toList
 from src.util.diagnostics import KnownError
 import DataContainer
-
+import inspect
+import logging
 
 class Module:
-    # Variables      
-    
+    # Variables
+
     # Methods
     def __init__(self, input, register, outputReq, alwaysRun = False, outputModule = False):
         """Load all variables needed for the module to (private)class variables.
@@ -59,7 +62,14 @@ class Module:
         # find the module & run method
         moduleMain_ = dynamicImport(self.__register.v('packagePath'), self.__register.v('module'))
         try:
-            self.module = moduleMain_(self.__input, self.__submodulesToRun)
+            if len(inspect.getargspec(moduleMain_.__init__)[0]) == 2:
+                self.module = moduleMain_(self.__input)                             # VERSION 2.4. ONLY ONE ARGUMENT, SUBMODULES NOW IN DATACONTAINER 'INPUT' (SUPPORTS DYNAMIC SUBMODULE LIST IN ITERATIONS)
+            else:
+                self.module = moduleMain_(self.__input, self.submodulesToRun)       # VERSION 2.3. SUBMODULES AS EXTRA ARGUMENT. WILL BECOME OBSOLETE
+                self.logger = logging.getLogger(__name__)
+                self.logger.warning('Module ' + self.getName() + ' still takes 3 arguments upon initialisation.\nAs of v2.4 it should take 2 arguments. SubmodulesToRun is now found in the DataContainer keyword "submodules".')
+        # except Exception as e:
+        #      if isinstance(e, )
         except Exception as e:
             # Reraise a KnownError message received from the module
             if isinstance(e, KnownError):
@@ -83,14 +93,25 @@ class Module:
         modName = self.__register.v('packagePath')+'.'+self.__register.v('module')
         return modName
 
-    def getSubmodulesToRun(self):
-        """List of submodules that will be run or empty list if no submodules exist"""
-        return self.__submodulesToRun
+    def getSubmodulesToRun(self, iter = 0):
+        """List of submodules that will be run or empty list if no submodules exist
 
-    def getOutputVariables(self):
+        Parameters:
+            iter (int, optional) -  iteration number, default 0. If >0 return self.__submodulesToRunIter
+        """
+        if iter == 0:
+            return self.__submodulesToRunInit
+        else:
+            return self.__submodulesToRunIter
+
+    def getOutputVariables(self, iter = 0):
         """List of output variable names (i.e. list of str) that this module will return
-        given the current list of submodules to run"""
-        return self.__returnSubmoduleRequirement('output', self.__submodulesToRun)
+        given the current list of submodules to run
+
+        Parameters:
+            iter (int, optional) -  iteration number, default 0. If >0 return self.__submodulesToRunIter
+        """
+        return self.__returnSubmoduleRequirement('output', self.getSubmodulesToRun(iter))
 
     def getOutputRequirements(self):
         """Returns a list of output variables (i.e. list of str) required on output according to the input file under tag
@@ -110,9 +131,9 @@ class Module:
             List of str with required input variable names.
         """
         if init and self.isIterative():
-            return self.__returnSubmoduleRequirement('inputInit', self.__submodulesToRun)
+            return self.__returnSubmoduleRequirement('inputInit', self.submodulesToRun)
         else:
-            return self.__returnSubmoduleRequirement('input', self.__submodulesToRun)
+            return self.__returnSubmoduleRequirement('input', self.submodulesToRun)
 
     def getAvailableVariableNames(self):
         """Returns all names of input variables available to this module. This is given as a list of tuples with the
@@ -125,7 +146,7 @@ class Module:
         iterative = False
         if self.__register.v('iterative') == 'True':
             iterative = True
-        for submod in self.__submodulesToRun:
+        for submod in self.__submodulesToRunInit:
             if self.__register.v(submod, 'iterative') == 'True':
                 iterative = True
         return iterative
@@ -135,6 +156,9 @@ class Module:
         return self.__isOutputModule
 
     #   Other public methods
+    def setSubmoduleRunList(self, iter):
+        self.submodulesToRun = self.getSubmodulesToRun(iter)
+
     def addInputData(self, d):
         """Append the input data by d
 
@@ -198,23 +222,40 @@ class Module:
         """
         # check if general output by module is required for other modules
         varlist = [i for i in toList(self.__register.v('output')) if i in inputList] # if there is any variable in the output that is also given in inputList, run the module
-        for var in varlist:
+        if len(varlist)>0:
             self.runModule = True
-            if 'all' in toList(self.__outputReq.v('submodules', var)) or not toList(self.__outputReq.v('submodules', var)):
-                self.__submodulesToRun = self.__register.v('submodules') or []      # add all submodules to runlist (or set [] if there are no submodules)
-            else:
-                self.__submodulesToRun = list(set(self.__submodulesToRun+toList(self.__outputReq.v('submodules', var))))
+            self.__submodulesToRunInit = self.__submoduleList()
 
         # additionally, check if individual submodules contribute to required output
-        if self.__register.v('submodules'):
-            for i in self.__register.v('submodules'):
-                varlist = [j for j in toList(self.__register.v(i, 'output')) if j in inputList]
-                for var in varlist:
-                    self.runModule = True
-                    subreq = toList(self.__outputReq.v('submodules', var))
-                    if 'all' in subreq or not subreq or i in  subreq:
-                        self.__submodulesToRun = list(set(self.__submodulesToRun+toList(i)))
+        sublist = self.__submoduleList()
+        for i in sublist:
+            varlist = [j for j in toList(self.__register.v(i, 'output')) if j in inputList]
+            if len(varlist)>0:
+                self.runModule = True
+                self.__submodulesToRunInit = list(set(self.__submodulesToRunInit+toList(i)))
+        self.submodulesToRun = self.__submodulesToRunInit
+        return
 
+    def updateToRunIter(self, inputList):
+        """Update submodules to run in iterations after the initialisation.
+        The update is based on the input variables updated in the iteration and the dependencies of the submodules
+
+        Parameters:
+            inputList - (list) list of variables
+        """
+        self.__submodulesToRunIter = []
+
+        # check if general input by module is changed in the loop
+        varlist = [i for i in toList(self.__register.v('input')) if i in inputList]
+        if len(varlist) > 0:
+            self.__submodulesToRunIter = self.__submoduleList()
+
+        # additionally, check if individual submodules contribute to required output
+        sublist = self.__submoduleList()
+        for i in sublist:
+            varlist = [j for j in toList(self.__register.v(i, 'input')) if j in inputList]
+            if len(varlist)>0:
+                self.__submodulesToRunIter = list(set(self.__submodulesToRunIter+toList(i)))
         return
 
     #   Private methods
@@ -230,31 +271,25 @@ class Module:
             runModule - (bool) should this module run
             _submodulesToRun - (list) list of submodules to run or an empty list
         """
-        self.__submodulesToRun = []
+        self.__submodulesToRunInit = []
         self.runModule = alwaysRun  # default setting: False, except when it is forced to be run from outside
 
         # check if the module has submodules
         if self.__register.v('submodules'):
+            sublist = self.__submoduleList()
+
             # loop over variables in the output requirements
             for var in toList(self.__outputReq.v('variables')):
                 submoduleList = []
 
                 # gather the submodules that have 'var' as output
-                for submod in self.__register.v('submodules'):
+                for submod in sublist:
                     outputList = toList(self.__register.v(submod, 'output'))
                     if var in outputList:
                         submoduleList.append(submod)
 
-                # check if output has a filter on submodules
-                submodReqList = toList(self.__outputReq.v('submodules', var))
-
-                if submodReqList:
-                    if submodReqList[0] != 'all':
-                        # if a filter is provided and does not say 'all'
-                        submoduleList = [j for j in submoduleList if j in submodReqList]
-
-                self.__submodulesToRun = list(set(self.__submodulesToRun + submoduleList))
-            if self.__submodulesToRun:
+                self.__submodulesToRunInit = list(set(self.__submodulesToRunInit + submoduleList))
+            if self.__submodulesToRunInit:
                 self.runModule = True        # if any submodules should be run, then so does the module
 
         else:
@@ -263,6 +298,7 @@ class Module:
                 outputList = toList(self.__register.v('output'))
                 if var in outputList:
                     self.runModule = True
+        self.submodulesToRun = self.__submodulesToRunInit
         return
 
     def __returnSubmoduleRequirement(self, property, submoduleList, toRun=True):
@@ -288,10 +324,28 @@ class Module:
 
         # 2. search for the property per submodule in the submodule list
         for mod in submoduleList:
-            if not toRun or mod in self.__submodulesToRun:
+            if not toRun or mod in self.__submodulesToRunInit:
                 addData = self.__register.v(mod, property)
                 if addData is not None:
                     reqList = list(set(reqList + toList(addData)))      # add but prevent double entries
 
 
         return reqList
+
+    def __submoduleList(self):
+        ''' Make a list of the submodules based on the optional keywords 'submodules' and 'excludeSubmodules'
+        Use all submodules, unless the input tells something else
+        '''
+        if self.__register.v('submodules'):
+            submodReqList = toList(self.__input.v('submodules'))
+            submodExcludeList = toList(self.__input.v('excludeSubmodules'))
+            if submodReqList != [] and submodReqList != ['all']:
+                sublist = [i for i in submodReqList if i in self.__register.v('submodules')]
+            elif submodExcludeList != [] and submodExcludeList != ['none'] and submodExcludeList != ['None']:
+                sublist = [i for i in self.__register.v('submodules')if i not in submodExcludeList]
+            else:
+                sublist = self.__register.v('submodules')
+        else:
+            sublist = []
+
+        return sublist

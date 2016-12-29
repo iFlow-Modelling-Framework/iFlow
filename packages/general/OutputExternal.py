@@ -13,8 +13,8 @@ class OutputExternal(Output):
     # Variables
 
     # Methods
-    def __init__(self, input, submodulesToRun):
-        Output.__init__(self, input, submodulesToRun)
+    def __init__(self, input):
+        Output.__init__(self, input)
         return
 
     def _convertData(self, saveData, grid, outputgrid, _, dontConvert, convertGrid = False):

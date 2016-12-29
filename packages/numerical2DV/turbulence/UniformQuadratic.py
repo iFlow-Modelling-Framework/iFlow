@@ -19,7 +19,7 @@ class UniformQuadratic:
     TOLLERANCE = 10.**-2
 
     # Methods
-    def __init__(self, input, submodulesToRun):
+    def __init__(self, input):
         self.input = input
         return
 

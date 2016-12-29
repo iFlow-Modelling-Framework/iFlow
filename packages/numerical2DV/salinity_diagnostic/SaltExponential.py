@@ -15,7 +15,7 @@ class SaltExponential(FunctionBase):
     logger = logging.getLogger(__name__)
 
     # Methods
-    def __init__(self, input, submodulesToRun):
+    def __init__(self, input):
         self.__input = input
         FunctionBase.__init__(self, ['x', 'f'])
         return

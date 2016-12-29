@@ -14,8 +14,8 @@ class KEFittedHigher(TurbulenceKepFitted_core):
     # Variables
 
     # Methods
-    def __init__(self, input, submodulesToRun):
-        TurbulenceKepFitted_core.__init__(self, input, submodulesToRun)
+    def __init__(self, input):
+        TurbulenceKepFitted_core.__init__(self, input)
         return
 
     def run_init(self):

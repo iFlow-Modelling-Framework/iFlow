@@ -16,7 +16,7 @@ class Sensitivity:
     logger = logging.getLogger(__name__)
 
     # Methods
-    def __init__(self, input, submodulesToRun):
+    def __init__(self, input):
         self.input = input
         self.variables = toList(self.input.v('variables'))
 

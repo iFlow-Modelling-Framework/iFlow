@@ -16,9 +16,8 @@ class HydroFirst:
     logger = logging.getLogger(__name__)
 
     # Methods
-    def __init__(self, input, submodulesToRun):
+    def __init__(self, input):
         self.input = input
-        self.submodulesToRun = submodulesToRun
         return
 
     def run(self):
@@ -37,9 +36,10 @@ class HydroFirst:
         BETA = self.input.v('BETA')
         OMEGA = self.input.v('OMEGA')
         ftot = 2*fmax+1
+        submodulesToRun = self.input.v('submodules')
 
         # check if the river term should be compensated for by reference level. Only if river is on, non-zero and there is no leading-order contribution
-        if 'river' in self.submodulesToRun and self.input.v('Q1')!=0 and not np.any(self.input.v('zeta0', 'river', range(0,jmax+1),0, 0)):
+        if 'river' in submodulesToRun and self.input.v('Q1')!=0 and not np.any(self.input.v('zeta0', 'river', range(0,jmax+1),0, 0)):
             RiverReferenceCompensation = True
         else:
             RiverReferenceCompensation = False
@@ -59,15 +59,15 @@ class HydroFirst:
 
         ## RHS terms
         #   Determine number/names of right hand side
-        submodulesVelocityForcing = [i for i in ['adv', 'nostress', 'baroc', 'mixing', 'river'] if i in self.submodulesToRun]
-        #submodulesVelocityConversion = [i for i, mod in enumerate(self.submodulesToRun) if mod in ['adv', 'nostress', 'baroc', 'mixing']]
-        submodulesVelocityConversion = [self.submodulesToRun.index(i) for i in submodulesVelocityForcing]
+        submodulesVelocityForcing = [i for i in ['adv', 'nostress', 'baroc', 'mixing', 'river'] if i in submodulesToRun]
+        #submodulesVelocityConversion = [i for i, mod in enumerate(submodulesToRun) if mod in ['adv', 'nostress', 'baroc', 'mixing']]
+        submodulesVelocityConversion = [submodulesToRun.index(i) for i in submodulesVelocityForcing]
         nRHS = len(submodulesVelocityForcing)
         F = np.zeros([jmax+1, kmax+1, ftot, nRHS], dtype=complex)
         Fsurf = np.zeros([jmax+1, 1, ftot, nRHS], dtype=complex)
         Fbed = np.zeros([jmax+1, 1, ftot, nRHS], dtype=complex)
-        uFirst = np.zeros([jmax+1, kmax+1, ftot, len(self.submodulesToRun)], dtype=complex)
-        uzFirst = np.zeros([jmax+1, kmax+1, ftot, len(self.submodulesToRun)], dtype=complex)
+        uFirst = np.zeros([jmax+1, kmax+1, ftot, len(submodulesToRun)], dtype=complex)
+        uzFirst = np.zeros([jmax+1, kmax+1, ftot, len(submodulesToRun)], dtype=complex)
 
         u0 = self.input.v('u0', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))
         zeta0 = self.input.v('zeta0', range(0, jmax+1), [0], range(0, fmax+1))
@@ -136,21 +136,21 @@ class HydroFirst:
         JuFirst = JuFirst.reshape(jmax+1, 1, ftot, uFirst.shape[-1])        # reshape back to original grid
 
         #   stokes
-        if 'stokes' in self.submodulesToRun:
+        if 'stokes' in submodulesToRun:
             gamma = ny.complexAmplitudeProduct(u0[:, 0, None, Ellipsis], zeta0, 2)
             gamma = np.concatenate((np.zeros([jmax+1, 1, fmax]), gamma), 2)
-            JuFirst[:, :, :, self.submodulesToRun.index('stokes')] = gamma
+            JuFirst[:, :, :, submodulesToRun.index('stokes')] = gamma
         BJuFirst = JuFirst*self.input.v('B', np.arange(0,jmax+1)).reshape(jmax+1, 1, 1, 1)
 
         #   open BC: tide
-        Fopen = np.zeros([1, 1, ftot, len(self.submodulesToRun)], dtype=complex)
-        if 'tide' in self.submodulesToRun:
-            Fopen[0, 0, fmax:, self.submodulesToRun.index('tide')] = ny.amp_phase_input(self.input.v('A1'), self.input.v('phase1'), (fmax+1,))
+        Fopen = np.zeros([1, 1, ftot, len(submodulesToRun)], dtype=complex)
+        if 'tide' in submodulesToRun:
+            Fopen[0, 0, fmax:, submodulesToRun.index('tide')] = ny.amp_phase_input(self.input.v('A1'), self.input.v('phase1'), (fmax+1,))
 
         #   closed BC: river
-        Fclosed = np.zeros([1, 1, ftot, len(self.submodulesToRun)], dtype=complex)
-        if 'river' in self.submodulesToRun:
-            Fclosed[0, 0, fmax, self.submodulesToRun.index('river')] = -self.input.v('Q1')
+        Fclosed = np.zeros([1, 1, ftot, len(submodulesToRun)], dtype=complex)
+        if 'river' in submodulesToRun:
+            Fclosed[0, 0, fmax, submodulesToRun.index('river')] = -self.input.v('Q1')
 
         #   closed BC: other terms
         Fclosed += -JuFirst[jmax, 0, :, :]*self.input.v('B', jmax)
@@ -163,8 +163,8 @@ class HydroFirst:
         ################################################################################################################
         # velocity
         ################################################################################################################
-        u = np.empty((jmax+1, kmax+1, ftot, len(self.submodulesToRun)), dtype=uCoef.dtype)
-        uz = np.empty((jmax+1, kmax+1, ftot, len(self.submodulesToRun)), dtype=uCoef.dtype)
+        u = np.empty((jmax+1, kmax+1, ftot, len(submodulesToRun)), dtype=uCoef.dtype)
+        uz = np.empty((jmax+1, kmax+1, ftot, len(submodulesToRun)), dtype=uCoef.dtype)
         for j in range(0, jmax+1):
             u[j, :, :, :] = np.dot(uCoef[j, :, :, :], -G*zetaxCoef[j, 0, :, :])
             uz[j, :, :, :] = np.dot(uzCoef[j, :, :, :], -G*zetaxCoef[j, 0, :, :])
@@ -185,7 +185,7 @@ class HydroFirst:
         d['zeta1'] = {}
         d['u1'] = {}
         d['w1'] = {}
-        for i, submod in enumerate(self.submodulesToRun):
+        for i, submod in enumerate(submodulesToRun):
             nf = ny.functionTemplates.NumericalFunctionWrapper(zeta[:, :, :, i], self.input.slice('grid'))
             nf.addDerivative(zetax[:, :, :, i], 'x')
             d['zeta1'][submod] = nf.function
