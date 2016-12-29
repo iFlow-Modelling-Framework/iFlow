@@ -105,9 +105,9 @@ def axisSecondDerivative(u, dim, dimNo, grid, *args):
             downInd = np.asarray([0] + range(0, maxIndex-1)+[maxIndex-2])
         downInds[dimNo] = downInd
 
-        upaxis = np.multiply(grid.v('grid', 'axis', dim, *upInds), (grid.v('grid', 'high', dim, *upInds)-grid.v('grid', 'low', dim, *upInds)))+grid.v('grid', 'low', dim, *upInds)
-        midaxis = np.multiply(grid.v('grid', 'axis', dim, *midInds), (grid.v('grid', 'high', dim, *midInds)-grid.v('grid', 'low', dim, *midInds)))+grid.v('grid', 'low', dim, *midInds)
-        downaxis = np.multiply(grid.v('grid', 'axis', dim, *downInds), (grid.v('grid', 'high', dim, *downInds)-grid.v('grid', 'low', dim, *downInds)))+grid.v('grid', 'low', dim, *downInds)
+        upaxis = np.multiply(grid.v('grid', 'axis', dim, *upInds, copy='all'), (grid.v('grid', 'high', dim, *upInds, copy='all')-grid.v('grid', 'low', dim, *upInds, copy='all')))+grid.v('grid', 'low', dim, *upInds, copy='all')
+        midaxis = np.multiply(grid.v('grid', 'axis', dim, *midInds, copy='all'), (grid.v('grid', 'high', dim, *midInds, copy='all')-grid.v('grid', 'low', dim, *midInds, copy='all')))+grid.v('grid', 'low', dim, *midInds, copy='all')
+        downaxis = np.multiply(grid.v('grid', 'axis', dim, *downInds, copy='all'), (grid.v('grid', 'high', dim, *downInds, copy='all')-grid.v('grid', 'low', dim, *downInds, copy='all')))+grid.v('grid', 'low', dim, *downInds, copy='all')
         dxup = upaxis-midaxis
         dxdown = midaxis-downaxis
         dxav = .5*(dxup+dxdown)

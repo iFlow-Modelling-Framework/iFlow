@@ -65,7 +65,7 @@ class Module:
             if len(inspect.getargspec(moduleMain_.__init__)[0]) == 2:
                 self.module = moduleMain_(self.__input)                             # VERSION 2.4. ONLY ONE ARGUMENT, SUBMODULES NOW IN DATACONTAINER 'INPUT' (SUPPORTS DYNAMIC SUBMODULE LIST IN ITERATIONS)
             else:
-                self.module = moduleMain_(self.__input, self.submodulesToRun)       # VERSION 2.3. SUBMODULES AS EXTRA ARGUMENT. WILL BECOME OBSOLETE
+                self.module = moduleMain_(self.__input, self.submodulesToRun)       # VERSION 2.3. SUBMODULES AS EXTRA ARGUMENT. WILL BECOME OBSOLETE [dep02]
                 self.logger = logging.getLogger(__name__)
                 self.logger.warning('Module ' + self.getName() + ' still takes 3 arguments upon initialisation.\nAs of v2.4 it should take 2 arguments. SubmodulesToRun is now found in the DataContainer keyword "submodules".')
         # except Exception as e:

@@ -49,6 +49,7 @@ def derivative(u, dimNo, grid, *args, **kwargs):
                     axisrequest[j] = 0
                 elif u.shape[num] == 1:
                     axisrequest[j] = [0]
+            axisrequest['copy'] = 'all'             # dimensional axis copied over frequency domain (necessary from v 2.4)
             axis = ny.dimensionalAxis(grid, contrDimNo, **axisrequest)
             # take derivative of axis
             axis_der = axisDerivative(axis, dim, dimNo, grid, *args, **kwargs)
@@ -98,8 +99,8 @@ def axisDerivative(u, dim, dimNo, grid, *args, **kwargs):
             downInd = np.asarray([0] + range(0, maxIndex))
         downInds[dimNo] = downInd
 
-        upaxis = np.multiply(grid.v('grid', 'axis', dim, *upInds), (grid.v('grid', 'high', dim, *upInds)-grid.v('grid', 'low', dim, *upInds)))+grid.v('grid', 'low', dim, *upInds)
-        downaxis = np.multiply(grid.v('grid', 'axis', dim, *downInds), (grid.v('grid', 'high', dim, *downInds)-grid.v('grid', 'low', dim, *downInds)))+grid.v('grid', 'low', dim, *downInds)
+        upaxis = np.multiply(grid.v('grid', 'axis', dim, *upInds, copy='all'), (grid.v('grid', 'high', dim, *upInds, copy='all')-grid.v('grid', 'low', dim, *upInds, copy='all')))+grid.v('grid', 'low', dim, *upInds, copy='all')
+        downaxis = np.multiply(grid.v('grid', 'axis', dim, *downInds, copy='all'), (grid.v('grid', 'high', dim, *downInds, copy='all')-grid.v('grid', 'low', dim, *downInds, copy='all')))+grid.v('grid', 'low', dim, *downInds, copy='all')
 
         ux = (u[np.ix_(*upInds)]-u[np.ix_(*downInds)])/(upaxis-downaxis)
     elif DERMETHOD == 'CENTRAL2':
@@ -147,9 +148,9 @@ def axisDerivative(u, dim, dimNo, grid, *args, **kwargs):
         beta = beta.reshape([1]*dimNo+[len(beta)]+[1]*(len(u.shape)-dimNo-1))
         gamma = gamma.reshape([1]*dimNo+[len(gamma)]+[1]*(len(u.shape)-dimNo-1))
 
-        upaxis = np.multiply(grid.v('grid', 'axis', dim, *upInds), (grid.v('grid', 'high', dim, *upInds)-grid.v('grid', 'low', dim, *upInds)))+grid.v('grid', 'low', dim, *upInds)
-        #midaxis = np.multiply(grid.v('grid', 'axis', dim, *midInds), (grid.v('grid', 'high', dim, *midInds)-grid.v('grid', 'low', dim, *midInds)))+grid.v('grid', 'low', dim, *midInds)
-        downaxis = np.multiply(grid.v('grid', 'axis', dim, *downInds), (grid.v('grid', 'high', dim, *downInds)-grid.v('grid', 'low', dim, *downInds)))+grid.v('grid', 'low', dim, *downInds)
+        upaxis = np.multiply(grid.v('grid', 'axis', dim, *upInds, copy = 'all'), (grid.v('grid', 'high', dim, *upInds, copy = 'all')-grid.v('grid', 'low', dim, *upInds, copy = 'all')))+grid.v('grid', 'low', dim, *upInds, copy = 'all')
+        #midaxis = np.multiply(grid.v('grid', 'axis', dim, *midInds, copy = 'all'), (grid.v('grid', 'high', dim, *midInds, copy = 'all')-grid.v('grid', 'low', dim, *midInds, copy = 'all')))+grid.v('grid', 'low', dim, *midInds, copy = 'all')
+        downaxis = np.multiply(grid.v('grid', 'axis', dim, *downInds, copy = 'all'), (grid.v('grid', 'high', dim, *downInds, copy = 'all')-grid.v('grid', 'low', dim, *downInds, copy = 'all')))+grid.v('grid', 'low', dim, *downInds, copy = 'all')
 
         ux = (gamma*u[np.ix_(*upInds)]+beta*u[np.ix_(*midInds)]+alpha*u[np.ix_(*downInds)])/(upaxis-downaxis)
     else:

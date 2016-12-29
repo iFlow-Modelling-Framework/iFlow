@@ -62,8 +62,8 @@ def primitive(u, dimNo, low, high, grid, *args, **kwargs):
             downInds[dimNo] = range(high+1, low+1) + [low]
 
         # take grid axis at the grid points required
-        upaxis = np.multiply(grid.v('grid', 'axis', dim, *upInds), (grid.v('grid', 'high', dim, *upInds)-grid.v('grid', 'low', dim, *upInds)))+grid.v('grid', 'low', dim, *upInds)
-        downaxis = np.multiply(grid.v('grid', 'axis', dim, *downInds), (grid.v('grid', 'high', dim, *downInds)-grid.v('grid', 'low', dim, *downInds)))+grid.v('grid', 'low', dim, *downInds)
+        upaxis = np.multiply(grid.v('grid', 'axis', dim, *upInds, copy = 'all'), (grid.v('grid', 'high', dim, *upInds, copy = 'all')-grid.v('grid', 'low', dim, *upInds, copy = 'all')))+grid.v('grid', 'low', dim, *upInds, copy = 'all')
+        downaxis = np.multiply(grid.v('grid', 'axis', dim, *downInds, copy = 'all'), (grid.v('grid', 'high', dim, *downInds, copy = 'all')-grid.v('grid', 'low', dim, *downInds, copy = 'all')))+grid.v('grid', 'low', dim, *downInds, copy = 'all')
 
         Ju = 0.5*(upaxis-downaxis)*(u[np.ix_(*upInds)]+u[np.ix_(*downInds)])
 
@@ -86,8 +86,8 @@ def primitive(u, dimNo, low, high, grid, *args, **kwargs):
 
 
         # take grid axis at the grid points required
-        upaxis = np.multiply(grid.v('grid', 'axis', dim, *upInds), (grid.v('grid', 'high', dim, *upInds)-grid.v('grid', 'low', dim, *upInds)))+grid.v('grid', 'low', dim, *upInds)
-        downaxis = np.multiply(grid.v('grid', 'axis', dim, *downInds), (grid.v('grid', 'high', dim, *downInds)-grid.v('grid', 'low', dim, *downInds)))+grid.v('grid', 'low', dim, *downInds)
+        upaxis = np.multiply(grid.v('grid', 'axis', dim, *upInds, copy = 'all'), (grid.v('grid', 'high', dim, *upInds, copy = 'all')-grid.v('grid', 'low', dim, *upInds, copy = 'all')))+grid.v('grid', 'low', dim, *upInds, copy = 'all')
+        downaxis = np.multiply(grid.v('grid', 'axis', dim, *downInds, copy = 'all'), (grid.v('grid', 'high', dim, *downInds, copy = 'all')-grid.v('grid', 'low', dim, *downInds, copy = 'all')))+grid.v('grid', 'low', dim, *downInds, copy = 'all')
 
         uquad = scipy.interpolate.interp1d(axis, u, 'quadratic', axis=dimNo)
         Ju = 1./6*(upaxis-downaxis)*(u[np.ix_(*upInds)]+4.*uquad(axis_mid)+u[np.ix_(*downInds)])

@@ -35,7 +35,8 @@ class RegularGrid:
         enclosures = [(0, self.input.v('L')),
                       (self.input.v('R'), self.input.v('-H')),
                       None]
-        contraction = [[], ['x'], []]     # enclosures of each dimension depend on these parameters
+        contraction = [[], ['x'], []]     # Enclosures of each dimension depend on these parameters
+        copy = [1, 1, 0]                  # Copy lower-dimensional arrays over these dimensions. 1: yes, copy. 0: no, only keep in the zero-index
 
         # grid
         axisTypes = []
@@ -46,7 +47,7 @@ class RegularGrid:
             axisTypes.append(self.input.v(var)[0])
             axisSize.append(self.input.v(var)[1])
             axisOther.append(self.input.v(var)[2:])
-        d['grid'] = makeRegularGrid(dimensions, axisTypes, axisSize, axisOther, enclosures, contraction)
+        d['grid'] = makeRegularGrid(dimensions, axisTypes, axisSize, axisOther, enclosures, contraction, copy)
 
         # output grid
         axisTypes = []
@@ -57,7 +58,7 @@ class RegularGrid:
             axisTypes.append(self.input.v(var)[0])
             axisSize.append(self.input.v(var)[1])
             axisOther.append(self.input.v(var)[2:])
-        d['outputgrid'] = makeRegularGrid(dimensions, axisTypes, axisSize, axisOther, enclosures, contraction)
+        d['outputgrid'] = makeRegularGrid(dimensions, axisTypes, axisSize, axisOther, enclosures, contraction, copy)
 
         return d
 

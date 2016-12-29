@@ -18,6 +18,9 @@ def dimensionalAxis(grid, dim, *args, **kwargs):
     if isinstance(dim, int):
         dim = grid.v('grid','dimensions')[dim]
 
+    # optional argument copy in kwargs. value 'all' is allowed.
+    copy = kwargs.get('copy')
+
     # if indices
     if args:
         indices = []
@@ -26,7 +29,7 @@ def dimensionalAxis(grid, dim, *args, **kwargs):
                 indices.append(args[num])
             else:
                 indices.append(range(0, grid.v('grid', 'maxIndex', i)+1))
-        return np.multiply(grid.v('grid', 'axis', dim ,*indices), (grid.v('grid', 'high', dim, *indices)-grid.v('grid', 'low', dim, *indices)))+grid.v('grid', 'low', dim, *indices)
+        return np.multiply(grid.v('grid', 'axis', dim ,*indices, copy=copy), (grid.v('grid', 'high', dim, *indices, copy=copy)-grid.v('grid', 'low', dim, *indices, copy=copy)))+grid.v('grid', 'low', dim, *indices, copy=copy)
 
     # if coordinates
     else:
@@ -36,5 +39,6 @@ def dimensionalAxis(grid, dim, *args, **kwargs):
                 dimlessaxis[i] = kwargs.get(i)
             else:
                 dimlessaxis[i] = grid.v('grid', 'axis', i).reshape(grid.v('grid', 'maxIndex', i)+1)
+        dimlessaxis['copy'] = copy
         #dimlessaxis[dim] = grid.v('grid', 'axis', dim).reshape(grid.v('grid', 'maxIndex', dim)+1)
         return np.multiply(grid.v('grid', 'axis', dim ,**dimlessaxis), (grid.v('grid', 'high', dim, **dimlessaxis)-grid.v('grid', 'low', dim, **dimlessaxis)))+grid.v('grid', 'low', dim, **dimlessaxis)

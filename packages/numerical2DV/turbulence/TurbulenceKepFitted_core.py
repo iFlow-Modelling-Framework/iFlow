@@ -542,6 +542,7 @@ class TurbulenceKepFitted_core:
                       (self.input.v('R'), self.input.v('-H')),
                       None]
         contraction = [[], ['x'], []]     # enclosures of each dimension depend on these parameters
+        copy = [1, 1, 0]
 
         # grid
         axisTypes = []
@@ -556,5 +557,5 @@ class TurbulenceKepFitted_core:
             axisTypes.append(gridsize[var][0])
             axisSize.append(gridsize[var][1])
             axisOther.append(gridsize[var][2:])
-        grid['grid'] = ny.makeRegularGrid(dimensions, axisTypes, axisSize, axisOther, enclosures, contraction)
+        grid['grid'] = ny.makeRegularGrid(dimensions, axisTypes, axisSize, axisOther, enclosures, contraction, copy)
         return grid

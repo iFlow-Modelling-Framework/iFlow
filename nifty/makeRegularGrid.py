@@ -7,7 +7,7 @@ from toList import toList
 import numpy as np
 
 
-def makeRegularGrid(dimensions, axisType, axisSize, axisOther, enclosures, contraction = None):
+def makeRegularGrid(dimensions, axisType, axisSize, axisOther, enclosures, contraction = None, copy = None):
     """Make separate regular grid axes and enclosures for each of the dimensions in the method registry.
     Now only supports equidistant collocated axes using 'axisType' equal to equidistant
 
@@ -21,6 +21,8 @@ def makeRegularGrid(dimensions, axisType, axisSize, axisOther, enclosures, contr
                     the dimensionless 0 point and upper to the dimensionless 1 point
         contraction - (list of lists, optional) Requires one sublist per dimension. Sublist i contains the dimension names
                     on which the enclosure of dimension i depends. Assumes empty lists if not provided
+        copy - (list, optional) indicated whether lower-dimensional arrays should be copied over these axes.
+                1: yes, copy. 0: no, only keep in zero-index. In not filled, a default 1 is inserted for every axis
 
     Returns:
         Dictionary with grid data. This includes:
@@ -32,6 +34,7 @@ def makeRegularGrid(dimensions, axisType, axisSize, axisOther, enclosures, contr
         - maxIndex: x in dimensions (int) - maximum index number
         - contraction: (len(dimensions) x len(dimensions) ndarray) - matrix containing the grid contraction information;
                         has a 1 if dimension in rows depend on dimension in column (diagonal is 0 by definition)
+        - copy: list of len(dimensions) - see input
     """
     grid = {}
 
@@ -62,5 +65,10 @@ def makeRegularGrid(dimensions, axisType, axisSize, axisOther, enclosures, contr
             for i, dim in enumerate(grid['dimensions']):
                 for j in contraction[i]:
                     grid['contraction'][i, grid['dimensions'].index(j)] = 1.
+
+        # grid copy vector
+        if copy == None:
+            copy = [1]*len(toList(dimensions))
+        grid['copy'] = toList(copy)
 
     return grid

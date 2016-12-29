@@ -604,14 +604,22 @@ class DataContainer:
         valShape = list(value.shape)
         dlen = len(shape)-len(valShape)
         if dlen < 0:        # value has more dims than request
-            shape+=(valShape[dlen:])
-            shapeTruncated+=(valShape[dlen:])
+            shape += (valShape[dlen:])
+            shapeTruncated += (valShape[dlen:])
         elif dlen > 0:
             newShape= valShape+[1]*dlen
             value = value.reshape(newShape)
 
-        #   then recast into right shape
-        value = value*np.ones(shape)
+        #   then recast into right shape (changes in v2.4)
+        copy = self.data['grid']['copy'][:len(shape)]
+        extensionMatrix = np.ones(shape)
+
+        if not kwargs.get('copy') == 'all':
+            for i, item in enumerate(copy):
+                if item == 0 and shape[i] > 1 and value.shape[i] == 1:
+                    extensionMatrix[[slice(None)]*i + [slice(1, None)]+[Ellipsis]] = 0
+
+        value = value*extensionMatrix
         value = value.reshape(shapeTruncated)
 
         return value
