@@ -50,73 +50,72 @@ class SedDynamicFirst:
             self.submodulesToRun.append('erosion_a1')
         nRHS = len(self.submodulesToRun)
 
-        F = np.zeros([jmax+1, kmax+1, ftot, fmax+1, nRHS], dtype=complex)
-        Fsurf = np.zeros([jmax+1, 1, ftot, fmax+1, nRHS], dtype=complex)
-        Fbed = np.zeros([jmax+1, 1, ftot, fmax+1, nRHS], dtype=complex)
+        F = np.zeros([jmax+1, kmax+1, ftot, ftot, nRHS], dtype=complex)
+        Fsurf = np.zeros([jmax+1, 1, ftot, ftot, nRHS], dtype=complex)
+        Fbed = np.zeros([jmax+1, 1, ftot, ftot, nRHS], dtype=complex)
 
-        c0 = self.input.v('hatc0', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))
-        cx0 = self.input.d('hatc0', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1), dim='x')
-        cz0 = self.input.d('hatc0', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1), dim='z')
+        c0 = self.input.v('hatc0')
+        cx0 = ny.derivative(c0.reshape((jmax+1, kmax+1, 1, ftot, ftot)), 'x', self.input.slice('grid')).reshape((jmax+1, kmax+1, ftot, ftot))
+        cz0 = ny.derivative(c0.reshape((jmax+1, kmax+1, 1, ftot, ftot)), 'z', self.input.slice('grid')).reshape((jmax+1, kmax+1, ftot, ftot))
 
         # 1. Erosion
         if 'erosion' in self.submodulesToRun:
+            # erosion due to first-order bed shear stress
             E = self.erosion_Chernetsky(ws, Kv, 1)
-            ident = np.eye(fmax+1).reshape((1, 1, fmax+1, fmax+1))*np.ones((jmax+1, 1, 1, 1), dtype=complex)
-            ident[:, :, range(0, fmax+1), range(0, fmax+1)] = ident[:, :, range(0, fmax+1), range(0, fmax+1)]*E
-            Fbed[:, :, fmax:, :, self.submodulesToRun.index('erosion')] = -ident
+            Fbed[:, :, :, :, self.submodulesToRun.index('erosion')] = -ny.toMatrix(E)
 
+            # erosion due to first-order erodability
             E = self.erosion_Chernetsky(ws, Kv, 0)
-            ident = np.eye(fmax+1).reshape((1, 1, fmax+1, fmax+1))*np.ones((jmax+1, 1, 1, 1), dtype=complex)
-            ident[:, :, range(0, fmax+1), range(0, fmax+1)] = ident[:, :, range(0, fmax+1), range(0, fmax+1)]*E
-            Fbed[:, :, fmax:, :, self.submodulesToRun.index('erosion_a1')] = -ident
+            Fbed[:, :, :, :, self.submodulesToRun.index('erosion_a1')] = -ny.toMatrix(E)
 
         # 2. Advection
         if 'sedadv' in self.submodulesToRun:
-            u0 = self.input.v('u0', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))
-            w0 = self.input.v('w0', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))
+            u0 = np.concatenate((np.zeros((jmax+1, kmax+1, fmax), dtype=complex), self.input.v('u0', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))), 2)
+            w0 = np.concatenate((np.zeros((jmax+1, kmax+1, fmax), dtype=complex), self.input.v('w0', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))), 2)
 
-            eta = ny.complexAmplitudeProduct(u0, cx0, 2)+ny.complexAmplitudeProduct(w0, cz0, 2)
-            F[:, :, fmax:, :, self.submodulesToRun.index('sedadv')] = -eta
-            F[:, :, fmax:, :, self.submodulesToRun.index('sedadv_ax')] = -ny.complexAmplitudeProduct(u0, c0, 2)
+            eta = ny.complexAmplitudeProduct(u0, cx0, 2, includeNegative=True)+ny.complexAmplitudeProduct(w0, cz0, 2, includeNegative=True)
+            F[:, :, :, :, self.submodulesToRun.index('sedadv')] = -eta
+            F[:, :, :, :, self.submodulesToRun.index('sedadv_ax')] = -ny.complexAmplitudeProduct(u0, c0, 2, includeNegative=True)
 
         # 3. First-order fall velocity
         if 'settling' in self.submodulesToRun:
-            ws1 = self.input.v('ws1', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))
-            ksi = ny.complexAmplitudeProduct(ws1, c0, 2)
+            # surface and internal terms
+            ws1 = np.concatenate((np.zeros((jmax+1, 1, fmax), dtype=complex), self.input.v('ws1', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))), 2)
+            ksi = ny.complexAmplitudeProduct(ws1, c0, 2, includeNegative=True)
             ksiz = ny.derivative(ksi, 'z', self.input.slice('grid'))
-            zeta0 = self.input.v('zeta0', range(0, jmax+1), 0, range(0, fmax+1))
+            zeta0 = np.concatenate((np.zeros((jmax+1, fmax), dtype=complex), self.input.v('zeta0', range(0, jmax+1), 0, range(0, fmax+1))), 1)
 
-            F[:, :, fmax:, :, self.submodulesToRun.index('settling')] = ksiz
-            Fsurf[:, 0, fmax:, :, self.submodulesToRun.index('settling')] = -ny.complexAmplitudeProduct(ksiz[:,0,:], zeta0, 1)
+            F[:, :, :, :, self.submodulesToRun.index('settling')] = ksiz
+            Fsurf[:, 0, :, :, self.submodulesToRun.index('settling')] = -ny.complexAmplitudeProduct(ksiz[:,0,:], zeta0, 1, includeNegative=True)
 
+            # adjustment to erosion
             E = self.erosion_Chernetsky(ws1, Kv, 0)
-            ident = np.eye(fmax+1).reshape((1, 1, fmax+1, fmax+1))*np.ones((jmax+1, 1, 1, 1), dtype=complex)
-            ident[:, :, range(0, fmax+1), range(0, fmax+1)] = ident[:, :, range(0, fmax+1), range(0, fmax+1)]*E
-            Fbed[:, 0, fmax:, :, self.submodulesToRun.index('settling')] = -ident
+            Fbed[:, :, :, :, self.submodulesToRun.index('settling')] = -ny.toMatrix(E)
 
         # 4. First-order eddy diffusivity
         if 'mixing' in self.submodulesToRun:
-            Kv1 = self.input.v('Av1', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))/PrSchm
-            psi = ny.complexAmplitudeProduct(Kv1, cz0, 2)
+            # surface, bed and internal terms
+            Kv1 = np.concatenate((np.zeros((jmax+1, 1, fmax), dtype=complex), self.input.v('Av1', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))/PrSchm), 2)
+            psi = ny.complexAmplitudeProduct(Kv1, cz0, 2, includeNegative=True)
             psiz = ny.derivative(psi, 'z', self.input.slice('grid'))
 
-            F[:, :, fmax:, :, self.submodulesToRun.index('mixing')] = psiz
-            Fsurf[:, 0, fmax:, :, self.submodulesToRun.index('mixing')] = -psi[:,0,:]
-            Fbed[:, 0, fmax:, :, self.submodulesToRun.index('mixing')] = -psi[:,-1,:]
+            F[:, :, :, :, self.submodulesToRun.index('mixing')] = psiz
+            Fsurf[:, 0, :, :, self.submodulesToRun.index('mixing')] = -psi[:,0,:]
+            Fbed[:, 0, :, :, self.submodulesToRun.index('mixing')] = -psi[:,-1,:]
 
+            # adjustment to erosion
             E = self.erosion_Chernetsky(ws, Kv1, 0)
-            ident = np.eye(fmax+1).reshape((1, 1, fmax+1, fmax+1))*np.ones((jmax+1, 1, 1, 1), dtype=complex)
-            ident[:, :, range(0, fmax+1), range(0, fmax+1)] = ident[:, :, range(0, fmax+1), range(0, fmax+1)]*E
-            Fbed[:, 0, fmax:, :, self.submodulesToRun.index('mixing')] += -ident
+            Fbed[:, :, :, :, self.submodulesToRun.index('mixing')] = -ny.toMatrix(E)
 
         # 5. No-flux surface correction
         if 'noflux' in self.submodulesToRun:
-            zeta0 = self.input.v('zeta0', range(0, jmax+1), [0], range(0, fmax+1))
-            D = (np.arange(0, fmax+1)*1j*OMEGA).reshape((1, 1, fmax+1))*np.ones((jmax+1, 1, 1, 1))
-            #c0[0, 0, 2] = -760.740646787+1645.83313472j
-            Dc0 = D*c0[:, [0], Ellipsis]
-            chi = ny.complexAmplitudeProduct(Dc0, zeta0, 2)
-            Fsurf[:, :, fmax:, :, self.submodulesToRun.index('noflux')] = -chi
+            zeta0 = np.concatenate((np.zeros((jmax+1, 1, fmax), dtype=complex), self.input.v('zeta0', range(0, jmax+1), [0], range(0, fmax+1))), 2)
+            D = np.zeros(c0[:, [0], Ellipsis].shape, dtype=complex)
+            D[:, :, range(0, ftot), range(0, ftot)] = np.arange(-fmax, fmax+1)*1j*OMEGA
+            Dc0 = ny.arraydot(D, c0[:, [0], Ellipsis])
+
+            chi = ny.complexAmplitudeProduct(Dc0, zeta0, 2, includeNegative=True)
+            Fsurf[:, :, :, :, self.submodulesToRun.index('noflux')] = -chi
 
         ################################################################################################################
         # Solve equation
@@ -126,8 +125,7 @@ class SedDynamicFirst:
             c, cMatrix = cFunction(None, cmatrix, F, Fsurf, Fbed, self.input, hasMatrix = False)
         else:
             c, cMatrix = cFunction(ws, Kv, F, Fsurf, Fbed, self.input, hasMatrix = False)
-        c = ny.eliminateNegativeFourier(c, 2)
-        c = c.reshape((jmax+1, kmax+1, fmax+1, fmax+1, nRHS))
+        c = c.reshape((jmax+1, kmax+1, ftot, ftot, nRHS))
 
         ################################################################################################################
         # Prepare output

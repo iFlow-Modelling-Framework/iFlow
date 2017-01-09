@@ -14,63 +14,20 @@ from numpy.linalg import svd
 from availabilitySolver import availabilitySolver
 import matplotlib.pyplot as plt
 import step as st
-import scipy.optimize
 
 
 class StaticAvailabilityLead:
     # Variables
     logger = logging.getLogger(__name__)
-    TOLLERANCE = 10**-6
 
     # Methods
     def __init__(self, input, submodulesToRun):
         self.input = input
         return
 
-    def stopping_criterion(self, iteration):
-        stop = False
-        if hasattr(self, 'difference'):
-            print self.difference
-            if self.difference < self.TOLLERANCE:
-                stop = True
-
-                jmax = self.input.v('grid', 'maxIndex', 'x')
-                fmax = self.input.v('grid', 'maxIndex', 'f')
-                ftot = 2*fmax+1
-                gamma = self.input.v('gamma')
-                # a_guess = np.zeros((jmax+1, 1, fmax+1))
-                # a_guess[:, :, 0] = 1
-                # a_guess = np.concatenate((np.real(a_guess), np.imag(a_guess[:, :, 1:])), 2)
-                # a_split = scipy.optimize.fmin(self.convertAvailability, a_guess, (gamma, self.input.v('f0')))
-                # a_split = a_split.reshape((jmax+1, 1, ftot))
-                # a = a_split[:, :, :fmax+1]
-                # a[:, :, 1:] += a_split[:, :, fmax+1:]
-                print abs(self.input.v('f0')[0,0,:])
-                print abs(self.convertAvailability2(gamma, self.input.v('f0'))[0,0,:])
-                # print abs(a[0,0,:])
-
-        return stop
-
-    def run_init(self):
-        self.logger.info('Running module StaticAvailability')
-        jmax = self.input.v('grid', 'maxIndex', 'x')
-        fmax = self.input.v('grid', 'maxIndex', 'f')
-        f = np.zeros((jmax+1, 1, fmax+1))
-        f[:, :, 0] = 0.
-        d = self.closure(f)
-
-        return d
-
     def run(self):
         self.logger.info('Running module StaticAvailability')
-        jmax = self.input.v('grid', 'maxIndex', 'x')
-        fmax = self.input.v('grid', 'maxIndex', 'f')
 
-        f = self.input.v('f0', range(0, jmax+1), [0], range(0, fmax+1))
-        d = self.closure(f)
-        return d
-
-    def closure(self, f):
         ################################################################################################################
         ## Init
         ################################################################################################################
@@ -80,36 +37,36 @@ class StaticAvailabilityLead:
         ftot = 2*fmax+1
         OMEGA = self.input.v('OMEGA')
 
-        c0 = self.input.v('hatc0')
-        c1_a0 = self.input.v('hatc1_a')
-        c1_a0x = self.input.v('hatc1_ax')
-        c1_a1 = self.input.v('hatc1_a1')
-
         beta = 1
-        gamma = self.input.v('gamma')
-        oneMat = np.zeros((jmax+1, 1, fmax+1))
-        oneMat[:, :, 0] = 1
-        Phi_a0_inv = np.linalg.inv(ny.toMatrix(gamma*(oneMat-f)))
 
         d = {}
 
         ################################################################################################################
         ## Leading order availability
         ################################################################################################################
+        c0 = self.input.v('hatc0')
         c0_int = ny.integrate(c0.reshape((jmax+1, kmax+1, 1, ftot, ftot)), 'z', kmax, 0, self.input.slice('grid')).reshape((jmax+1, 1, ftot, ftot))
 
         D = np.zeros((jmax+1, 1, ftot, ftot), dtype=complex)
         D[:, :, range(0, ftot), range(0, ftot)] = np.arange(-fmax, fmax+1)*1j*OMEGA
-        b = beta*ny.arraydot(Phi_a0_inv, D) + ny.arraydot(D, c0_int)
+        b = beta*D + ny.arraydot(D, c0_int)
 
         G = []
         a0_til = availabilitySolver(b, G, self.input).reshape((jmax+1, 1, ftot))
 
-        # res = ny.arraydot(D, a0_til) + ny.arraydot(D, ny.arraydot(c0_int, a0_til))        # check
+        d['a0'] = a0_til
+
+        res = ny.arraydot(D, a0_til) + ny.arraydot(D, ny.arraydot(c0_int, a0_til))
 
         ################################################################################################################
         ## First order availability
         ################################################################################################################
+        # load chat from DC
+        c0x = ny.derivative(c0.reshape((jmax+1, kmax+1, 1, ftot, ftot)), 'x', self.input.slice('grid')).reshape((jmax+1, kmax+1, ftot, ftot))
+        c1_a0 = self.input.v('hatc1_a')
+        c1_a0x = self.input.v('hatc1_ax')
+        c1_a1 = self.input.v('hatc1_a1')
+
         # integrate over vertical
         c1_a0_int = ny.integrate(c1_a0.reshape((jmax+1, kmax+1, 1, ftot, ftot)), 'z', kmax, 0, self.input.slice('grid')).reshape((jmax+1, 1, ftot, ftot))
         c1_a0x_int = ny.integrate(c1_a0x.reshape((jmax+1, kmax+1, 1, ftot, ftot)), 'z', kmax, 0, self.input.slice('grid')).reshape((jmax+1, 1, ftot, ftot))
@@ -126,7 +83,7 @@ class StaticAvailabilityLead:
         ## Solve for a1_til
         D = np.zeros((jmax+1, 1, ftot, ftot), dtype=complex)
         D[:, :, range(0, ftot), range(0, ftot)] = np.arange(-fmax, fmax+1)*1j*OMEGA
-        b = ny.arraydot(D, beta*Phi_a0_inv + c1_a1_int)
+        b = beta*D + ny.arraydot(D, c1_a1_int)
 
         # terms with f00/f10
         G1 = -ny.arraydot(D, (ny.arraydot(c1_a0_int, a0_til) + ny.complexAmplitudeProduct(zeta0_ext, ny.arraydot(c0[:, [0], :, :], a0_til), 2, includeNegative=True)))
@@ -411,8 +368,8 @@ class StaticAvailabilityLead:
             dc = DataContainer(d)
             T_til = dc.v('T', range(0, jmax+1))
             F_til = dc.v('F', range(0, jmax+1))
-            # print np.max(abs((dc.v('T', range(0, jmax+1))-T0[:, 0, 0])/(T0[:, 0, 0]+10**-10)))
-            # print np.max(abs((dc.v('F', range(0, jmax+1))-F0[:, 0, 0])/(F0[:, 0, 0]+10**-10)))
+            print np.max(abs((dc.v('T', range(0, jmax+1))-T0[:, 0, 0])/(T0[:, 0, 0]+10**-10)))
+            print np.max(abs((dc.v('F', range(0, jmax+1))-F0[:, 0, 0])/(F0[:, 0, 0]+10**-10)))
 
             integral = -ny.integrate(T_til/(F_til+10**-6), 'x', 0, range(0, jmax+1), self.input.slice('grid'))
             astar = self.input.v('astar')
@@ -421,28 +378,14 @@ class StaticAvailabilityLead:
             a0c = A*np.exp(integral)
             a0xc = -T_til/F_til*a0c
 
-        ################################################################################################################
-        # Store in dict
-        ################################################################################################################
+        ## Plot
         a0_til = ny.eliminateNegativeFourier(a0_til, 2)
         a1_til = ny.eliminateNegativeFourier(a1_til, 2)
-        d['f0'] = a0_til*a0c.reshape((jmax+1, 1, 1))
-        # d['f0'][:, :, 1:] = 0
-        # d['f0'][:, :, 0] = 0.999
-        d['f1'] = a1_til[:, :, 1]*a0c.reshape((jmax+1, 1, 1)) + a1_til[:, :, 2]*a0xc.reshape((jmax+1, 1, 1))
-        f0_old = self.input.v('f0', range(0, jmax+1), 0, range(0, fmax+1))
-        if f0_old is not None:
-            self.difference = np.linalg.norm((f0_old-d['f0'][:, 0, :])/(d['f0'][:, 0, :]+10**(-10)), np.inf)
-
-
-        ################################################################################################################
-        ## Plot
-        ################################################################################################################
         st.configure()
 
-        # ################################################################################################################
-        # # Fig 1: f0 and f1
-        # ################################################################################################################
+        ################################################################################################################
+        # Fig 1: f0 and f1
+        ################################################################################################################
         plt.figure(1, figsize=(1,3))
         x = ny.dimensionalAxis(self.input.slice('grid'), 'x')[:,0,0]
         x = ny.dimensionalAxis(self.input.slice('grid'), 'x')[:,0,0]
@@ -451,68 +394,68 @@ class StaticAvailabilityLead:
         plt.plot(x,np.abs(a0_til[:, 0, 0]*a0c), 'b-')
         plt.plot(x,np.abs(a0_til[:, 0, 1]*a0c), 'g-')
         plt.plot(x,np.abs(a0_til[:, 0, 2]*a0c), 'r-')
-        #
-        # # plt.subplot(1,3,2)
-        # plt.plot(x,np.abs(a1_til[:, 0, 0, 1]*a0c + a1_til[:, 0, 0, 2]*a0xc), 'b-')
-        # plt.plot(x,np.abs(a1_til[:, 0, 1, 1]*a0c + a1_til[:, 0, 1, 2]*a0xc), 'g-')
-        # plt.plot(x,np.abs(a1_til[:, 0, 2, 1]*a0c + a1_til[:, 0, 2, 2]*a0xc), 'r-')
-        #
-        # plt.subplot(1,3,3)
-        # plt.plot(x,np.abs(a1_til[:, 0, 0, 0]), 'b:')
-        # plt.plot(x,np.abs(a1_til[:, 0, 1, 0]), 'g:')
-        # plt.plot(x,np.abs(a1_til[:, 0, 2, 0]), 'r:')
-        #
-        # ################################################################################################################
-        # # Fig 4: u0 da
-        # ################################################################################################################
-        # plt.figure(4, figsize=(1, 2))
-        # u = self.input.v('u0', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1)) + self.input.v('u1', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))
-        # u = ny.integrate(u, 'z', kmax, 0, self.input.slice('grid'))/ny.dimensionalAxis(self.input.slice('grid'), 'z')[:, [-1], :]
-        # for n in range(0, fmax+1):
-        #     plt.plot(x, abs(u[:, 0, n]))
-        #
-        # ################################################################################################################
-        # # Fig 5: transport contributions
-        # ################################################################################################################
-        # plt.figure(5, figsize=(1, 2))
-        # plt.subplot2grid((1,8), (0, 0),colspan=7)
-        #
-        # tterms = {}
-        # for key in dc.getKeysOf('T'):
-        #     tterms[key] = np.linalg.norm(dc.v('T', key, range(0, jmax+1)), 1)
-        # tterms = [i for i in sorted(tterms, key=tterms.get, reverse=True)]
-        # tterms = tterms[:5]
-        # for key in tterms:
-        #     p = plt.plot(x/1000., dc.v('T', key, range(0, jmax+1)), label=key)
-        #     try:
-        #         plt.plot(x/1000., self.input.v('T', key, range(0, jmax+1)), 'o', label=key, color=p[0].get_color())
-        #     except:
-        #         pass
-        # plt.plot(x/1000., dc.v('T', range(0, jmax+1)), 'k', label='Total')
-        # plt.legend(bbox_to_anchor=(1.15, 1.05))
-        # plt.title('Transport terms')
-        # plt.xlabel('x (km)')
-        # plt.ylabel('T')
-        #
-        # ################################################################################################################
-        # # Fig 6: Diffusion contributions
-        # ################################################################################################################
-        # plt.figure(6, figsize=(1, 2))
-        # plt.subplot2grid((1,8), (0, 0),colspan=7)
-        # for key in dc.getKeysOf('F'):
-        #     p = plt.plot(x/1000., dc.v('F', key, range(0, jmax+1)), label=key)
-        #     try:
-        #         plt.plot(x/1000., self.input.v('F', key, range(0, jmax+1)), 'o', label=key, color=p[0].get_color())
-        #     except:
-        #         pass
-        # plt.plot(x/1000., dc.v('F', range(0, jmax+1)), 'k', label='Total')
-        # plt.legend(bbox_to_anchor=(1.15, 1.05))
-        # plt.title('Diffusive terms')
-        # plt.xlabel('x (km)')
-        # plt.ylabel('F')
-        #
-        #
-        # st.show()
+
+        # plt.subplot(1,3,2)
+        plt.plot(x,np.abs(a1_til[:, 0, 0, 1]*a0c + a1_til[:, 0, 0, 2]*a0xc), 'b-')
+        plt.plot(x,np.abs(a1_til[:, 0, 1, 1]*a0c + a1_til[:, 0, 1, 2]*a0xc), 'g-')
+        plt.plot(x,np.abs(a1_til[:, 0, 2, 1]*a0c + a1_til[:, 0, 2, 2]*a0xc), 'r-')
+
+        plt.subplot(1,3,3)
+        plt.plot(x,np.abs(a1_til[:, 0, 0, 0]), 'b:')
+        plt.plot(x,np.abs(a1_til[:, 0, 1, 0]), 'g:')
+        plt.plot(x,np.abs(a1_til[:, 0, 2, 0]), 'r:')
+
+        ################################################################################################################
+        # Fig 4: u0 da
+        ################################################################################################################
+        plt.figure(4, figsize=(1, 2))
+        u = self.input.v('u0', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1)) + self.input.v('u1', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))
+        u = ny.integrate(u, 'z', kmax, 0, self.input.slice('grid'))/ny.dimensionalAxis(self.input.slice('grid'), 'z')[:, [-1], :]
+        for n in range(0, fmax+1):
+            plt.plot(x, abs(u[:, 0, n]))
+
+        ################################################################################################################
+        # Fig 5: transport contributions
+        ################################################################################################################
+        plt.figure(5, figsize=(1, 2))
+        plt.subplot2grid((1,8), (0, 0),colspan=7)
+
+        tterms = {}
+        for key in dc.getKeysOf('T'):
+            tterms[key] = np.linalg.norm(dc.v('T', key, range(0, jmax+1)), 1)
+        tterms = [i for i in sorted(tterms, key=tterms.get, reverse=True)]
+        tterms = tterms[:5]
+        for key in tterms:
+            p = plt.plot(x/1000., dc.v('T', key, range(0, jmax+1)), label=key)
+            try:
+                plt.plot(x/1000., self.input.v('T', key, range(0, jmax+1)), 'o', label=key, color=p[0].get_color())
+            except:
+                pass
+        plt.plot(x/1000., dc.v('T', range(0, jmax+1)), 'k', label='Total')
+        plt.legend(bbox_to_anchor=(1.15, 1.05))
+        plt.title('Transport terms')
+        plt.xlabel('x (km)')
+        plt.ylabel('T')
+
+        ################################################################################################################
+        # Fig 6: Diffusion contributions
+        ################################################################################################################
+        plt.figure(6, figsize=(1, 2))
+        plt.subplot2grid((1,8), (0, 0),colspan=7)
+        for key in dc.getKeysOf('F'):
+            p = plt.plot(x/1000., dc.v('F', key, range(0, jmax+1)), label=key)
+            try:
+                plt.plot(x/1000., self.input.v('F', key, range(0, jmax+1)), 'o', label=key, color=p[0].get_color())
+            except:
+                pass
+        plt.plot(x/1000., dc.v('F', range(0, jmax+1)), 'k', label='Total')
+        plt.legend(bbox_to_anchor=(1.15, 1.05))
+        plt.title('Diffusive terms')
+        plt.xlabel('x (km)')
+        plt.ylabel('F')
+
+
+        st.show()
 
         return d
 
@@ -526,31 +469,4 @@ class StaticAvailabilityLead:
                 d[subindex][ssi] = 0
         return d
 
-    def convertAvailability(self, a, gamma, f):
-        # 1. Convert f to time series and compute a
-        f_time = np.concatenate((f, np.zeros((f.shape[0], f.shape[1], 100-f.shape[2]), dtype=complex)), 2)
-        f_time = ny.invfft(f_time, 2)
 
-        # construct a
-        a = a.reshape((f.shape[0], f.shape[1], f.shape[2]*2-1))
-        acomplex = np.zeros(f.shape, dtype=complex)
-        acomplex += a[:, :, :(a.shape[-1]+1)/2]
-        acomplex[:, :, 1:] += 1j*a[:, :, (a.shape[-1]+1)/2:]
-        a_time = 0
-        t = np.linspace(0, 1, 100)
-        for n in range(0, acomplex.shape[-1]):
-            a_time += np.real(acomplex[:, :, n].reshape((f.shape[0], f.shape[1], 1))*(np.exp(n*2*np.pi*1j*t)).reshape((1, 1, len(t))))
-        f_appr = 1.-np.exp(-gamma*a_time)
-
-        res = f_appr - f_time
-        # print np.sum(np.sqrt(res**2))
-        return np.sum(np.sqrt(res**2))
-
-    def convertAvailability2(self, gamma, f):
-        # 1. Convert f to time series and compute a
-        f_time = np.concatenate((f, np.zeros((f.shape[0], f.shape[1], 100-f.shape[2]), dtype=complex)), 2)
-        f_time = ny.invfft(f_time, 2)
-        f_time = np.minimum(f_time, np.ones(f_time.shape)*.99999)
-        a_obj = -1./gamma*np.log(1-f_time)
-        a = ny.fft(a_obj, 2)[:, :, :f.shape[-1]]
-        return a

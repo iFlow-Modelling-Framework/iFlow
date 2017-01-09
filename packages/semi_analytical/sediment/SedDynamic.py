@@ -145,7 +145,7 @@ class SedDynamic:
         # add spatial settling lag diffusive transport to transport function Tdiff_eff
         # d['T']['Tdiff']['ssl'] = dctrans.v('F', 'Fadv').reshape(len(self.x), 1) * ax / d['a']
         # calculate concentrations for each tidal component a * hatc
-        d['c']['M0'] = d['a'] * dctrans.v('hatc a', 'c00') + d['a'] * dctrans.v('hatc a', 'c20')
+        d['c']['M0'] = d['a'] * dctrans.v('hatc a', 'c00')# + d['a'] * dctrans.v('hatc a', 'c20')
         d['c']['M2'] = d['a'] * dctrans.v('hatc a', 'c12') + ax * dctrans.v('hatc ax')
         d['c']['M4'] = d['a'] * dctrans.v('hatc a', 'c04')
         return d

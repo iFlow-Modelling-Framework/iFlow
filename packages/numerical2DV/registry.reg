@@ -250,8 +250,10 @@ output      a c0 c1
 
 module      StaticAvailabilityLead
 packagePath sediment/
-input       zeta0 u0 u1 hatc0 hatc1_a hatc1_ax hatc1_a1 grid T F
-output      a0
+inputInit       zeta0 u0 u1 hatc0 hatc1_a hatc1_ax hatc1_a1 grid T F gamma
+input       zeta0 u0 u1 hatc0 hatc1_a hatc1_ax hatc1_a1 grid T F gamma
+output      f0 f1
+iterative True
 
 module      HinderedSettling
 packagePath sediment/

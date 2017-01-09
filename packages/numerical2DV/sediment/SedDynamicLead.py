@@ -44,23 +44,19 @@ class SedDynamicLead:
         ################################################################################################################
         # Forcing terms
         ################################################################################################################
-        F = np.zeros([jmax+1, kmax+1, ftot, fmax+1, 1], dtype=complex)
-        Fsurf = np.zeros([jmax+1, 1, ftot, fmax+1, 1], dtype=complex)
-        Fbed = np.zeros([jmax+1, 1, ftot, fmax+1, 1], dtype=complex)
+        F = np.zeros([jmax+1, kmax+1, ftot, ftot, 1], dtype=complex)
+        Fsurf = np.zeros([jmax+1, 1, ftot, ftot, 1], dtype=complex)
+        Fbed = np.zeros([jmax+1, 1, ftot, ftot, 1], dtype=complex)
 
         # erosion
         E = self.erosion_Chernetsky(ws, Kv)
-
-        ident = np.eye(fmax+1).reshape((1, 1, fmax+1, fmax+1))*np.ones((jmax+1, 1, 1, 1), dtype=complex)
-        ident[:, :, range(0, fmax+1), range(0, fmax+1)] = ident[:, :, range(0, fmax+1), range(0, fmax+1)]*E
-        Fbed[:, :, fmax:, :, 0] = -ident
+        Fbed[:, :, :, :, 0] = -ny.toMatrix(E)
 
         ################################################################################################################
         # Solve equation
         ################################################################################################################
         c, cMatrix = cFunction(ws, Kv, F, Fsurf, Fbed, self.input, hasMatrix = False)
-        c = ny.eliminateNegativeFourier(c, 2)
-        c = c.reshape((jmax+1, kmax+1, fmax+1, fmax+1))
+        c = c.reshape((jmax+1, kmax+1, ftot, ftot))
 
         d = {}
         d['hatc0'] = c
@@ -73,7 +69,7 @@ class SedDynamicLead:
 
         ## 1. bed shear stress
         uz = self.input.d('u0', range(0, jmax+1), [kmax], range(0, fmax+1), dim='z')
-        taub = ny.complexAmplitudeProduct(Kv[:, [kmax], :], uz, 2)
+        taub = ny.complexAmplitudeProduct(Kv[:, [kmax], :], uz, 2)  #NB bed shear stress / rho_0
 
         # amplitude
         tau_amp = (np.sum(np.abs(taub), axis=-1)+10**-3).reshape((jmax+1, 1, 1))
@@ -122,5 +118,7 @@ class SedDynamicLead:
 
         hatE = rhos/(gred*ds)*ny.complexAmplitudeProduct(ws[:,[kmax],:], taub_abs, 2)
         return hatE
+
+
 
 
