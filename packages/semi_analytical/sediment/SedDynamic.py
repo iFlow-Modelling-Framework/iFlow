@@ -203,6 +203,7 @@ class SedDynamic:
         lambda_M4 = np.sqrt(self.WS**2 + 8 * 1j * self.SIGMA * self.Av0)
         r1_M4 = (lambda_M4 - self.WS) / (2 * self.Av0)
         r2_M4 = -(lambda_M4 + self.WS) / (2 * self.Av0)
+        p = (self.WS * self.RHOS * self.sf / (self.GPRIME * self.DS * self.Av0))
         A2 = ((4 * self.WS * self.RHOS * self.sf / (self.GPRIME * self.DS)) * uabs_M4 * (lambda_M4 + self.WS) /
               ((lambda_M4 + self.WS)**2 * np.exp(-r2_M4 * self.H) - (lambda_M4 - self.WS)**2 * np.exp(-r1_M4 * self.H)))
         A1 = A2 * (lambda_M4 - self.WS) / (lambda_M4 + self.WS)

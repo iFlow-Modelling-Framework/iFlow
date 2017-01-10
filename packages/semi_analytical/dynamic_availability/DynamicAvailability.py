@@ -81,9 +81,9 @@ class DynamicAvailability:
         self.gamma = 1. / (self.MUS * self.RHOS * (1. - self.P) * self.H[0])
 
         #load time serie Q
-        self.step = 5
-        self.dt = 24 * 3600
-        self.t = np.arange(0, 366 * self.dt, self.dt/self.step)
+        self.step = 1
+        # self.dt = 24 * 3600
+        # self.t = np.arange(0, 366 * self.dt, self.dt/self.step)
         ### constant profile ###
         # self.Q = np.ones(1000) * 20 #self.input.v('Q1')
         # self.Qt = np.zeros(1000)
@@ -91,15 +91,21 @@ class DynamicAvailability:
         # self.Q = 40 + 10 * np.sin(2 * np.pi * self.t / (365 * self.dt))
         # self.Qt = 10 * np.cos(2 * np.pi * self.t / (365 * self.dt)) * 2 * np.pi / (365 * self.dt)
         ### tangent hyperbolic profile ###
-        self.Q = -17.5*np.tanh((self.t - self.dt*200)/2e6) + 42.5
+        # self.Q = -17.5*np.tanh((self.t - self.dt*200)/2e6) + 42.5
         # self.Q = np.append(self.Q, 17.5*np.tanh((self.t - self.dt*200)/2e6) + 42.5)
+        # self.Q = -20.*np.tanh((self.t - self.dt*200)/2e6) + 40.
+        # self.Q = np.append(self.Q, 20.*np.tanh((self.t - self.dt*200)/2e6) + 40.)
         # self.t = np.arange(0, 2 * 366 * self.dt, self.dt/self.step)
-        self.t = np.arange(0, 366 * self.dt, self.dt/self.step)
+        # self.t = np.arange(0, 366 * self.dt, self.dt/self.step)
         # self.Qt = np.gradient(self.Q, self.dt, edge_order=2)
         ### fitted data Scheldt ###
         # data = np.loadtxt('/Users/RLBrouwer/Box Sync/WL Antwerpen/WL2016R13_103_4_WP1Sed_texfiles/python/WP14/input/tday_Qmeasured_Qfit_dQfitdt.dat')
-        # data = np.loadtxt('/Users/RLBrouwer/Box Sync/WL Antwerpen/WL2016R13_103_4_WP1Sed_texfiles/python/WP14/input/Qfit_91days.dat')
-        # Q = data[5000:7000, 0]
+        data = np.loadtxt('/Users/RLBrouwer/Box Sync/WL Antwerpen/WL2016R13_103_4_WP1Sed_texfiles/python/WP14/input/Qfit_91days.dat')
+        t0_2001 = 10592 + 366
+        yr2001 = range(t0_2001, t0_2001+365)
+        t0_2009 = t0_2001 + 6*365 +2*366
+        yr2009 = range(t0_2009, t0_2009+365)
+        self.Q = data[yr2009, 0]
         # # Qt = data[5000:7000, 1]
         # t = np.arange(0, len(Q) * self.dt, self.dt)
         # t2 = np.arange(0, len(Q) * self.dt, self.dt / 10)[:-9]
@@ -240,38 +246,36 @@ class DynamicAvailability:
 
     def implicit(self):
         # Initialize vector g
-        g = self.FSEA * np.ones((len(self.x), 1))  # (1. - self.x / self.L)
+        g = self.FSEA * np.ones((len(self.x), 1))
         # g = (self.FSEA * (1. - self.x / self.L)**2).reshape(len(self.x), 1)
-        # G = []
-        # G.append(g)
-        g_old = g
-        # Initialize availability a
+        # Calculate transport fucnctions F and T
         T_old, F_old, A_old, C20_old = self.transport_terms(self.Q[0])
         Tt = []
         Tt.append(T_old)
-        # # Calculate and append diffusive coefficient F
         Ft = []
         Ft.append(F_old)
+        # Calculate availability a
         aeq_old = self.availability(F_old, T_old)
         aeq_old = aeq_old / aeq_old[0]
-        a_old = aeq_old * self.FSEA
-        a = a_old
+        a = aeq_old * self.FSEA / (1. - self.FCAP * self.FSEA)
+        # Define solution vector X = (g, a)
         Xt = []
         X = np.append(g, a).reshape(2*len(self.x), 1)
-        X_old = np.append(g_old, a_old).reshape(2*len(self.x), 1)
-        # Initialize variables to be saved
-        # f = []
-        # f_old = g_old * a_old
-        # f.append(f_old)
+        X_old = X
+        Xt.append(X)
+        # Calculate flux over open boundary
         flux = []
         flux_old = self.B * F_old * aeq_old * np.gradient(g, self.dx[0], axis=0, edge_order=2)
         flux.append(flux_old)
+        # Calculate tidally-averaged actual and equilibrium sediment concentration
         c0bar = []
+        c0bar.append((self.c00 + C20_old) * aeq_old * g)
         c0bareq = []
-        # M = []
-        # Meq = []
+        c0bareq.append((self.c00 + C20_old) * aeq_old * self.FSEA)
         eigvals = []
         eigvecs = []
+        c0hat = []
+        c0hat.append(self.c00[:, 0]+C20_old[:, 0])
         for i, q in enumerate(self.Q[1:]):
             T, F, A, C20 = self.transport_terms(q)
             aeq = self.availability(F, T)
@@ -291,19 +295,20 @@ class DynamicAvailability:
             #         'Given the initial and boundary conditions, fcap should be smaller than %.2g' % maxfcap)
 
             # Determine eigenvalues of the system for a certain discharge
-            if self.FCAP == 0:
-                eigval, eigvec = self.stability(A, T, F, aeq)
-                eigvals.append(eigval)
-                eigvecs.append(eigvec)
-            else:
-                eigvals.append(0.)
-                eigvals.append(0.)
+            # if self.FCAP == 0:
+            #     eigval, eigvec = self.stability(A, T, F, aeq)
+            #     eigvals.append(eigval)
+            #     eigvecs.append(eigvec)
+            # else:
+            #     eigvals.append(0.)
+            #     eigvals.append(0.)
+            #
+            # Xvec, jac = self.jacvec2(A, A_old, T, T_old, F, F_old, aeq, aeq_old, X, X_old)
+            # while max(abs(Xvec)) > self.TOL:
+            #     dX = linalg.solve(jac, Xvec)
+            #     X = X - dX.reshape(len(X), 1)
+            #     Xvec, jac = self.jacvec2(A, A_old, T, T_old, F, F_old, aeq, aeq_old, X, X_old)
 
-            Xvec, jac = self.jacvec2(A, A_old, T, T_old, F, F_old, aeq, aeq_old, X, X_old)
-            while max(abs(Xvec)) > self.TOL:
-                dX = linalg.solve(jac, Xvec)
-                X = X - dX.reshape(len(X), 1)
-                Xvec, jac = self.jacvec2(A, A_old, T, T_old, F, F_old, aeq, aeq_old, X, X_old)
             # cap = 1 - self.FCAP * aeq * g
             # ind, = np.where(cap[:, 0] < 0.)
             # if not len(ind) == 0:
@@ -311,36 +316,38 @@ class DynamicAvailability:
             #     g[ind] = (1. - 10 * np.finfo(float).eps) / (self.FCAP * a[ind])
             # print min(1 - self.FCAP * a * g)
             # g_old = g
-            aeq_old = aeq
-            X_old = X
-            T_old = T
-            F_old = F
-            A_old = A
-            fnew = aeq * X[:len(self.x)]
-            c0barnew = (self.c00 + C20) * fnew.reshape(len(self.x), 1)
-            c0bareqnew = (self.c00 + C20) * (aeq * self.FSEA).reshape(len(self.x), 1)
-            # m = np.trapz(self.B * np.trapz(c0barnew, x=-self.zarr, axis=1).reshape(len(self.x), 1), dx=self.dx, axis=0)
-            # meq = np.trapz(self.B * np.trapz(c0bareqnew, x=-self.zarr, axis=1).reshape(len(self.z), 1), dx=self.dx[0], axis=0)
-            flux.append(self.B * F * aeq * np.gradient(X[:len(self.x)], self.dx[0], axis=0, edge_order=2))
-            Xt.append(X)
-            c0bar.append(c0barnew)
-            c0bareq.append(c0bareqnew)
-            # M.append(m)
-            # Meq.append(meq)
+            # aeq_old = aeq
+            # X_old = X
+            # T_old = T
+            # F_old = F
+            # A_old = A
+            # fnew = aeq * X[:len(self.x)]
+            # c0barnew = (self.c00 + C20) * fnew.reshape(len(self.x), 1)
+            # c0bareqnew = (self.c00 + C20) * (aeq * self.FSEA).reshape(len(self.x), 1)
+            # flux.append(self.B * F * aeq * np.gradient(X[:len(self.x)], self.dx[0], axis=0, edge_order=2))
+            # Xt.append(X)
+            # c0bar.append(c0barnew)
+            # c0bareq.append(c0bareqnew)
             Tt.append(T)
             Ft.append(F)
-            # G.append(g)
+            c0hat.append(self.c00[:, 0] + C20[:, 0])
 
-            if (i % np.floor(len(self.Q[1:]) / 10.) == 0):
+            if i % np.floor(len(self.Q[1:]) / 10.) == 0:
                 percent = float(i) / len(self.Q[1:])
                 hashes = '#' * int(round(percent * 10))
                 spaces = ' ' * (10 - len(hashes))
                 sys.stdout.write("\rProgress: [{0}] {1}%".format(hashes + spaces, int(round(percent * 100))))
                 sys.stdout.flush()
-        return {'Xt': np.array(X)[::self.step], 'flux': np.array(flux)[::self.step], 'Tt': np.array(Tt)[::self.step],
-                'c0bar': {'t': np.array(c0bar)[::self.step], 'eq': np.array(c0bareq)[::self.step]},
-                'Ft': np.array(Ft)[::self.step], 'eigs': {'eigvals': np.array(eigvals)[::self.step],
-                                                          'eigvecs': np.array(eigvecs)[::self.step]}}
+
+        np.savetxt('/Users/RLBrouwer/Box Sync/WL Antwerpen/WL_rapporten/13_103_WP1.5/iFlow/output/T_2009.dat', Tt)
+        np.savetxt('/Users/RLBrouwer/Box Sync/WL Antwerpen/WL_rapporten/13_103_WP1.5/iFlow/output/F_2009.dat', Ft)
+        np.savetxt('/Users/RLBrouwer/Box Sync/WL Antwerpen/WL_rapporten/13_103_WP1.5/iFlow/output/c0hat_2009.dat', c0hat)
+        np.savetxt('/Users/RLBrouwer/Box Sync/WL Antwerpen/WL_rapporten/13_103_WP1.5/iFlow/output/Q_2009.dat', self.Q)
+        return {'Tt': np.array(Tt)[::self.step], 'Ft': np.array(Ft)[::self.step]}
+        # return {'Xt': np.array(X)[::self.step], 'flux': np.array(flux)[::self.step], 'Tt': np.array(Tt)[::self.step],
+        #         'c0bar': {'t': np.array(c0bar)[::self.step], 'eq': np.array(c0bareq)[::self.step]},
+        #         'Ft': np.array(Ft)[::self.step], 'eigs': {'eigvals': np.array(eigvals)[::self.step],
+        #                                                   'eigvecs': np.array(eigvecs)[::self.step]}}
         # return {'f': np.array(f)[::self.step], 'flux': np.array(flux)[::self.step], 'Tt': np.array(Tt)[::self.step],
         #         'c0bar': {'t': np.array(c0bar)[::self.step], 'eq': np.array(c0bareq)[::self.step]},
         #         'Ft': np.array(Ft)[::self.step], 'eigs': {'eigvals': np.array(eigvals)[::self.step],
