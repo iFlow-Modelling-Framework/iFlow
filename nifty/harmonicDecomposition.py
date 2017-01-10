@@ -9,9 +9,9 @@ import numpy as np
 
 
 def absoluteU(u, n):
-    """Harmonic decomposition of |u(t)| = |U*cos(sigma*t-phi)| = |hat(u)*exp(sigma*t) + c.c.|, where
-    hat(u) = U*exp(-i*phi) / 2. This function is used in iFlow amongst others to calculate the leading order erosion
-    term for the concentration equation. In that case only values at the bed are relevant (z=-H).
+    """Harmonic decomposition of |u(t)| = |U*cos(sigma*t-phi)| = |1/2 hat(u)*exp(sigma*t) + c.c.|, where
+    hat(u) = U*exp(-i*phi). This function is used in iFlow's sediment module for the semi-analytical method to calculate
+    the leading order erosion term for the concentration equation. In that case only values at the bed are relevant (z=-H).
 
     Parameters:
         u (ndarray) - complex amplitude of a variable that varies at M2 frequency only
@@ -33,7 +33,7 @@ def absoluteU(u, n):
 
 def signU(u, n):
     """Harmonic decomposition of u / |u| = sg(u), where u is an M2 tidal signal. Here, u(t) = U*cos(sigma*t-phi) =
-    hat(u)*exp(sigma*t) + c.c., where hat(u) = U*exp(-i*phi) / 2.
+    1/2 hat(u)*exp(sigma*t) + c.c., where hat(u) = U*exp(-i*phi).
 
     Parameters:
         u (ndarray) - complex amplitude of a variable that varies at M2 frequency only

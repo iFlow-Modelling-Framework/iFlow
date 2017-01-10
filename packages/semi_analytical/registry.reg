@@ -48,4 +48,4 @@ output		c0 c1 hatc a F T
 module      DynamicAvailability
 packagePath dynamic_availability/
 input       grid hatc a F T mus fcap csea p Q1 tol
-output      f flux c0bar eigs
+output      Xt Ft Tt flux c0bar eigs

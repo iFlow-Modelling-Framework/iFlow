@@ -261,18 +261,22 @@ class Step:
             value = value*conv
 
             # set cmap
-            if np.amax(np.abs(value))==0:
-                cmap = 'RdBu_r'
-                normalisecolor = mpl.colors.Normalize(vmin=0, vmax=0)
-            elif np.amin(value) >= 0:
+            if 'u' in value_label:
+                if np.amax(np.abs(value))==0:
+                    cmap = 'RdBu_r'
+                    normalisecolor = mpl.colors.Normalize(vmin=0, vmax=0)
+                elif np.amin(value) >= 0:
+                    normalisecolor = mpl.colors.Normalize(vmin=0, vmax=np.amax(np.abs(value)))
+                    cmap = 'Reds'
+                elif np.amax(value) <= 0:
+                    normalisecolor = mpl.colors.Normalize(vmin=np.amin(value), vmax=0)
+                    cmap = 'Blues_r'
+                else:
+                    normalisecolor = mpl.colors.Normalize(vmin=-np.amax(np.abs(value)), vmax=np.amax(np.abs(value)))
+                    cmap = 'RdBu_r'
+            elif 'c' in value_label:
+                cmap = 'YlOrBr'
                 normalisecolor = mpl.colors.Normalize(vmin=0, vmax=np.amax(np.abs(value)))
-                cmap = 'Reds'
-            elif np.amax(value) <= 0:
-                normalisecolor = mpl.colors.Normalize(vmin=np.amin(value), vmax=0)
-                cmap = 'Blues_r'
-            else:
-                normalisecolor = mpl.colors.Normalize(vmin=-np.amax(np.abs(value)), vmax=np.amax(np.abs(value)))
-                cmap = 'RdBu_r'
 
             # plot
             plt.pcolormesh(axis1_dim, axis2_dim, value, norm=normalisecolor, cmap=cmap, shading='gouraud') #, cmap='YlOrBr'
@@ -280,6 +284,7 @@ class Step:
             plt.plot(axis1_dim[:,0], axis2_dim[:,0], 'k-', linewidth=0.2)
             plt.plot(axis1_dim[-1,:], axis2_dim[-1,:], 'k-', linewidth=0.2)
             plt.plot(axis1_dim[0,:], axis2_dim[0,:], 'k-', linewidth=0.2)
+            plt.gca().set_axis_bgcolor([.75, .75, .75])
             cb = plt.colorbar()
 
             ## Title and axis labels
