@@ -611,7 +611,10 @@ class DataContainer:
             value = value.reshape(newShape)
 
         #   then recast into right shape (changes in v2.4)
-        copy = self.data['grid']['copy'][:len(shape)]
+        try:
+            copy = self.data['grid']['copy'][:len(shape)]   # works in version 2.4
+        except:
+            copy = np.ones(len(self.data['grid']['dimensions']))[:len(shape)]       # backward compatibility to v2.3 [dep03]
         extensionMatrix = np.ones(shape)
 
         if not kwargs.get('copy') == 'all':
