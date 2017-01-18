@@ -19,14 +19,14 @@ output      L B H -H
 module          Sensitivity
 packagePath
 inputInit       variables loopstyle
-input           variables loopstyle @output.variables
+input           variables loopstyle @output.requirements
 output          @variables
 iterative       True
 
 ## Module Output: standard iFlow output module ##
 # standard ouput module. Uses cPickle to produce binary output file(s)
 module          Output
-input           @variables path variables filename  # optional 'iteratesWith'
+input           @requirements path requirements filename  # optional 'iteratesWith'
 output          outputDirectory
 outputModule		True
 

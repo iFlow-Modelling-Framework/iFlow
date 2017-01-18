@@ -90,13 +90,9 @@ class Program:
 
         # check if a block of output requirements was found
         # if nothing is specified, do require output
-        # if more than one block is found, take the first one
+        # if more than one block is found, take the last one
         if len(outputData) > 0:
-            outputData = outputData[0]
-            # fix problem with single line 'submodules' statement on input; needs to be saved as nested dict (26-02-2016)
-            if isinstance(outputData.v('submodules'), list):
-                subvec = outputData.v('submodules')
-                outputData.addData('submodules', {subvec[0]: subvec[1:]})
+            outputData = outputData[-1]
         else:
             outputData = DataContainer()
 

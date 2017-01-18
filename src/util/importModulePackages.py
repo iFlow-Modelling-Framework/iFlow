@@ -7,9 +7,10 @@ Authors: Y.M. Dijkstra
 import os
 import pkgutil
 import sys
+import packages          # DEFAULT PACKAGE LOCATION
 from nifty import toList
 from src.util.diagnostics import LogConfigurator
-import packages          # DEFAULT PACKAGE LOCATION
+from src.util.localpath import localpath
 
 
 def importModulePackages(cwd, imports):
@@ -17,7 +18,7 @@ def importModulePackages(cwd, imports):
     (1) the standard folder 'packages',
     (2) the working directory 'cwd' and
     (3) the paths given in 'imports'
-    by adding them to sys.path (= temporary path variable for run-time of the session)
+    by adding them to localpath (= temporary path variable for run-time of the session (since v2.4, before this was added to sys.path))
 
     Parameters:
         imports (list of DataContainers) - DataContainer list containing lines of import statements in the input file
@@ -41,9 +42,9 @@ def importModulePackages(cwd, imports):
             modlist.append(modname)
 
     #  add to path and set logging system
-    sys.path.append(packages.__path__[0])
+    localpath.append(packages.__path__[0])
     for modname in modlist:
-        sys.path.append(packages.__path__[0] + slash2 + modname)            # add to path
+        localpath.append(packages.__path__[0] + slash2 + modname)
         logConf = LogConfigurator(modname)                                  # logger
         logConf.makeConsoleLog()
 
@@ -55,9 +56,9 @@ def importModulePackages(cwd, imports):
             modlist.append(modname)
 
     #  add to path and set logging system
-    sys.path.append(cwd)
+    localpath.append(cwd)
     for modname in modlist:
-        sys.path.append(cwd + slash2 + modname)            # add to path
+        localpath.append(cwd + slash2 + modname)
         logConf = LogConfigurator(modname)                 # logger
         logConf.makeConsoleLog()
 
@@ -72,8 +73,8 @@ def importModulePackages(cwd, imports):
         path = path.split(slash2)
 
         # add parent and child paths
-        sys.path.append(os.path.abspath(slash2.join(path[:-1])))
-        sys.path.append(os.path.abspath(slash2.join(path)))
+        localpath.append(os.path.abspath(slash2.join(path[:-1])))
+        localpath.append(os.path.abspath(slash2.join(path)))
 
         # make logger
         # logConf = LogConfigurator(path[-1])                                 # logger

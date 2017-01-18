@@ -200,6 +200,9 @@ class iFlowTUI:
         Parameter:
             cwdPath - (str) relavtive/absolute path to the new cwd
         """
+        #0. change path slashes
+        cwdPath = cwdPath.replace('\\', '/')
+
         # 1. test existence of directory
         if not os.path.exists(cwdPath):
             print 'Directory could not be located.'
