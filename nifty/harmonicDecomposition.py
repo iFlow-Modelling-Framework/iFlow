@@ -25,7 +25,7 @@ def absoluteU(u, n):
     """
     if n % 2 == 0:
         k = n / 2
-        absU = (2. / np.pi) * np.abs(u) * (u / np.conj(u))**k * (-1)**k / (1 - 4 * k**2)
+        absU = (2. / np.pi) * np.abs(u) * (u / np.conj(u + 1.e-12))**k * (-1)**k / (1 - 4 * k**2)
     else:
         absU = 0
     return absU
@@ -51,6 +51,6 @@ def signU(u, n):
     else:
         # sgnU = -2 * (-1j)**(n + 1) * (u / abs(u))**n / (np.pi * n)
         k = (n-1)/2
-        sgnU = (2 * (-1)**k / (np.pi * n)) * (u / abs(u))**n
+        sgnU = (2 * (-1)**k / (np.pi * n)) * (u / abs(u + 1.e-12))**n
         # sgnU[-1] = 0
     return sgnU
