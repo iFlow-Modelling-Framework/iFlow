@@ -2,7 +2,7 @@
 # 
 
 
-## Module HydroLead: semi-analytical perturbation model - leading order ##
+## Module HydroLead: semi-analytical2DV perturbation model - leading order ##
 module          HydroLead
 packagePath		hydro/
 input 			A0 phase0 Q0 BottomBC grid Av Roughness OMEGA G TOLERANCEBVP
@@ -14,7 +14,7 @@ river	input
 tide	input
 		output		w0
 
-## Module HydroFirst: semi-analytical perturbation model - first order ##
+## Module HydroFirst: semi-analytical2DV perturbation model - first order ##
 module          HydroFirst
 packagePath		hydro/
 input 			A1 phase1 Q1 BottomBC grid Av Roughness OMEGA G BETA TOLERANCEBVP NGODIN
@@ -37,15 +37,8 @@ adv		    input	u0
 
 ## Salinity related - uses packages from Numerical2DV module ##
 
-## Module SedDynamic: semi-analytical perturbation model ##
+## Module SedDynamic: semi-analytical2DV perturbation model ##
 module		SedDynamic
-packagePath	sediment/
-input		grid zeta0 u0 u1 Av Roughness astar ws Kh OMEGA G RHO0 RHOS DS
-output		c0 c1 hatc a F T
-submodules  erosion noflux sedadv mixing
-
-## Module SedDynamic_new: semi-analytical perturbation model ##
-module		SedDynamic_new
 packagePath	sediment/
 input		grid zeta0 u0 u1 Av Roughness astar ws Kh OMEGA G RHO0 RHOS DS
 output		c0 c1 c2 hatc0 hatc1 hatc2 a F T
