@@ -24,6 +24,7 @@ import DataContainer
 import inspect
 import logging
 
+
 class Module:
     # Variables
 
@@ -115,8 +116,8 @@ class Module:
 
     def getOutputRequirements(self):
         """Returns a list of output variables (i.e. list of str) required on output according to the input file under tag
-        'variables' in module output"""
-        return toList(self.__outputReq.v('variables'))
+        'requirements' in module output"""
+        return toList(self.__outputReq.v('requirements'))
 
     def getInputRequirements(self, init=False):
         """List of input variables (i.e. list of str) that this module requires given the current list of submodules to run.
@@ -279,7 +280,7 @@ class Module:
             sublist = self.__submoduleList()
 
             # loop over variables in the output requirements
-            for var in toList(self.__outputReq.v('variables')):
+            for var in toList(self.__outputReq.v('requirements')):
                 submoduleList = []
 
                 # gather the submodules that have 'var' as output
@@ -294,7 +295,7 @@ class Module:
 
         else:
             # loop over variables in the output requirements
-            for var in toList(self.__outputReq.v('variables')):
+            for var in toList(self.__outputReq.v('requirements')):
                 outputList = toList(self.__register.v('output'))
                 if var in outputList:
                     self.runModule = True

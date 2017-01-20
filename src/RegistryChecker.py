@@ -16,6 +16,7 @@ import sys
 import Reader
 from src.util.diagnostics import KnownError
 from nifty import toList
+from src.util.localpath import localpath
 
 
 class RegistryChecker:
@@ -54,7 +55,7 @@ class RegistryChecker:
 
         # make registry path and open registry
         registryPath = None
-        for path in reversed(sys.path):     # scan the system path in reverse; the actual path is likely to be at the end. Only use the path that has matching package names with the module
+        for path in localpath:     # scan the localpath (since v2.4, before this contained the reverse system path)
             path.replace(slash1, slash2)
             pathList = path.split(slash2)
             if all([pathList[-n] == modulePackage[-n] for n in range(1, len(modulePackage)+1)]):

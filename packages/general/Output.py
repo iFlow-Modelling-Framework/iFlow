@@ -70,7 +70,7 @@ class Output:
         saveData = DataContainer()
 
         # vars to save
-        outputVariables = toList(self.input.v('variables'))
+        outputVariables = toList(self.input.v('requirements'))
         outputKeys = list(set(outputKeys + self.__getSubmoduleRequirements(outputVariables)))        # convert the requested output variables to key tuples including submodule requirements
         for key in outputKeys:
             if len(key)>1:

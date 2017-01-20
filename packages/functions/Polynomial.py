@@ -11,7 +11,7 @@ Authors: Y.M. Dijkstra, R.L. Brouwer
 """
 import numpy as np
 from nifty.functionTemplates import FunctionBase
-
+import nifty as ny
 
 class Polynomial(FunctionBase):
     #Variables
@@ -20,7 +20,7 @@ class Polynomial(FunctionBase):
     def __init__(self, dimNames, data):
         FunctionBase.__init__(self, dimNames)
         self.L = data.v('L')
-        self.C = np.array(data.v('C'))
+        self.C = np.array(ny.toList(data.v('C')))
         FunctionBase.checkVariables(self, ('C', self.C), ('L', self.L))
         return
 
