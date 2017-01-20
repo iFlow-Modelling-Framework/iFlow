@@ -12,6 +12,8 @@ from copy import copy
 import nifty as ny
 import itertools
 import math
+from operator import itemgetter
+from src.util.diagnostics import KnownError
 
 
 class Step:
@@ -330,197 +332,254 @@ class Step:
                 plt.suptitle('Re('+value_name+')'+' ('+value_unit+')')
             elif kwargs.get('operation')==np.imag:
                 plt.suptitle('Im('+value_name+')'+' ('+value_unit+')')
-
         plt.draw()
-
         return
 
-    def transportplot(self, axis1, axis2, *args, **kwargs):
-        # determine which axis displays data and which grid information
-        axis = [axis1, axis2]  # list of both axis
-        del axis1, axis2
-        gridAxisNo = [i for i, grid in enumerate(axis) if grid in self.dims][0]  # number of grid axis
-        dataAxisNo = np.mod(gridAxisNo + 1, 2)  # number of data axis
-        # TODO: error if no valid axis provided
-        # TODO: handle time axis
+    def transportplot_mechanisms(self, *args, **kwargs):
+        """
+        Plots the advective transport based on the physical mechanism that forces it.
 
-        # get all keys/subkeys to data
-        keyList = [axis[dataAxisNo]] + [i for i in args if isinstance(i, basestring)]  # key + subkeys to data
+        args:
 
-        # display a sub-level yes/no
-        # subplots = kwargs.get('subplots') or None  # which (if any) var to display in subplots
-        sublevel = kwargs.get('sublevel') or False  # show sub-level data: True/False
+        kwargs:
+            sublevel      - displays underlying levels of the associated mechanisms: 'sublevel', 'subsublevel' or False
+            plotno        - plot number: Integer
+            display       - mechanisms to display: Integer of maximum number of mechanisms to display, or list of
+                            strings of mechanisms to display
+            scale         - scale the transport contributions to the maximum value of all contributions: True or False
+            concentration - plot the depth-mean sub-tidal concentration in the background: True or False
+       """
+        ################################################################################################################
+        # Extract args and/or kwargs
+        ################################################################################################################
+        sublevel = kwargs.get('sublevel') or kwargs.get('subsublevel') or False  # show sub-level data: True/False
         plotno = kwargs.get('plotno') or 1  # set plot number (default 1)
-        # looplist = [dim for dim in kwargs if dim in self.dims and dim != axis[gridAxisNo]] + ['sublevel'] * sublevel  # list of variables to loop over: i.e. grid axis that are not one of the axis + subplots
+        display = kwargs.get('display') or 5 # display number of mechanisms (sorted in descending order) or specific mechanisms
+        scale = kwargs.get('scale') or False # scale the transport contributions to the maximum: True/False
+        concentration = kwargs.get('concentration') or False
 
-        # checks: no more than two loop variables not in subplots, maximum one var in subplots
-        # TODO
-
-        #######
-        # determine values to loop plot over
-        loopvalues = [None] * len(keyList)
-        for i, loopvar in enumerate(keyList):
-            if sublevel:
-                if loopvar == 'T':
-                    tempList = []
-                    for key in self.input.getKeysOf(loopvar):
-                        tempList.append([loopvar, key])
-                    loopvalues[i] = tempList
-                elif loopvar in ['TM2M0', 'TM2M2', 'TM2M4']:
-                    tempList = []
-                    for key in self.input.getKeysOf('T', 'TM2', loopvar):
-                        tempList.append(['T', 'TM2', loopvar, key])
-                    loopvalues[i] = tempList
-                elif loopvar == 'TM0stokes':
-                    tempList = []
-                    for key in self.input.getKeysOf('T', 'TM0', loopvar):
-                        tempList.append(['T', 'TM0', loopvar, key])
-                    loopvalues[i] = tempList
-                else:
-                    tempList = []
-                    for key in self.input.getKeysOf('T', loopvar):
-                        tempList.append(['T', loopvar, key])
-                    loopvalues[i] = tempList
+        ################################################################################################################
+        # Construct list of mechanisms to display and calculate these mechanisms
+        ################################################################################################################
+        # get keys of the transport mechanisms to display entered by the user or all mechanism
+        if isinstance(display, list):
+            if set(display).issubset(self.input.getKeysOf('T')):
+                keyList = display
             else:
-                if loopvar == 'T':
-                    loopvalues[i] = loopvar
-                elif loopvar in ['TM2M0', 'TM2M2', 'TM2M4']:
-                    loopvalues[i] = ['T', 'TM2', loopvar]
-                else:
-                    loopvalues[i] = ['T', loopvar]
-
-        #########
-        # determine number and shape of subplots
-        numberOfSubplots = len(keyList)
-        # subplotShape = (numberOfSubplots, 1)
-        if numberOfSubplots <= 1:
-            subplotShape = (1, 1)
-        elif numberOfSubplots == 2:
-            subplotShape = (1, 2)
-        elif numberOfSubplots <= 8:
-            subplotShape = (int(math.ceil(numberOfSubplots / 2.)), 2)
-        elif numberOfSubplots <= 15:
-            subplotShape = (int(math.ceil(numberOfSubplots / 3.)), 3)
+                raise KnownError('Not all transport mechanisms passed with display are available.')
         else:
-            subplotShape = (int(math.ceil(numberOfSubplots / 4.)), 4)
+            keyList = self.input.getKeysOf('T')
 
-        #########
-        # plot loop
+        # get availability and its derivative w.r.t. x
+        x = self.input.v('grid', 'axis', 'x')
+        a = self.input.v('a').reshape(len(x),)
+        a_x = -self.input.v('T') * a / self.input.v('F')
+        # construct list with values to plot
+        loopvalues = [[]]
+        if sublevel:
+            tmp_max = []
+            for key in keyList:
+                if not 'diffusion' in key:
+                    T = self.input.v('T', key)
+                    if key in self.input.getKeysOf('F'):
+                        trans = T * a + self.input.v('F', key) * a_x
+                        loopvalues[0].append([trans, np.sqrt(np.mean(np.square(trans))), key])
+                    else:
+                        trans = T * a
+                        loopvalues[0].append([trans, np.sqrt(np.mean(np.square(trans))), key])
+                    tmp_max.append(abs(trans).max())
+                    if sublevel == 'subsublevel' and len(self.input.slice('T', key).getAllKeys()[0]) > 2:
+                        loopvalues.append([])
+                        tmpkeys = sorted(self.input.slice('T', key).getAllKeys(), key=itemgetter(2))
+                        subkeys = [tmpkeys[i*3:3+i*3] for i in range(len(tmpkeys)/3)]
+                        for subkey in subkeys:
+                            tmp = np.zeros(a.shape)
+                            for subsubkey in subkey:
+                                tmp += self.input.v('T', *subsubkey) * a
+                            loopvalues[len(loopvalues)-1].append([tmp, np.sqrt(np.mean(np.square(trans))), subsubkey[-1]])
+                        loopvalues[len(loopvalues)-1].append([trans, np.sqrt(np.mean(np.square(trans))), key])
+            maxT = max(tmp_max)
+            # Sort transport mechanisms based on the value of their root-mean-square value
+            loopvalues[0] = sorted(loopvalues[0], key=itemgetter(1), reverse=True)
+            # Only take the largest transport contributions indicated by the display integer. If the display integer is
+            # larger than the length of the keyList, then all contributions are taken into account
+            if isinstance(display, int):
+                loopvalues[0] = loopvalues[0][:min(display, len(keyList))]
+            # Sort alphetically so that mechanisms receive the same line color for plotting
+            loopvalues[0] = sorted(loopvalues[0], key=itemgetter(2))
+        else:
+            Ttotal = ((self.input.v('T') - self.input.v('T', 'diffusion_tide') - self.input.v('T', 'diffusion_river')) *
+                      a + (self.input.v('F') - self.input.v('F', 'diffusion_tide') - self.input.v('F', 'diffusion_river')
+                           ) * a_x)
+            loopvalues[0].append([Ttotal, np.sqrt(np.mean(np.square(Ttotal))), 'total'])
+            maxT = abs(Ttotal).max()
+
+        ################################################################################################################
+        # determine number and shape of subplots
+        ################################################################################################################
+        numberOfSubplots = len(loopvalues)
+        subplotShape = (numberOfSubplots, 1)
+
+        ################################################################################################################
+        # plot
+        ################################################################################################################
+        ## load grid data
+        xdim = ny.dimensionalAxis(self.input.slice('grid'), 'x')[:, 0, 0]
+        conv_grid = cf.conversion.get('x') or 1.  # convert size of axis depending on conversion factor in config
+        xdim = xdim * conv_grid
+        ## plot
         plt.figure(plotno, dpi=cf.dpi, figsize=subplotShape)
         plt.hold(True)
-        # loop over all combinations of the data
-        for subplot_number, subplot_values in enumerate(loopvalues):
-            pos = np.unravel_index(subplot_number, subplotShape)
-
-            ## load data
-            d = {}
-            d[axis[gridAxisNo]] = self.input.v('grid', 'axis', axis[gridAxisNo]).reshape(
-                self.input.v('grid', 'maxIndex', axis[gridAxisNo]) + 1)
-            d['z'] = 0.
-            d['f'] = 0.
-            # set axes
-            axisData = [None] * 2
-            axisData[gridAxisNo] = ny.dimensionalAxis(self.input.slice('grid'), axis[gridAxisNo], **d)
-            if kwargs.get('operation'):
-                if kwargs.get('operation') is not np.angle:
-                    value = kwargs['operation'](value)
+        if not sublevel:
+            sp = plt.subplot()
+            plt.axhline(0, color='k', linewidth=0.5)
+            if scale:
+                loopvalues[0][0][0] = loopvalues[0][0][0] / maxT
+            ln = []
+            ln += sp.plot(xdim, loopvalues[0][0][0], label='adv. transport')
+            if concentration:
+                c = np.real(np.mean(self.input.v('c0')[:, :, 0] + self.input.v('c1')[:, :, 0] +
+                                    self.input.v('c2')[:, :, 0], axis=1))
+                if scale:
+                    c = c / c.max()
+                    ln += sp.plot(xdim, c, '--', color='grey', label=r'$\langle\bar{c}\rangle$')
+                    labels = [l.get_label() for l in ln]
+                    plt.legend(ln, labels, bbox_to_anchor=(1.02, 0), loc=3, borderaxespad=0., fontsize=cf.fontsize2,
+                               labelspacing=0.1, handlelength=0.1, handletextpad=0.4)
+                    plt.title('Advective Transport')
                 else:
-                    value = -kwargs['operation'](value) * 180 / np.pi
-            conv_grid = cf.conversion.get(axis[gridAxisNo]) or 1.  # convert size of axis depending on conversion factor in config
-            axisData[gridAxisNo] = axisData[gridAxisNo] * conv_grid
-            ## plot subplots
-            if sublevel:
-                sp = plt.subplot2grid((subplotShape[0], 10 * subplotShape[1]), (pos[0], 10 * pos[1]), colspan=8)
-                for num, subplot_value in enumerate(subplot_values):
-                    ## load labels
-                    plt.axhline(0, color='k', linewidth=0.5)
-                    if sum(self.input.v(*subplot_value)) != 0:
-                        l = {}
-                        if subplot_value[-1] is not 'tide':
-                            label = subplot_value[-1]
+                    sp2 = sp.twinx()
+                    ln += sp2.plot(xdim, c, '--', color='grey', label=r'$\langle\bar{c}\rangle$')
+                    labels = [l.get_label() for l in ln]
+                    plt.legend(ln, labels, bbox_to_anchor=(1.3, 0), loc=3, borderaxespad=0., fontsize=cf.fontsize2,
+                               labelspacing=0.1, handlelength=0.1, handletextpad=0.4)
+                    plt.title('Advective Transport', y=1.09)
+            else:
+                plt.title('Advective Transport')
+            ## Axis labels
+            try:
+                xname = cf.names['x']
+                xunit = cf.units['x']
+            except KeyError:
+                xname = 'x'
+                xunit = ''
+            plt.xlabel(xname + ' (' + xunit + ')')
+            try:
+                yunitT = cf.units['T']
+                if concentration:
+                    if scale:
+                        sp.set_ylabel(r'$\mathcal{T}$ / $\mathcal{T}_{max}$, $c$ / $c_{max}$ (-)')
+                        sp.set_ylim([-1.1, 1.1])
+                    else:
+                        yunitc = cf.units['c']
+                        sp.set_ylabel(r'$\mathcal{T}$ (' + yunitT + ')')
+                        sp2.set_ylabel(r'$c$ (' + yunitc + ')')
+                else:
+                    if scale:
+                        sp.set_ylabel(r'$\mathcal{T}$ / $\mathcal{T}_{max}$ (' + yunitT + ')')
+                        sp.set_ylim([-1.1, 1.1])
+                    else:
+                        sp.set_ylabel(r'$\mathcal{T}$ (' + yunitT + ')')
+            except KeyError:
+                yname = [r'$\mathcal{T}$']
+                yunit = ''
+                plt.ylabel(yname + ' (' + yunit + ')')
+        else:
+            for subplot_number, subplot_values in enumerate(loopvalues):
+                pos = np.unravel_index(subplot_number, subplotShape)
+                sp = plt.subplot2grid(subplotShape, (pos[0], pos[1]))
+                plt.axhline(0, color='k', linewidth=0.5)
+                # loop over all combinations of the data
+                ln = []
+                for i, value in enumerate(subplot_values):
+                    try:
+                        label = cf.transportlabels[value[2]]
+                    except KeyError:
+                        label = value[2]
+                    if scale:
+                        value[0] = value[0] / maxT
+                    if i == len(subplot_values)-1 and subplot_number >= 1:
+                        ln += sp.plot(xdim, value[0], 'k', label=label)
+                    else:
+                        ln += sp.plot(xdim, value[0], label=label)
+                if concentration and subplot_number == 0:
+                    c = np.real(np.mean(self.input.v('c0')[:, :, 0] + self.input.v('c1')[:, :, 0] +
+                                        self.input.v('c2')[:, :, 0], axis=1))
+                    if scale:
+                        c = c / c.max()
+                        ln += sp.plot(xdim, c, '--', color='grey', label=r'$\langle\bar{c}\rangle$')
+                        labels = [l.get_label() for l in ln]
+                        plt.legend(ln, labels, bbox_to_anchor=(1.02, 0), loc=3, borderaxespad=0., fontsize=cf.fontsize2,
+                                   labelspacing=0.1, handlelength=0.1, handletextpad=0.4)
+                        if subplot_number == 0:
+                            plt.title('Advective Transport')
                         else:
-                            label = subplot_value[-2]
+                            title = keyList[subplot_number]
+                            try:
+                                title = cf.names[title]
+                            except:
+                                pass
+                            plt.title(title)
+                    else:
+                        sp2 = sp.twinx()
+                        ln += sp2.plot(xdim, c, '--', color='grey', label=r'$\langle\bar{c}\rangle$')
+                        labels = [l.get_label() for l in ln]
+                        plt.legend(ln, labels, bbox_to_anchor=(1.3, 0), loc=3, borderaxespad=0., fontsize=cf.fontsize2,
+                                   labelspacing=0.1, handlelength=0.1, handletextpad=0.4)
+                        if subplot_number == 0:
+                            plt.title('Advective Transport', y=1.09)
+                        else:
+                            title = keyList[subplot_number]
+                            try:
+                                title = cf.names[title]
+                            except:
+                                pass
+                            plt.title(title, y=1.09)
+                else:
+                    plt.legend(bbox_to_anchor=(1.02, 0), loc=3, borderaxespad=0., fontsize=cf.fontsize2,
+                               labelspacing=0.1, handlelength=0.1, handletextpad=0.4)
+                    if subplot_number == 0:
+                        plt.title('Advective Transport')
+                    else:
+                        title = keyList[subplot_number]
                         try:
-                            label = cf.transportlabels[label]
+                            title = cf.names[title]
                         except:
                             pass
-                        l['label'] = label
-                        axisData[dataAxisNo] = self.input.v(*subplot_value)
-                        sp.plot(*axisData, **l)
-                if len(loopvalues[subplot_number]) > 1 :
-                    l = {}
-                    l['label'] = 'total'
-                    axisData[dataAxisNo] = self.input.v(*subplot_value[:-1])
-                    total, = sp.plot(*axisData, **l)
-                    plt.setp(total, color='k')
-                plt.legend(bbox_to_anchor=(1.02, 0), loc=3, borderaxespad=0., fontsize=cf.fontsize2,
-                           labelspacing=0.1, handlelength=0.1, handletextpad=0.4)
-            else:
-                sp = plt.subplot(*(subplotShape+(subplot_number+1,)))
-                if sum(self.input.v(*subplot_values)) != 0:
-                    plt.axhline(0, color='k', linewidth=0.5)
-                    axisData[dataAxisNo] = self.input.v(*subplot_values)
-                    if kwargs.get('operation'):
-                        axisData[dataAxisNo] = kwargs['operation'](axisData[dataAxisNo])
-
-                    conv_data = cf.conversion.get('T') or 1.
-                    axisData[dataAxisNo] = axisData[dataAxisNo] * conv_data
-
-                    sp.plot(*axisData)
-
-            ## Title and axis labels
-            if numberOfSubplots > 1:
-                title = keyList[subplot_number]
+                        if concentration and subplot_number > 0:
+                            plt.title(title, y=1.09)
+                        else:
+                            plt.title(title)
+                # axis labels and limits. Try to get from config file, else take plain name
                 try:
-                    title = cf.names[title]
-                except:
-                    pass
-                plt.title(title)
-
-            # axis labels. Try to get from config file, else take plain name
-            try:
-                xname = cf.names[axis[0]]
-                xunit = cf.units[axis[0]]
-            except KeyError:
-                xname = axis[0]
-                xunit = ''
-            try:
-                yname = cf.names['T']
-                yunit = cf.units['T']
-            except KeyError:
-                yname = axis[1]
-                yunit = ''
-
-            plt.xlabel(xname + ' (' + xunit + ')')
-            plt.ylabel('Transport (' + yunit + ')')
-
-            if kwargs.get('operation') == np.abs:
-                if dataAxisNo == 0:
-                    plt.xlabel('|' + xname + '|' + ' (' + xunit + ')')
-                else:
-                    plt.ylabel('|' + yname + '|' + ' (' + yunit + ')')
-            elif kwargs.get('operation') == np.angle:
-                if dataAxisNo == 0:
-                    plt.xlabel('Phase(' + xname + ')' + ' (' + cf.units['phase'] + ')')
-                else:
-                    plt.ylabel('Phase(' + yname + ')' + ' (' + cf.units['phase'] + ')')
-            elif kwargs.get('operation') == np.real:
-                if dataAxisNo == 0:
-                    plt.xlabel('Re(' + xname + ')' + ' (' + xunit + ')')
-                else:
-                    plt.ylabel('Re(' + yname + ')' + ' (' + yunit + ')')
-            elif kwargs.get('operation') == np.imag:
-                if dataAxisNo == 0:
-                    plt.xlabel('Im(' + xname + ')' + ' (' + xunit + ')')
-                else:
-                    plt.ylabel('Im(' + yname + ')' + ' (' + yunit + ')')
-            if kwargs.get('operation') == np.abs:
-                if dataAxisNo == 0:
-                    plt.xlabel('|' + xname + '|' + ' (' + xunit + ')')
-                else:
-                    plt.ylabel('|' + yname + '|' + ' (' + yunit + ')')
-
-            plt.suptitle('Sediment transport' + ' over ' + axis[gridAxisNo])
+                    xname = cf.names['x']
+                    xunit = cf.units['x']
+                except KeyError:
+                    xname = 'x'
+                    xunit = ''
+                plt.xlabel(xname + ' (' + xunit + ')')
+                try:
+                    yunitT = cf.units['T']
+                    if concentration:
+                        if scale:
+                            if subplot_number == 0:
+                                sp.set_ylabel(r'$\mathcal{T}$ / $\mathcal{T}_{max}$, $c$ / $c_{max}$ (-)')
+                            else:
+                                sp.set_ylabel(r'$\mathcal{T}$ / $\mathcal{T}_{max}$ (-)')
+                            sp.set_ylim([-1.1, 1.1])
+                        else:
+                            yunitc = cf.units['c']
+                            sp.set_ylabel(r'$\mathcal{T}$ (' + yunitT + ')')
+                            sp2.set_ylabel(r'$c$ (' + yunitc + ')')
+                    else:
+                        if scale:
+                            sp.set_ylabel(r'$\mathcal{T}$ / $\mathcal{T}_{max}$ (' + yunitT + ')')
+                            sp.set_ylim([-1.1, 1.1])
+                        else:
+                            sp.set_ylabel(r'$\mathcal{T}$ (' + yunitT + ')')
+                except KeyError:
+                    yname = [r'$\mathcal{T}$']
+                    yunit = ''
+                    plt.label(yname + ' (' + yunit + ')')
         plt.draw()
-
         return

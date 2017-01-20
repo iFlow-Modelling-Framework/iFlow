@@ -89,15 +89,16 @@ transportlabels = {
     'TM2M2' : '$T_{M_2}^{M_2}$',
     'TM2M4' : '$T_{M_2}^{M_4}$',
     'TM0stokes': 'stokes',
-    'tide_baroc': 'baro',
-    'tide_adv': 'adv',
-    'tide_stokes': 'stokes',
-    'tide_tide': '$M_4$ tide',
-    'tide_river': 'riv',
-    'tide_nostress': 'ns',
-    'river_river': 'riv-riv',
-    'sed adv': 's-adv',
-    'tide': '$M_2$ tide'
+    'baroc': 'baroc',
+    'adv': 'advection',
+    'stokes': 'tidal return flow',
+    'tide': 'ext. $M_4$ tide',
+    'river': 'river',
+    'nostress': 'vel.-depth asym.',
+    'river_river': 'river-river',
+    'sedadv': 'sed. advection',
+    'return': 'Stokes return flow',
+    'drift': 'Stokes drift'
 }
 
 units = {
@@ -154,5 +155,6 @@ conversion = {
     'x': 1/1000.,
     'c': 1000.,
     'c0': 1000.,
-    'c1': 1000.
+    'c1': 1000.,
+    'c2': 1000.
 }
