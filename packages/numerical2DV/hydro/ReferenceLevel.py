@@ -34,8 +34,10 @@ class ReferenceLevel:
     def run_init(self):
         # river discharge is leading-order discharge or first-order discharge if Q0=0
         self.Q = self.input.v('Q0')
-        if self.Q == 0.:
+        if self.Q==None or self.Q == 0.:
             self.Q = self.input.v('Q1')
+            if self.Q==None:
+                self.Q = 0
 
         # try initial guess if Av is unknown
         if self.input.v('Av') is None:

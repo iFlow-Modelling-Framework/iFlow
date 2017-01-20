@@ -9,7 +9,7 @@
 ## Module RegularGrid: create a regular 2DV grid for numerical computations ##
 module          RegularGrid
 packagePath
-input           L B H xgrid zgrid fgrid xoutputgrid zoutputgrid foutputgrid R
+input           L B H -H xgrid zgrid fgrid xoutputgrid zoutputgrid foutputgrid R
 output          grid outputGrid
 
 module          HigherOrderIterator
@@ -23,7 +23,7 @@ iterative		True
 # Subpackage hydro
 ########################################################################################################################
 module          ReferenceLevel
-inputInit		H Q0 Q1
+inputInit		H if{Q0,@{Q1}==None}  if{Q1,@{Q0}==None}
 input			grid G H B Av Roughness BottomBC
 output			R
 packagePath		hydro/
@@ -31,17 +31,26 @@ iterative		True
 
 ## Module HydroLead: numerical coupled frequency perturbation model - leading order ##
 module          HydroLead
-input			A0 phase0 Q0 BottomBC grid Av Roughness OMEGA G
+input			BottomBC grid Av Roughness OMEGA G
 output			u0 zeta0 w0
 packagePath		hydro/
 submodules		tide river
+tide            input A0 phase0
+                output
+river           input Q0
+                output
+
 
 ## Module HydroFirst numerical coupled frequency perturbation model - first order ##
 module          HydroFirst
-input			A1 phase1 Q1 BottomBC grid Av Roughness OMEGA G BETA
-output			u1 zeta1
+input			BottomBC grid Av Roughness OMEGA G BETA
+output			u1 zeta1 w1
 packagePath		hydro/
 submodules		tide river baroc stokes nostress adv mixing
+tide            input       A1 phase1
+                output
+river           input       Q1
+                output
 baroc			input		s0
 				output
 stokes			input		u0 zeta0
@@ -53,38 +62,20 @@ adv				input		u0 w0
 mixing			input		u0 Av1
 				output
 
-## Module HydroSecond numerical coupled frequency perturbation model - second order ##
-module          HydroSecond
-packagePath		hydro/
-inputInit		grid Av Roughness OMEGA G BETA
-input			grid Av Roughness OMEGA G BETA
-output			u2 zeta2
-submodules		baroc stokes nostress adv densitydrift
-baroc			inputInit	s0
-				input		s0
-stokes			inputInit	u0 zeta0 u1 zeta1
-				input		u0 zeta0 u1 zeta1
-nostress		input		u0 zeta0 u1 zeta1
-				inputInit	u0 zeta0 u1 zeta1
-adv				input		u0 u1
-				inputInit	u0 u1
-densitydrift	input		u0 zeta0 u1 zeta1
-				inputInit	u0 zeta0 u1 zeta1
-
 module          HydroHigher
 packagePath		hydro/
-input			grid Av Roughness maxOrder maxContributions OMEGA G BETA order
-output			surfder surfstress u+{2,@{maxOrder}+1} zeta+{2,@{maxOrder}+1}
+input			grid BottomBC Av Roughness maxOrder maxContributions OMEGA G BETA order
+output			surfder surfstress u+{2,@{maxOrder}+1} zeta+{2,@{maxOrder}+1} w+{2,@{maxOrder}+1}
 submodules		baroc stokes nostress adv densitydrift mixing
-baroc			input		s0
+baroc			input		s+{1,@{maxOrder}}
                 output
 stokes			input		u0 zeta0 u1 zeta1
                 output
 nostress		input		u0 zeta0 u1 zeta1
                 output
-adv				input		u0 u1
+adv				input		u0 u1 w0 w1surf
                 output
-densitydrift	input		u0 zeta0 u1 zeta1
+densitydrift	input		u0 zeta0 u1 zeta1 s+{0,@{maxOrder}-1}
                 output
 mixing      	input		u0 zeta0 u1 zeta1 Av+{2,@{maxOrder}+1}
                 output

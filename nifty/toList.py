@@ -9,10 +9,13 @@
 import numpy as np
 
 
-def toList(item):
+def toList(item, forceNone=False):
     if not isinstance(item, list) and not isinstance(item, np.ndarray):
         if item is None:
-            item = []
+            if forceNone:
+                item = [None]
+            else:
+                item = []
         else:
             item = [item]
 

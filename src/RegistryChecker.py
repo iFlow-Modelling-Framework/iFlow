@@ -155,7 +155,7 @@ class RegistryChecker:
                         key =  item[start+2:end].split('.')[-1]
                         item = [item[:start]+j+item[end+1:] for j in toList(kwargs[dict].v(key))]
                     else:
-                        item = [item[:start]+str(j)+item[end+1:] for j in toList(data.v(item[start+2:end]))]
+                        item = [item[:start]+str(j)+item[end+1:] for j in toList(data.v(item[start+2:end]), forceNone=True)]    #20-01-2017 added forceNone=True
                     inputList = inputList + item
 
                 elif item.find('+{')>=0:
@@ -173,7 +173,7 @@ class RegistryChecker:
 
                     item = item.split(',')
                     if len(item)!=2:
-                        raise KnownError('error in registry in #{}. Does not have two comma-separated arguments')
+                        raise KnownError('error in registry in if{}. Does not have two comma-separated arguments. Make sure there are no spaces in the if-statement')
                     if eval(item[1]):
                         inputList = inputList + toList(item[0])
 
