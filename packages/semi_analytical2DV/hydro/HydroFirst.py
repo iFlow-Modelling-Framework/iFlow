@@ -16,8 +16,7 @@ class HydroFirst:
     logger = logging.getLogger(__name__)
 
     # Methods
-    def __init__(self, input, submodulesToRun):
-        self.submodule = submodulesToRun
+    def __init__(self, input):
         self.input = input
         return
 
@@ -30,6 +29,7 @@ class HydroFirst:
         self.logger.info('Running module HydroFirst')
 
         # Initiate variables
+        self.submodule = self.input.v('submodules')
         self.TOL = self.input.v('TOLERANCEBVP')
         self.SIGMA = self.input.v('OMEGA')
         self.NGODIN = self.input.v('NGODIN')

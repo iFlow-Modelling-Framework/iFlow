@@ -37,11 +37,19 @@ adv		    input	u0
 
 ## Salinity related - uses packages from Numerical2DV module ##
 
-## Sediment related ##
+## Module SedDynamic: semi-analytical perturbation model ##
 module		SedDynamic
 packagePath	sediment/
 input		grid zeta0 u0 u1 Av Roughness astar ws Kh OMEGA G RHO0 RHOS DS
 output		c0 c1 hatc a F T
+submodules  erosion noflux sedadv mixing
+
+## Module SedDynamic_new: semi-analytical perturbation model ##
+module		SedDynamic_new
+packagePath	sediment/
+input		grid zeta0 u0 u1 Av Roughness astar ws Kh OMEGA G RHO0 RHOS DS
+output		c0 c1 c2 hatc0 hatc1 hatc2 a F T
+submodules  erosion noflux sedadv mixing
 
 
 ## Dynamic Availability related ##
