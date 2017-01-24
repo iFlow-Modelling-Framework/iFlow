@@ -44,13 +44,13 @@ class SedDynamicLead:
         ################################################################################################################
         # Forcing terms
         ################################################################################################################
-        F = np.zeros([jmax+1, kmax+1, ftot, ftot, 1], dtype=complex)
-        Fsurf = np.zeros([jmax+1, 1, ftot, ftot, 1], dtype=complex)
-        Fbed = np.zeros([jmax+1, 1, ftot, ftot, 1], dtype=complex)
+        F = np.zeros([jmax+1, kmax+1, ftot, 1], dtype=complex)
+        Fsurf = np.zeros([jmax+1, 1, ftot, 1], dtype=complex)
+        Fbed = np.zeros([jmax+1, 1, ftot, 1], dtype=complex)
 
         # erosion
         E = self.erosion_Chernetsky(ws, Kv)
-        Fbed[:, :, :, :, 0] = -ny.toMatrix(E)
+        Fbed[:, :, :, 0] = -E
 
         ################################################################################################################
         # Solve equation
@@ -115,8 +115,9 @@ class SedDynamicLead:
         rho0 = self.input.v('RHO0')
         gred = self.input.v('G')*(rhos-rho0)/rho0
         ds = self.input.v('DS')
+        finf = self.input.v('finf')
 
-        hatE = rhos/(gred*ds)*ny.complexAmplitudeProduct(ws[:,[kmax],:], taub_abs, 2)
+        hatE = finf*rhos/(gred*ds)*ny.complexAmplitudeProduct(ws[:,[kmax],:], taub_abs, 2)
         return hatE
 
 

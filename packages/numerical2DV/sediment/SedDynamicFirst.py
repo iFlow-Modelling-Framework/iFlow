@@ -27,20 +27,16 @@ class SedDynamicFirst:
         kmax = self.input.v('grid', 'maxIndex', 'z')
         fmax = self.input.v('grid', 'maxIndex', 'f')
         ftot = 2*fmax+1
-        H = self.input.v('H', range(0, jmax+1))
         OMEGA = self.input.v('OMEGA')
 
         ################################################################################################################
         # Left hand side
         ################################################################################################################
-        PrSchm = self.input.v('sigma_rho', range(0, jmax+1), range(0, kmax+1), [0])     # TODO correction
+        PrSchm = self.input.v('sigma_rho', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))
         Av = self.input.v('Av', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))
         Kv = Av/PrSchm
 
-        ws = np.zeros((jmax+1, kmax+1, fmax+1), dtype=complex)
-        ws[:,:,0] = self.input.v('ws0', range(0, jmax+1), range(0, kmax+1), 0) # TODO correction
-        # ws = self.input.v('ws', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))
-
+        ws = self.input.v('ws0', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))
         ################################################################################################################
         # Forcing terms
         ################################################################################################################
@@ -50,23 +46,23 @@ class SedDynamicFirst:
             self.submodulesToRun.append('erosion_a1')
         nRHS = len(self.submodulesToRun)
 
-        F = np.zeros([jmax+1, kmax+1, ftot, ftot, nRHS], dtype=complex)
-        Fsurf = np.zeros([jmax+1, 1, ftot, ftot, nRHS], dtype=complex)
-        Fbed = np.zeros([jmax+1, 1, ftot, ftot, nRHS], dtype=complex)
+        F = np.zeros([jmax+1, kmax+1, ftot, nRHS], dtype=complex)
+        Fsurf = np.zeros([jmax+1, 1, ftot, nRHS], dtype=complex)
+        Fbed = np.zeros([jmax+1, 1, ftot, nRHS], dtype=complex)
 
         c0 = self.input.v('hatc0')
-        cx0 = ny.derivative(c0.reshape((jmax+1, kmax+1, 1, ftot, ftot)), 'x', self.input.slice('grid')).reshape((jmax+1, kmax+1, ftot, ftot))
-        cz0 = ny.derivative(c0.reshape((jmax+1, kmax+1, 1, ftot, ftot)), 'z', self.input.slice('grid')).reshape((jmax+1, kmax+1, ftot, ftot))
+        cx0 = ny.derivative(c0.reshape((jmax+1, kmax+1, 1, ftot)), 'x', self.input.slice('grid')).reshape((jmax+1, kmax+1, ftot))
+        cz0 = ny.derivative(c0.reshape((jmax+1, kmax+1, 1, ftot)), 'z', self.input.slice('grid')).reshape((jmax+1, kmax+1, ftot))
 
         # 1. Erosion
         if 'erosion' in self.submodulesToRun:
             # erosion due to first-order bed shear stress
             E = self.erosion_Chernetsky(ws, Kv, 1)
-            Fbed[:, :, :, :, self.submodulesToRun.index('erosion')] = -ny.toMatrix(E)
+            Fbed[:, :, :, self.submodulesToRun.index('erosion')] = -E
 
             # erosion due to first-order erodability
             E = self.erosion_Chernetsky(ws, Kv, 0)
-            Fbed[:, :, :, :, self.submodulesToRun.index('erosion_a1')] = -ny.toMatrix(E)
+            Fbed[:, :, :, self.submodulesToRun.index('erosion_a1')] = -E
 
         # 2. Advection
         if 'sedadv' in self.submodulesToRun:
@@ -74,8 +70,8 @@ class SedDynamicFirst:
             w0 = np.concatenate((np.zeros((jmax+1, kmax+1, fmax), dtype=complex), self.input.v('w0', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))), 2)
 
             eta = ny.complexAmplitudeProduct(u0, cx0, 2, includeNegative=True)+ny.complexAmplitudeProduct(w0, cz0, 2, includeNegative=True)
-            F[:, :, :, :, self.submodulesToRun.index('sedadv')] = -eta
-            F[:, :, :, :, self.submodulesToRun.index('sedadv_ax')] = -ny.complexAmplitudeProduct(u0, c0, 2, includeNegative=True)
+            F[:, :, :, self.submodulesToRun.index('sedadv')] = -eta
+            F[:, :, :, self.submodulesToRun.index('sedadv_ax')] = -ny.complexAmplitudeProduct(u0, c0, 2, includeNegative=True)
 
         # 3. First-order fall velocity
         if 'settling' in self.submodulesToRun:
@@ -85,12 +81,12 @@ class SedDynamicFirst:
             ksiz = ny.derivative(ksi, 'z', self.input.slice('grid'))
             zeta0 = np.concatenate((np.zeros((jmax+1, fmax), dtype=complex), self.input.v('zeta0', range(0, jmax+1), 0, range(0, fmax+1))), 1)
 
-            F[:, :, :, :, self.submodulesToRun.index('settling')] = ksiz
-            Fsurf[:, 0, :, :, self.submodulesToRun.index('settling')] = -ny.complexAmplitudeProduct(ksiz[:,0,:], zeta0, 1, includeNegative=True)
+            F[:, :, :, self.submodulesToRun.index('settling')] = ksiz
+            Fsurf[:, 0, :, self.submodulesToRun.index('settling')] = -ny.complexAmplitudeProduct(ksiz[:,0,:], zeta0, 1, includeNegative=True)
 
             # adjustment to erosion
             E = self.erosion_Chernetsky(ws1, Kv, 0)
-            Fbed[:, :, :, :, self.submodulesToRun.index('settling')] = -ny.toMatrix(E)
+            Fbed[:, :, :, self.submodulesToRun.index('settling')] = -E
 
         # 4. First-order eddy diffusivity
         if 'mixing' in self.submodulesToRun:
@@ -99,13 +95,13 @@ class SedDynamicFirst:
             psi = ny.complexAmplitudeProduct(Kv1, cz0, 2, includeNegative=True)
             psiz = ny.derivative(psi, 'z', self.input.slice('grid'))
 
-            F[:, :, :, :, self.submodulesToRun.index('mixing')] = psiz
-            Fsurf[:, 0, :, :, self.submodulesToRun.index('mixing')] = -psi[:,0,:]
-            Fbed[:, 0, :, :, self.submodulesToRun.index('mixing')] = -psi[:,-1,:]
+            F[:, :, :, self.submodulesToRun.index('mixing')] = psiz
+            Fsurf[:, 0, :, self.submodulesToRun.index('mixing')] = -psi[:, 0, :]
+            Fbed[:, 0, :, self.submodulesToRun.index('mixing')] = -psi[:, -1, :]
 
             # adjustment to erosion
             E = self.erosion_Chernetsky(ws, Kv1, 0)
-            Fbed[:, :, :, :, self.submodulesToRun.index('mixing')] = -ny.toMatrix(E)
+            Fbed[:, :, :, self.submodulesToRun.index('mixing')] = -E
 
         # 5. No-flux surface correction
         if 'noflux' in self.submodulesToRun:
@@ -115,7 +111,7 @@ class SedDynamicFirst:
             Dc0 = ny.arraydot(D, c0[:, [0], Ellipsis])
 
             chi = ny.complexAmplitudeProduct(Dc0, zeta0, 2, includeNegative=True)
-            Fsurf[:, :, :, :, self.submodulesToRun.index('noflux')] = -chi
+            Fsurf[:, :, :, self.submodulesToRun.index('noflux')] = -chi
 
         ################################################################################################################
         # Solve equation
@@ -125,7 +121,7 @@ class SedDynamicFirst:
             c, cMatrix = cFunction(None, cmatrix, F, Fsurf, Fbed, self.input, hasMatrix = False)
         else:
             c, cMatrix = cFunction(ws, Kv, F, Fsurf, Fbed, self.input, hasMatrix = False)
-        c = c.reshape((jmax+1, kmax+1, ftot, ftot, nRHS))
+        c = c.reshape((jmax+1, kmax+1, ftot, nRHS))
 
         ################################################################################################################
         # Prepare output
@@ -136,11 +132,11 @@ class SedDynamicFirst:
         d['hatc1_a1'] = {}
         for i, submod in enumerate(self.submodulesToRun):
             if submod == 'erosion_a1':
-                d['hatc1_a1']['erosion'] = c[:, :, :, :, i]
+                d['hatc1_a1']['erosion'] = c[:, :, :, i]
             elif submod == 'sedadv_ax':
-                d['hatc1_ax']['sedadv'] = c[:, :, :, :, i]
+                d['hatc1_ax']['sedadv'] = c[:, :, :, i]
             else:
-                d['hatc1_a'][submod] = c[:, :, :, :, i]
+                d['hatc1_a'][submod] = c[:, :, :, i]
         if 'erosion' not in self.submodulesToRun:
             d['hatc1_a1'] = 0
         if 'sedadv' not in self.submodulesToRun:
@@ -214,8 +210,9 @@ class SedDynamicFirst:
         rho0 = self.input.v('RHO0')
         gred = self.input.v('G')*(rhos-rho0)/rho0
         ds = self.input.v('DS')
+        finf = self.input.v('finf')
 
-        hatE = rhos/(gred*ds)*ny.complexAmplitudeProduct(ws[:,[kmax],:], taub_abs, 2)
+        hatE = finf*rhos/(gred*ds)*ny.complexAmplitudeProduct(ws[:,[kmax],:], taub_abs, 2)
         return hatE[:, :, :fmax+1]
     
     def umultiply(self, pow, N, u):
