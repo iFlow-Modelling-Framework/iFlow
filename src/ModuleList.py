@@ -205,7 +205,6 @@ class ModuleList:
         2. Run the identified blocks.
 
         The output of each module is appended to the input of all modules.
-        NB. now only supports only non-iterative call stacks
         """
         # instantiate
         for mod in self.callStack[0]:

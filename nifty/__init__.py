@@ -33,6 +33,8 @@ from amp_phase_input import amp_phase_input
 from runCallStackLoop import runCallStackLoop
 from BypassDatacontainer import BypassDatacontainer
 from scalemax import scalemax
+from arraydot import arraydot
+from toMatrix import toMatrix
 
 # loads all file names in this package that are python files and that do not start with _
 #__all__ = [os.path.basename(f)[:-3] for f in os.listdir(os.path.dirname(__file__)) if f.endswith('.py') and not f.startswith('_')]

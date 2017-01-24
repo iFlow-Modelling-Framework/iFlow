@@ -8,11 +8,16 @@ import numpy as np
 
 
 def dimensionalAxis(grid, dim, *args, **kwargs):
-    """
+    """Returns the dimensional form of the axes of dimension dim
 
-    :param grid:
-    :param dim:
-    :return:
+    Parameters:
+        grid - (DataContainer) DataContainer instance containing a full iFlow grid
+        dim - (int, str) name or number of the dimension of the axis of interest
+        args - (tuple of integers or arrays) grid indices to return grid on
+        kwargs - (dict of pairs: dimname: int/array) dimensionless coordinates to return grid on
+
+    Returns:
+        dimensional axis on either the whole grid or the points requested in the args/kwargs.
     """
     # convert integer dimension to string if necessary
     if isinstance(dim, int):
@@ -25,7 +30,7 @@ def dimensionalAxis(grid, dim, *args, **kwargs):
     if args:
         indices = []
         for num, i in enumerate(grid.v('grid','dimensions')):
-            if kwargs.get(i) is not None:
+            if len(args) > num:
                 indices.append(args[num])
             else:
                 indices.append(range(0, grid.v('grid', 'maxIndex', i)+1))

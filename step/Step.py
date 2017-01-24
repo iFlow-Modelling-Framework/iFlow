@@ -57,10 +57,10 @@ class Step:
                 loopvalues[i] = ny.toList(kwargs[loopvar])
 
         # take all combinations of values
-        if len(loopvalues)>1:
+        if len(loopvalues) >= 1:
             permutations = itertools.product(*loopvalues)
         else:
-            permutations = [(i,) for i in loopvalues[0]]
+            permutations = [(i,) for i in loopvalues[0]] #TODO buggy
 
         #########
         # determine number and shape of subplots
