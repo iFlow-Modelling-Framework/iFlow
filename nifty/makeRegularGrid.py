@@ -8,8 +8,7 @@ import numpy as np
 
 
 def makeRegularGrid(dimensions, axisType, axisSize, axisOther, enclosures, contraction = None):
-    """Make separate regular grid axes and enclosures for each of the dimensions in the method registry.
-    Now only supports equidistant collocated axes using 'axisType' equal to equidistant
+    """Make separate regular grid axes and enclosures for each dimension.
 
     Parameters:
         dimensions - (str or list of str) dimension names

@@ -173,8 +173,14 @@ class RegistryChecker:
                     item = item.split(',')
                     if len(item)!=2:
                         raise KnownError('error in registry in #{}. Does not have two comma-separated arguments')
-                    if eval(item[1]):
-                        inputList = inputList + toList(item[0])
+                    try:
+                        if eval(item[1]):
+                            inputList = inputList + toList(item[0])
+                    except NameError:
+                        item1 = item[1].split('==')[0]
+                        item2 = item[1].split('==')[1]
+                        if item1 == eval(item2):
+                            inputList = inputList + toList(item[0])
 
             else:
                 i += 1
