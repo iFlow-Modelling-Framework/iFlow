@@ -27,6 +27,34 @@ class Step:
         return
 
     def lineplot(self, axis1, axis2, *args, **kwargs):
+        """
+        Makes a lineplot of a variable over a certain axes
+
+        Parameters:
+            axis1: string
+                axis plotted on the horizontal axis
+            axis2: string
+                variable plotted on the vertical axis
+
+        args:
+
+        kwargs:
+            x, z, f: integer or range of integers
+                plots the given range of the associated dimension
+            subplots: string
+                generates subplots of the physical variable over the given string: 'sublevel' or 'f'. If 'sublevel',
+                all sublevels that are associated with the physical variable appear in a subplot. If 'f', subplots will
+                be generated over the frequency domain
+            sublevel: boolean
+                show sub-level data or not
+            plotno: integer
+                plot number
+            operation: python function
+                makes an operation on the physical variable using the python function. This function could be for
+                instance a numpy function (e.g. np.abs, np.angle, np.imag or np.real) or a nifty function (e.g.
+                ny.scalemax)
+        """
+
         # determine which axis displays data and which grid information
         axis = [axis1, axis2]       # list of both axis
         del axis1, axis2
@@ -191,6 +219,34 @@ class Step:
         return
 
     def contourplot(self, axis1, axis2, value_label, *args, **kwargs):
+        """
+        Plots 2DV contourplots of a variable over two axes
+
+        Parameters:
+            axis1: string
+                axis plotted on the horizontal axis
+            axis2: string
+                axis plotted on the vertical axis
+            value_label: string
+                physical variable for which the controurplot needs to be made
+
+        args:
+
+        kwargs:
+            x, z, f: integer or range of integers
+                plots the given range of the associated dimension
+            subplots: string
+                generates subplots of the physical variable over the given string: 'sublevel' or 'f'. If 'sublevel',
+                all sublevels that are associated with the physical variable appear in a subplot. If 'f', subplots will
+                be generated over the frequency domain
+            plotno: integer
+                plot number
+            operation: python function
+                makes an operation on the physical variable using the python function. This function could be for
+                instance a numpy function (e.g. np.abs, np.angle, np.imag or np.real) or a nifty function (e.g.
+                ny.scalemax)
+        """
+
         # get all keys/subkeys to data
         keyList = [value_label]+[i for i in args if isinstance(i, basestring)]      # key + subkeys to data
 
@@ -335,19 +391,22 @@ class Step:
         plt.draw()
         return
 
-    def transportplot_mechanisms(self, *args, **kwargs):
+    def transportplot_mechanisms(self, **kwargs):
         """
-        Plots the advective transport based on the physical mechanism that forces it.
-
-        args:
+        Plots the advective transport based on the physical mechanisms that force it.
 
         kwargs:
-            sublevel      - displays underlying levels of the associated mechanisms: 'sublevel', 'subsublevel' or False
-            plotno        - plot number: Integer
-            display       - mechanisms to display: Integer of maximum number of mechanisms to display, or list of
-                            strings of mechanisms to display
-            scale         - scale the transport contributions to the maximum value of all contributions: True or False
-            concentration - plot the depth-mean sub-tidal concentration in the background: True or False
+            sublevel: string
+                displays underlying levels of the associated mechanisms: 'sublevel', 'subsublevel' or False
+            plotno: integer
+                plot number
+            display: integer or list of strings
+                displays the underlying mechanisms indicated. An integer plots the largest contributions up to that
+                integer and a list of strings plots the mechanisms in that list
+            scale: boolean
+                scales the transport contributions to the maximum value of all contributions
+            concentration: boolean
+                plots the depth-mean, sub-tidal concentration in the background
        """
         ################################################################################################################
         # Extract args and/or kwargs
