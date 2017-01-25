@@ -11,7 +11,7 @@ import nifty as ny
 import logging
 
 
-class SedDynamic_new:
+class SedDynamic:
     # Variables
     logger = logging.getLogger(__name__)
 
@@ -162,9 +162,10 @@ class SedDynamic_new:
 
         # Transport term that is related to the river-river interaction u1river*c2river
         d['T'] = self.dictExpand(d['T'], 'river_river', ['TM' + str(2 * n) for n in range(0, fmax + 1)])
-        u1_comp = self.input.v('u1', 'river', range(0, jmax+1), range(0, kmax+1), 0)
-        tmp = d['hatc2']['a']['erosion']['river_river'][:, :, 0]
-        d['T']['river_river']['TM0'] = np.real(np.trapz(u1_comp * tmp, x=-self.zarr, axis=1))
+        if self.input.v('u1', 'river') is not None:
+            u1_comp = self.input.v('u1', 'river', range(0, jmax+1), range(0, kmax+1), 0)
+            tmp = d['hatc2']['a']['erosion']['river_river'][:, :, 0]
+            d['T']['river_river']['TM0'] = np.real(np.trapz(u1_comp * tmp, x=-self.zarr, axis=1))
 
         ## Diffusion F #################################################################################################
         # Diffusive part, i.e. Kh*c00 and Kh*c20
@@ -403,7 +404,7 @@ class SedDynamic_new:
         return hatc1
 
     def mixing(self):
-        return
+        return {}
 
     def availability(self, F, T):
         """Calculates the availability of sediment needed to derive the sediment concentration
