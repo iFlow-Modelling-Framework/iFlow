@@ -13,8 +13,11 @@ def show(block=True, fname=None, hspace=0.6, wspace=0.4):
     """Replaces matplotlib.pyplot show().
     Corrects figure size, backgroundcolor and tightlayout
 
-    Args:
-        block:
+    args:
+        block: boolean
+
+        fname: string
+            filename of the figure. Must include file path and figure name. If provide the figure is saved.
     """
     nums = plt.get_fignums()
     for num in nums:
