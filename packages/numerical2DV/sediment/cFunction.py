@@ -28,7 +28,7 @@ def cFunction(ws, Kv, F, Fsurf, Fbed, data, hasMatrix = False):
     # Init Ctd
     nRHS = F.shape[-1]
     cMatrix = np.empty([jmax+1, 2*ftot+2*bandwidth+1, ftot*(kmax+1)], dtype=complex)
-    cCoef = np.zeros([jmax+1, kmax+1, ftot, ftot, nRHS], dtype=complex)
+    cCoef = np.zeros([jmax+1, kmax+1, ftot, nRHS], dtype=complex)
 
     ####################################################################################################################
     # build, save and solve the matrices in every water column
@@ -41,7 +41,7 @@ def cFunction(ws, Kv, F, Fsurf, Fbed, data, hasMatrix = False):
         dz = z[1:]-z[:-1]
         del z
         dz = dz.reshape((len(dz), 1, 1))
-        dz_down = dz[:-1,Ellipsis]
+        dz_down = dz[:-1, Ellipsis]
         dz_up = dz[1:, Ellipsis]
 
         ##### LEFT HAND SIDE #####
@@ -110,17 +110,17 @@ def cFunction(ws, Kv, F, Fsurf, Fbed, data, hasMatrix = False):
         ################################################################################################################
         # Right hand side
         ################################################################################################################
-        RHS = np.zeros([ftot*(kmax+1), ftot, nRHS], dtype=complex)
+        RHS = np.zeros([ftot*(kmax+1), nRHS], dtype=complex)
 
-        RHS[ftot:-ftot, :, :] = (F[j, 1:-1, Ellipsis]*dz_up.reshape(dz_up.shape+(1,))).reshape(((F.shape[1]-2)*F.shape[2], ftot, nRHS))
-        RHS[:ftot, :, :] = Fsurf[j, 0, Ellipsis]
-        RHS[-ftot:, :, :] += -Fbed[j, 0, Ellipsis]
+        RHS[ftot:-ftot, :] = (F[j, 1:-1, Ellipsis]*dz_up).reshape(((F.shape[1]-2)*F.shape[2], nRHS))
+        RHS[:ftot, :] = Fsurf[j, 0, Ellipsis]
+        RHS[-ftot:, :] += -Fbed[j, 0, Ellipsis]
 
         ################################################################################################################
         # Solve
         ################################################################################################################
         cstag = solve_banded((bandwidthA, bandwidthA), A, RHS, overwrite_ab=True, overwrite_b=True)
-        cCoef[j, Ellipsis] = cstag.reshape(kmax+1, ftot, ftot, nRHS)
+        cCoef[j, Ellipsis] = cstag.reshape(kmax+1, ftot, nRHS)
 
 
 

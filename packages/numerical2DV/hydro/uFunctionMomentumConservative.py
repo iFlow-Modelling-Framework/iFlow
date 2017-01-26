@@ -8,6 +8,7 @@ import numpy as np
 from scipy.linalg import solve_banded
 from nifty.integrate import integrate
 import nifty as ny
+from bandedMatrixMultiplication import bandedMatrixMultiplication
 
 def uFunctionMomentumConservative(Av, F, Fsurf, Fbed, data, hasMatrix = False):
     # Init
@@ -92,14 +93,14 @@ def uFunctionMomentumConservative(Av, F, Fsurf, Fbed, data, hasMatrix = False):
                 # for partial slip: multiply the equation closest to the bed by Sf.
                 D = (np.arange(-fmax, ftot-fmax)*1j*OMEGA).reshape((1, ftot))
 
-                cfUNbed = ny.bandedMatrixMultiplication(Sf[j, Ellipsis], N[kmax, :, :], truncate=True)
-                cfUNabovebed = ny.bandedMatrixMultiplication(Sf[j, Ellipsis], N[kmax-1, :, :], truncate=True)
-                cfUD = ny.bandedMatrixMultiplication(D, Sf[j, Ellipsis], truncate=True)
+                cfUNbed = bandedMatrixMultiplication(Sf[j, Ellipsis], N[kmax, :, :], truncate=True)
+                cfUNabovebed = bandedMatrixMultiplication(Sf[j, Ellipsis], N[kmax-1, :, :], truncate=True)
+                cfUD = bandedMatrixMultiplication(D, Sf[j, Ellipsis], truncate=True)
                 A[2*ftot:, -2*ftot:-ftot] = cfUNabovebed/dz[-1]
                 A[2*fmax+1:2*fmax+2*bandwidth+2, -ftot:] = -cfUNbed/dz[-1]
                 A[2*fmax+1:2*fmax+2*bandwidth+2, -ftot:] += -0.5*dz[-1]*cfUD
 
-                DNsmall = ny.bandedMatrixMultiplication(D, N[kmax, :, :], truncate=True)
+                DNsmall = bandedMatrixMultiplication(D, N[kmax, :, :], truncate=True)
                 DN = np.zeros((2*bandwidth+1, ftot), dtype=complex)
                 DN[bandwidth-(DNsmall.shape[0]-1)/2:bandwidth+(DNsmall.shape[0]-1)/2 + 1, :] = DNsmall
                 A[2*fmax+1:2*fmax+2*bandwidth+2, -ftot:] += DN
@@ -155,7 +156,7 @@ def uFunctionMomentumConservative(Av, F, Fsurf, Fbed, data, hasMatrix = False):
                     N[-1, bandwidth-n, n:] = 0.5*np.conj(Avbed[n])*np.ones([ftot-n])
 
             # calculate banded matrix products
-            SfInvN = ny.bandedMatrixMultiplication(SfInv[j, Ellipsis], N[-1, Ellipsis], truncate=True)
+            SfInvN = bandedMatrixMultiplication(SfInv[j, Ellipsis], N[-1, Ellipsis], truncate=True)
             SfInvFbed = bandedMatVec(SfInv[j, Ellipsis], Fbed[j, 0,:, :])
 
             # rewrite to bandmatrix

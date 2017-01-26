@@ -12,7 +12,7 @@ from profiles.UniformXF import UniformXF
 import numpy as np
 
 
-class Parabolic:
+class TurbulenceParabolic:
     # Variables
     logger = logging.getLogger(__name__)
 

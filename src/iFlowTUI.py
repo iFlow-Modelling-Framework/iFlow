@@ -198,7 +198,7 @@ class iFlowTUI:
         """Update/create current working directory in config.py if the directory exists.
 
         Parameter:
-            cwdPath - (str) relavtive/absolute path to the new cwd
+            cwdPath - (str) absolute path to the new cwd
         """
         #0. change path slashes
         cwdPath = cwdPath.replace('\\', '/')
@@ -206,6 +206,8 @@ class iFlowTUI:
         # 1. test existence of directory
         if not os.path.exists(cwdPath):
             print 'Directory could not be located.'
+            if not os.path.isabs(cwdPath):
+                print 'Please enter the absolute path to the working directory, not the relative path.'
             print ''
             return
 

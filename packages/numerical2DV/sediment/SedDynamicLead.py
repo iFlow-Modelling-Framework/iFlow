@@ -15,9 +15,8 @@ class SedDynamicLead:
     logger = logging.getLogger(__name__)
 
     # Methods
-    def __init__(self, input, submodulesToRun):
+    def __init__(self, input):
         self.input = input
-        self.submodulesToRun = submodulesToRun
         return
 
     def run(self):
@@ -27,19 +26,18 @@ class SedDynamicLead:
         kmax = self.input.v('grid', 'maxIndex', 'z')
         fmax = self.input.v('grid', 'maxIndex', 'f')
         ftot = 2*fmax+1
+        self.submodulesToRun = self.input.v('submodules')
         # H = self.input.v('H', range(0, jmax+1))
 
         ################################################################################################################
         # Left hand side
         ################################################################################################################
-        PrSchm = self.input.v('sigma_rho', range(0, jmax+1), range(0, kmax+1), [0])  #TODO: better input for PrSchm
+        PrSchm = self.input.v('sigma_rho', range(0, jmax+1), range(0, kmax+1), [0])  # assume it is constant in time; else division with AV fails
         Av = self.input.v('Av', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))
         Kv = Av/PrSchm
 
         # ws = np.zeros((jmax+1, kmax+1, fmax+1))
-        # ws[:,:,0] = self.input.v('ws0', range(0, jmax+1), range(0, kmax+1), 0)
         ws = self.input.v('ws', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))
-        ws[:,:,1:] = 0                                                                 #TODO: better input for Ws
 
         ################################################################################################################
         # Forcing terms
@@ -50,16 +48,18 @@ class SedDynamicLead:
 
         # erosion
         E = self.erosion_Chernetsky(ws, Kv)
-        Fbed[:, :, :, 0] = -E
+        Fbed[:, :, fmax:, 0] = -E
 
         ################################################################################################################
         # Solve equation
         ################################################################################################################
         c, cMatrix = cFunction(ws, Kv, F, Fsurf, Fbed, self.input, hasMatrix = False)
-        c = c.reshape((jmax+1, kmax+1, ftot, ftot))
+        c = c.reshape((jmax+1, kmax+1, ftot))
 
         d = {}
-        d['hatc0'] = c
+        d['hatc0'] = {}
+        d['hatc0']['a'] = {}
+        d['hatc0']['a']['erosion'] = ny.eliminateNegativeFourier(c, 2)
         return d
 
     def erosion_Chernetsky(self, ws, Kv):
@@ -115,7 +115,7 @@ class SedDynamicLead:
         rho0 = self.input.v('RHO0')
         gred = self.input.v('G')*(rhos-rho0)/rho0
         ds = self.input.v('DS')
-        finf = self.input.v('finf')
+        finf = 1 #self.input.v('finf')
 
         hatE = finf*rhos/(gred*ds)*ny.complexAmplitudeProduct(ws[:,[kmax],:], taub_abs, 2)
         return hatE

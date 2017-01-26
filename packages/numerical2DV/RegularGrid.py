@@ -33,7 +33,7 @@ class RegularGrid:
 
         dimensions = ['x', 'z', 'f']
         enclosures = [(0, self.input.v('L')),
-                      (self.input.v('R'), self.input.v('-H')),
+                      (self.input.v('R'), self.input.n('H')),
                       None]
         contraction = [[], ['x'], []]     # Enclosures of each dimension depend on these parameters
         copy = [1, 1, 0]                  # Copy lower-dimensional arrays over these dimensions. 1: yes, copy. 0: no, only keep in the zero-index

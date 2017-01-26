@@ -4,17 +4,6 @@
 # date: 	04-11-2015
 # authors: 	Y.M.Dijkstra, R.L. Brouwer
 
-## Module Geometry ##
-module      Geometry2DV
-packagePath
-input       L B0 H0
-output      L B H -H
-
-module      Geometry2DVCS
-packagePath
-input       L A0 H0
-output      L B H -H
-
 ## Module Sensitivity: general multi-dimensional sensitivity analysis ##
 module          Sensitivity
 packagePath
@@ -30,12 +19,6 @@ input           @output.requirements path filename  # optional 'iteratesWith'
 output          outputDirectory
 outputModule		True
 
-# output module for external applications. Uses cPickle, but only stores numerical data
-module          OutputExternal
-input           @output.requirements path filename  # optional 'iteratesWith'
-output          outputDirectory
-outputModule    True
-
 # module to load single output files using cPickle. Directly loads all variables saved in the file
 module          ReadSingle
 input           folder file variables
@@ -46,3 +29,8 @@ output          @variables
 module          ReadMultiple
 input           folder files variables
 output          experimentdata
+
+# Plot cost function value of result of a sensitivity analysis
+module                  ManualCalibrationPlot
+input                   calibration_parameter axis experimentdata measurementset @measurementset
+visualisationModule     True

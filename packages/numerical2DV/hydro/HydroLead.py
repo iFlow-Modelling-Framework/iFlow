@@ -90,9 +90,6 @@ class HydroLead:
         zetax = ny.eliminateNegativeFourier(zetaxCoef, 2)
         zeta = ny.eliminateNegativeFourier(zetaCoef, 2)
 
-        # zetax[:,0,0,submodulesToRun.index('river')] += - self.input.d('R', range(0, jmax+1), dim='x')
-        # zeta[:,0,0,submodulesToRun.index('river')] += - self.input.v('R', range(0, jmax+1))
-
         ################################################################################################################
         # velocity
         ################################################################################################################
@@ -114,13 +111,6 @@ class HydroLead:
         ################################################################################################################
         # Make final dictionary to return
         ################################################################################################################
-
-        # import matplotlib.pyplot as plt
-        # plt.hold(True)
-        # plt.plot(abs(u[:,-1,1,0]))
-        # plt.plot(abs(u[:,-1,3,0]))
-        # plt.show()
-
         d = {}
         d['velocityMatrix'] = velocityMatrix
         d['zetaMatrix'] = zetaMatrix

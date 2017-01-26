@@ -58,86 +58,79 @@ class FunctionBase:
         self.dimNames = toList(dimNames)
         return
 
-    def checkVariables(self, *args):
-        """Check if variables are set.
-        For each variable this will check if the variable is different from None.
-        An error is raised if the variable is None
-
-        Parameters:
-            args (tuples of two elements: (str, any)) - set of tuples of two elements.
-                        The first element describes the variable name in a string, the second is the value of any type
-        """
-        for pair in args:
-            if pair[1] is None:
-                message = ("Not all required variables are given. Missing '%s' in module '%s'" % (pair[0], self.__class__.__name__))
-                raise KnownError(message)
-        return
-
-
+    ####################################################################################################################
+    # Function references
+    ####################################################################################################################
     def function(self, **kwargs):
-        """Acts as reference to the function.
-        Directs the function to the value or any operation on the function (derivative etc.).
-        However it returns a reference to the function is the number of dimensions in kwargs is smaller than the
-        number of dimensions of the function
-
-        Parameters:
-            x - x-coordinate or coordinates
-            kwargs['operation'] - (string, optional) operation d or n
-
-        Returns:
-            (scalar or list, depending on x) value of function
-        """
-        returnval = self.function
-
-        # check size of request in kwargs and compare this to the number dimensions of the function
-        requestSize = sum([dim in kwargs for dim in self.dimNames])  # count the number of dimensions in kwargs (this makes sure that other parameters or irrelevant dimensions are ignored)
-        if requestSize >= len(self.dimNames):
-            # convert named arguments to unnamed arguments in the correct order
-            indices = ()
-            for dim in self.dimNames:
-                indices += (kwargs.pop(dim),)
-
-            # direct to actual function
-            if kwargs.get('operation'):
-                if kwargs.get('operation') == 'd':
-                    returnval = self.derivative(*indices, **kwargs)
-                ### dd depreciated since v2.2 [dep01] ###
-                elif kwargs.get('operation') == 'dd':
-                    returnval = self.secondDerivative(*indices, **kwargs)
-                ### end ###
-                elif kwargs.get('operation') == 'n':
-                    returnval = self.returnNegative(*indices, **kwargs)
-            else:
-                returnval = self.value(*indices, **kwargs)
+        # evaluate function
+        try:
+            returnval = self.__evaluateFunction(**kwargs)
+        except FunctionEvaluationError:
+            returnval = self.__setReturnReference(kwargs.get('operation'))
         return returnval
 
     def negfunction(self, **kwargs):
         """Same as function, but then provides a reference to -1* the value of the function
         """
+        # reset operations
+        if kwargs.get('operation') == 'n':      # if the negative of a negfunction is called, return to function.
+            kwargs.pop('operation')
+        elif kwargs.get('operation') == 'd':
+            kwargs['operation'] = 'dn'
+        else:
+            kwargs['operation'] = 'n'
+
+        # evaluate
         try:
-            returnval = -self.function(**kwargs)
-        except:
-            returnval = self.negfunction
+            returnval = self.__evaluateFunction(**kwargs)
+        except FunctionEvaluationError:
+            returnval = self.__setReturnReference(kwargs.get('operation'))
         return returnval
 
-    def returnNegative(self, *args, **kwargs):
-        return -self.value(*args, **kwargs)
+    def derfunction(self, **kwargs):
+        """Same as function, but then provides a reference its derivative
+        Still requires the axis of the derivative in a named argument 'dim'
+        """
+        # reset operations
+        if kwargs.get('operation') == 'n':      # if the negative of a negfunction is called, return to function.
+            kwargs['operation'] = 'dn'
+        else:
+            kwargs['operation'] = 'd'           # i.e. .d() and .v() of a derfunction returns the same
 
-    def value(self, *args, **kwargs):
-        raise KnownError('value of class %s not implemented' % (self.__class__.__name__))
-        return
+        # check derivative axis
+        if kwargs.get('dim') is None:
+            raise KnownError('Called a derivative function without dim argument')
+        elif not all(i in self.dimNames for i in kwargs.get('dim')):
+            raise KnownError('Called a derivative function with an incorrect dim argument')
 
-    def derivative(self, *args, **kwargs):
-        raise KnownError('derivative %s of class %s not implemented' % (kwargs['dim'], self.__class__.__name__))
-        return
+        # evaluate
+        try:
+            returnval = self.__evaluateFunction(**kwargs)
+        except FunctionEvaluationError:
+            returnval = self.__setReturnReference(kwargs.get('operation'))
+        return returnval
 
-    ### depreciated v2.2 [dep01] ###
-    def secondDerivative(self, *args, **kwargs):
-        raise KnownError('Method depreciated since v2.2. Use derivative or .d() instead.\n'
-                         'Second derivative of class %s not implemented' % (self.__class__.__name__))
-        return
-    ### end ###
 
+    def dnfunction(self, **kwargs):
+        """Same as function, but then provides a reference the negative and derivative
+        Still requires the axis of the derivative in a named argument 'dim'
+        """
+        # reset operations
+        if kwargs.get('operation') == 'n':      # if the negative of a negfunction is called, return to function.
+            kwargs['operation'] = 'd'
+        else:
+            kwargs['operation'] = 'dn'           # i.e. .d() and .v() of a dnfunction returns the same
+
+        # evaluate
+        try:
+            returnval = self.__evaluateFunction(**kwargs)
+        except FunctionEvaluationError:
+            returnval = self.__setReturnReference(kwargs.get('operation'))
+        return returnval
+
+    ####################################################################################################################
+    # Other public methods
+    ####################################################################################################################
     def addNumericalDerivative(self, grid, *args, **kwargs):
         # evaluate function on grid and put in datacontainer 'grid'
         v = self.value(*args,**kwargs)
@@ -154,5 +147,104 @@ class FunctionBase:
         der = grid.d('value', **kwargs)
 
         return der
+
+    def checkVariables(self, *args):
+        """Check if variables are set.
+        For each variable this will check if the variable is different from None.
+        An error is raised if the variable is None
+
+        Parameters:
+            args (tuples of two elements: (str, any)) - set of tuples of two elements.
+                        The first element describes the variable name in a string, the second is the value of any type
+        """
+        for pair in args:
+            if pair[1] is None:
+                message = ("Not all required variables are given. Missing '%s' in module '%s'" % (pair[0], self.__class__.__name__))
+                raise KnownError(message)
+        return
+
+    ####################################################################################################################
+    # General private methods
+    ####################################################################################################################
+    def __evaluateFunction(self, **kwargs):
+        """Directs the function to the value or any operation on the function (derivative etc.).
+        However it returns a reference to the function is the number of dimensions in kwargs is smaller than the
+        number of dimensions of the function
+
+        Parameters:
+            named arguments with coordinates corresponding to the function argument names
+            kwargs['operation'] - (string, optional) operation d or n
+
+        Returns:
+            scalar or array or function reference - value of function or reference if function cannot be evaluated
+        """
+        # check size of request in kwargs (coordinates) and compare this to the number dimensions of the function
+        #   Count the number of dimensions in kwargs (this makes sure that other parameters or
+        #   irrelevant dimensions are ignored)
+        requestSize = sum([dim in kwargs for dim in self.dimNames])
+        if requestSize < len(self.dimNames):
+            raise FunctionEvaluationError
+
+        # convert coordinates to function arguments
+        indices, kwargs = self.__convertIndices(**kwargs)
+
+        # direct to actual function
+        if kwargs.get('operation') is None:
+            returnval = self.value(*indices, **kwargs)
+        elif kwargs.get('operation') == 'd':
+            returnval = self.derivative(*indices, **kwargs)
+        elif kwargs.get('operation') == 'n':
+            returnval = -self.value(*indices, **kwargs)
+        elif kwargs.get('operation') == 'dn':
+            returnval = -self.derivative(*indices, **kwargs)
+        else:
+            raise FunctionEvaluationError
+        return returnval
+
+    def __convertIndices(self, **kwargs):
+        '''Convert named arguments (kwargs) to unnamed arguments in the correct order of the function.
+        This allows e.g. that, for a function fun(x, z), called as fun(y=0, z=1, x=0.5), the result is f(0.5, 1)
+        '''
+        indices = ()
+        for dim in self.dimNames:
+            indices += (kwargs.pop(dim),)
+        return indices, kwargs
+
+    def __setReturnReference(self, operation=None):
+        '''Determine what function reference to return if no value can be returned.
+        '''
+        if not operation:
+            returnval = self.function
+        elif operation == 'n':
+            returnval = self.negfunction
+        elif operation == 'd':
+            returnval = self.derfunction
+        elif operation == 'dn':
+            returnval = self.dnfunction
+        else:
+            raise KnownError('Function called with unknown operation. (This error indicates an incorrectly defined function)')
+        return returnval
+
+    ####################################################################################################################
+    # Empty methods to be implemented
+    ####################################################################################################################
+    def value(self, *args, **kwargs):
+        raise KnownError('value of class %s not implemented' % (self.__class__.__name__))
+
+    def derivative(self, *args, **kwargs):
+        raise KnownError('derivative %s of class %s not implemented' % (kwargs['dim'], self.__class__.__name__))
+
+    ### depreciated v2.2 [dep01] ###
+    def secondDerivative(self, *args, **kwargs):
+        raise KnownError('Method depreciated since v2.2. Use derivative or .d() instead.\n'
+                         'Second derivative of class %s not implemented' % (self.__class__.__name__))
+    ### end ###
+
+class FunctionEvaluationError(Exception):
+    def __init__(self, *args):
+        return
+
+
+
 
 

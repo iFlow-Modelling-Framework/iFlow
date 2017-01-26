@@ -10,7 +10,7 @@ import nifty as ny
 from profiles.UniformXF import UniformXF
 
 
-class Uniform:
+class TurbulenceUniform:
     # Variables
     logger = logging.getLogger(__name__)
 

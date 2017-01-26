@@ -539,7 +539,7 @@ class TurbulenceKepFitted_core:
         grid = {}
         dimensions = ['x', 'z', 'f']
         enclosures = [(0, self.input.v('L')),
-                      (self.input.v('R'), self.input.v('-H')),
+                      (self.input.v('R'), self.input.n('H')),
                       None]
         contraction = [[], ['x'], []]     # enclosures of each dimension depend on these parameters
         copy = [1, 1, 0]
