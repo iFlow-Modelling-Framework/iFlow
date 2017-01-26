@@ -17,7 +17,7 @@ tide	input
 ## Module HydroFirst: semi-analytical2DV perturbation model - first order ##
 module          HydroFirst
 packagePath		hydro/
-input 			A1 phase1 Q1 BottomBC grid Av Roughness OMEGA G BETA TOLERANCEBVP NGODIN
+input 			A1 phase1 Q1 BottomBC grid Av Roughness OMEGA G BETA TOLERANCEBVP
 output			u1 zeta1
 submodules		tide river baroc stokes nostress adv
 tide	    input

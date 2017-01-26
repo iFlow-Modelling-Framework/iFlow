@@ -4,11 +4,12 @@ Date: 01-06-15
 Authors: R.L. Brouwer
 """
 import numpy as np
-import scikits.bvp_solver
 from scipy import integrate
 from nifty.functionTemplates.NumericalFunctionWrapper import NumericalFunctionWrapper
 import logging
 import nifty as ny
+from zetaFunctionUncoupled import zetaFunctionUncoupled
+from src.util.diagnostics import KnownError
 
 
 class HydroFirst:
@@ -32,7 +33,6 @@ class HydroFirst:
         self.submodule = self.input.v('submodules')
         self.TOL = self.input.v('TOLERANCEBVP')
         self.SIGMA = self.input.v('OMEGA')
-        self.NGODIN = self.input.v('NGODIN')
         self.G = self.input.v('G')
         self.BETA = self.input.v('BETA')
         self.L = self.input.v('L')
@@ -43,8 +43,8 @@ class HydroFirst:
         self.zarr = (self.z.reshape(1, len(self.z)) * self.input.v('-H', x=self.x/self.L).reshape(len(self.x), 1))
         self.Av0 = self.input.v('Av', x=self.x/self.L, z=0, f=0).reshape(len(self.x), 1)
         self.Av0x = self.input.d('Av', x=self.x/self.L, z=0, f=0, dim='x').reshape(len(self.x), 1)
-        self.sf = self.NGODIN * self.input.v('Roughness', x=self.x/self.L, f=0).reshape(len(self.x), 1)
-        self.sfx = self.NGODIN * self.input.d('Roughness', x=self.x/self.L, f=0, dim='x').reshape(len(self.x), 1)
+        self.sf = self.input.v('Roughness', x=self.x/self.L, f=0).reshape(len(self.x), 1)
+        self.sfx = self.input.d('Roughness', x=self.x/self.L, f=0, dim='x').reshape(len(self.x), 1)
         self.r = np.sqrt(2. * 1j * self.SIGMA / self.Av0).reshape(len(self.x), 1)
         self.H = self.input.v('H', x=self.x/self.L).reshape(len(self.x), 1)
         self.Hx = self.input.d('H', x=self.x/self.L, dim='x').reshape(len(self.x), 1)
@@ -55,6 +55,7 @@ class HydroFirst:
         self.u0x = self.input.d('u0', 'tide', range(0, len(self.x)), 0, 1, dim='x')
         self.u0z = self.input.d('u0', 'tide', range(0, len(self.x)), 0, 1, dim='z')
         self.u0zz = self.input.d('u0', 'tide', range(0, len(self.x)), 0, 1, dim='zz')
+        self.M = ((self.alpha * np.sinh(self.r * self.H) / self.r) - self.H) * (self.G / (2 * 1j * self.SIGMA)) * self.B
         self.bca = ny.amp_phase_input(self.input.v('A1'), self.input.v('phase1'), (3,))[2]
         self.__bc = np.zeros(4)
         self.__F = []
@@ -67,7 +68,6 @@ class HydroFirst:
             zeta, u = getattr(self, mod)()
             nfz = NumericalFunctionWrapper(zeta[0], self.input.slice('grid'))
             nfz.addDerivative(zeta[1], dim='x')
-            nfz.addDerivative(zeta[1], dim='xx')
             nfu = NumericalFunctionWrapper(u[0], self.input.slice('grid'))
             d['zeta1'][mod] = nfz.function
             d['u1'][mod] = nfu.function
@@ -88,7 +88,7 @@ class HydroFirst:
                        self.input.d('Av', x=x/self.L, z=0, f=0, dim='x'),
                        self.input.d('Av', x=x/self.L, z=0, f=0, dim='xx')])
 
-        r = np.zeros(3, dtype=complex)
+        r = np.zeros((3, np.array(x).size), dtype=complex)
         r[0] = np.sqrt(2. * 1j * self.SIGMA / Av[0])
         r[1] = -np.sqrt(2. * 1j * self.SIGMA) * Av[1] / (2. * Av[0]**(3./2.))
         r[2] = np.sqrt(2. * 1j * self.SIGMA) * (3. * Av[1]**2. - 2. * Av[0] * Av[2]) / (4. * Av[0]**(5./2.))
@@ -109,9 +109,9 @@ class HydroFirst:
         Av = np.array([self.input.v('Av', x=x/self.L, z=0, f=0),
                        self.input.d('Av', x=x/self.L, z=0, f=0, dim='x'),
                        self.input.d('Av', x=x/self.L, z=0, f=0, dim='xx')])
-        sf = self.NGODIN * np.array([self.input.v('Roughness', x=x/self.L, f=0),
-                                     self.input.d('Roughness', x=x/self.L, f=0, dim='x'),
-                                     self.input.d('Roughness', x=x/self.L, f=0, dim='xx')])
+        sf = np.array([self.input.v('Roughness', x=x/self.L, f=0),
+                       self.input.d('Roughness', x=x/self.L, f=0, dim='x'),
+                       self.input.d('Roughness', x=x/self.L, f=0, dim='xx')])
         sf = sf[:, 0]
         # Define trigonometric values for ease of reference
         sinhrh = np.sinh(r[0] * H[0])
@@ -130,7 +130,7 @@ class HydroFirst:
         Gx = sinhrh * K
         Gxx = E * K * coshrh + Kx * sinhrh
         # Calculate coefficient alpha
-        a = np.zeros(3, dtype=complex)
+        a = np.zeros((3, np.array(x).size), dtype=complex)
         a[0] = sf[0] / G    # a
         a[1] = sf[1] / G - sf[0] * Gx / G**2    # a_x
         a[2] = (sf[2] - 2 * (sf[1] * Gx + sf[0] * Gxx) / G + 2 * sf[0] * Gx**2 / G**2) / G    # a_xx
@@ -262,29 +262,47 @@ class HydroFirst:
             zeta - M4 water level due to the external tide
             u    - M4 horizontal velocity due to the external tide
         """
-        # Define and initiate variables #
-        self.__F = 'tide'
-        # Define boundary conditions
-        self.__bc = np.array([-np.real(self.bca), -np.imag(self.bca), 0, 0])
-        # Define problem to solve the ode for the water level
-        problem = scikits.bvp_solver.ProblemDefinition(num_ODE=4,
-                                                       num_parameters=0,
-                                                       num_left_boundary_conditions=2,
-                                                       boundary_points=(self.x[0], self.x[-1]),
-                                                       function=self.system_ode,
-                                                       boundary_conditions=self.bcs,
-                                                       function_derivative=self.system_ode_der)
-        guess = np.array([np.real(self.bca), np.imag(self.bca), 0., 0.])
-        solution = scikits.bvp_solver.solve(problem, solution_guess=guess, tolerance=self.TOL)
-        # Extract solution
-        Z1, Z2 = solution(self.x, eval_derivative=True)
-        # Surface elevation and its derivatives wrt x
+        # Initiate variables zeta and u
         zeta = np.zeros((3, len(self.x), 1, 3), dtype=complex)
-        zeta[0, :, 0, 2] = Z1[0] + 1j * Z1[1]
-        zeta[1, :, 0, 2] = Z1[2] + 1j * Z1[3]
-        zeta[2, :, 0, 2] = Z2[2] + 1j * Z2[3]
-        # Calculate the velocity
         u = np.zeros((1, len(self.x), len(self.z), 3), dtype=complex)
+
+        # Calculate M4 contribution
+        if self.input.v('solver') == (None or 'numerical'):
+            jmax = self.input.v('grid', 'maxIndex', 'x')
+            F = np.zeros((jmax + 1, 1), dtype=complex)  # Forcing term shape (x, number of right-hand sides)
+            Fopen = np.zeros((1, 1), dtype=complex)  # Forcing term shape (1, number of right-hand sides)
+            Fclosed = np.zeros((1, 1), dtype=complex)  # Forcing term shape (1, number of right-hand sides)
+            Fopen[0, 0] = self.bca
+            Z, Zx, _ = zetaFunctionUncoupled(2, self.M[:, 0], F, Fopen, Fclosed, self.input, hasMatrix=False)
+            zeta[0, :, 0, 2] = Z[:, 0]
+            zeta[1, :, 0, 2] = Zx[:, 0]
+        elif self.input.v('solver') == 'bvp':
+            try:
+                import scikits.bvp_solver
+            except ImportError:
+                raise KnownError('The scikits.bvp_solver module is not known')
+            # Define and initiate variables #
+            self.__F = 'tide'
+            # Define boundary conditions
+            self.__bc = np.array([-np.real(self.bca), -np.imag(self.bca), 0, 0])
+            # Define problem to solve the ode for the water level
+            problem = scikits.bvp_solver.ProblemDefinition(num_ODE=4,
+                                                           num_parameters=0,
+                                                           num_left_boundary_conditions=2,
+                                                           boundary_points=(self.x[0], self.x[-1]),
+                                                           function=self.system_ode,
+                                                           boundary_conditions=self.bcs,
+                                                           function_derivative=self.system_ode_der)
+            guess = np.array([np.real(self.bca), np.imag(self.bca), 0., 0.])
+            solution = scikits.bvp_solver.solve(problem, solution_guess=guess, tolerance=self.TOL)
+            # Extract solution
+            Z1, Z2 = solution(self.x, eval_derivative=True)
+            # Surface elevation and its derivatives wrt x
+            zeta = np.zeros((3, len(self.x), 1, 3), dtype=complex)
+            zeta[0, :, 0, 2] = Z1[0] + 1j * Z1[1]
+            zeta[1, :, 0, 2] = Z1[2] + 1j * Z1[3]
+            zeta[2, :, 0, 2] = Z2[2] + 1j * Z2[3]
+        # Calculate the velocity
         u[0, :, :, 2] = (-(self.G / (2. * 1j * self.SIGMA)) * zeta[1, :, 0, 2].reshape(len(self.x), 1) *
                          (1 - self.alpha * np.cosh(self.r * self.zarr)))
         return zeta, u
@@ -327,30 +345,43 @@ class HydroFirst:
         u[0, :, :, 0] = (((self.zarr**2. - self.H**2.) / (2 * self.Av0) - self.H / self.sf) * self.G * zeta[1, :, 0, 0].reshape(len(self.x), 1))
 
         # M4 contribution #
-        # Define boundary conditions
-        self.__bc = np.array([0., 0.,
-                              np.real(4. * 1j * self.SIGMA * gammaM4[-1] /
-                                      (self.G * (self.alpha[-1, 0] * np.sinh(self.r[-1, 0] * self.H[-1]) /
-                                       self.r[-1, 0] - self.H[-1]))),
-                              np.imag(4. * 1j * self.SIGMA * gammaM4[-1] /
-                                      (self.G * (self.alpha[-1, 0] * np.sinh(self.r[-1, 0] * self.H[-1]) /
-                                       self.r[-1, 0] - self.H[-1])))])
-        # Define problem to solve the ode for the water level
-        problem = scikits.bvp_solver.ProblemDefinition(num_ODE=4,
-                                                       num_parameters=0,
-                                                       num_left_boundary_conditions=2,
-                                                       boundary_points=(self.x[0], self.x[-1]),
-                                                       function=self.system_ode,
-                                                       boundary_conditions=self.bcs,
-                                                       function_derivative=self.system_ode_der)
-        guess = np.array([0., 0., 0., 0.])
-        solution = scikits.bvp_solver.solve(problem, solution_guess=guess, tolerance=self.TOL)
-        # Extract solution
-        Z1, Z2 = solution(self.x, eval_derivative=True)
-        # Surface elevation and its derivatives wrt x
-        zeta[0, :, 0, 2] = Z1[0] + 1j * Z1[1]
-        zeta[1, :, 0, 2] = Z1[2] + 1j * Z1[3]
-        zeta[2, :, 0, 2] = Z2[2] + 1j * Z2[3]
+        if self.input.v('solver') == (None or 'numerical'):
+            F = -2. * (self.B * gammaM4x.reshape(len(self.x), 1) + self.Bx * gammaM4.reshape(len(self.x), 1))
+            Fopen = np.zeros((1, 1), dtype=complex)  # Forcing term shape (1, number of right-hand sides)
+            Fclosed = np.zeros((1, 1), dtype=complex)  # Forcing term shape (1, number of right-hand sides)
+            Fclosed[0] = (-2. * gammaM4[-1] / (self.alpha[-1, 0] * np.sinh(self.r[-1, 0] * self.H[-1]) / self.r[-1, 0] - self.H[-1]))
+            Z, Zx, _ = zetaFunctionUncoupled(2, self.M[:, 0], F, Fopen, Fclosed, self.input, hasMatrix=False)
+            zeta[0, :, 0, 2] = Z[:, 0]
+            zeta[1, :, 0, 2] = Zx[:, 0]
+        elif self.input.v('solver') == 'bvp':
+            try:
+                import scikits.bvp_solver
+            except ImportError:
+                raise KnownError('The scikits.bvp_solver module is not known')
+            # Define boundary conditions
+            self.__bc = np.array([0., 0.,
+                                  np.real(4. * 1j * self.SIGMA * gammaM4[-1] /
+                                          (self.G * (self.alpha[-1, 0] * np.sinh(self.r[-1, 0] * self.H[-1]) /
+                                           self.r[-1, 0] - self.H[-1]))),
+                                  np.imag(4. * 1j * self.SIGMA * gammaM4[-1] /
+                                          (self.G * (self.alpha[-1, 0] * np.sinh(self.r[-1, 0] * self.H[-1]) /
+                                           self.r[-1, 0] - self.H[-1])))])
+            # Define problem to solve the ode for the water level
+            problem = scikits.bvp_solver.ProblemDefinition(num_ODE=4,
+                                                           num_parameters=0,
+                                                           num_left_boundary_conditions=2,
+                                                           boundary_points=(self.x[0], self.x[-1]),
+                                                           function=self.system_ode,
+                                                           boundary_conditions=self.bcs,
+                                                           function_derivative=self.system_ode_der)
+            guess = np.array([0., 0., 0., 0.])
+            solution = scikits.bvp_solver.solve(problem, solution_guess=guess, tolerance=self.TOL)
+            # Extract solution
+            Z1, Z2 = solution(self.x, eval_derivative=True)
+            # Surface elevation and its derivatives wrt x
+            zeta[0, :, 0, 2] = Z1[0] + 1j * Z1[1]
+            zeta[1, :, 0, 2] = Z1[2] + 1j * Z1[3]
+            zeta[2, :, 0, 2] = Z2[2] + 1j * Z2[3]
         # Calculate the velocity
         u[0, :, :, 2] = -((self.G / (2. * 1j * self.SIGMA)) * zeta[1, :, 0, 2].reshape(len(self.x), 1) *
                           (1 - self.alpha * np.cosh(self.r * self.zarr)))
@@ -391,28 +422,46 @@ class HydroFirst:
                             (self.G * self.H * (self.H / 3. + self.Av0 / self.sf))).reshape(len(self.x))
         zeta[0, 1:, 0, 0] = integrate.cumtrapz(zeta[1, :, 0, 0], x=self.x)
         # Calculate M0 flow velocity
-        u[0, :, :, 0] = (((self.zarr**2 - self.H**2) / (2 * self.Av0) - self.H / self.sf) * self.G * zeta[1, :, 0, 0].reshape(len(self.x), 1) -
+        u[0, :, :, 0] = (((self.zarr ** 2 - self.H ** 2) / (2 * self.Av0) - self.H / self.sf) * self.G *
+                         zeta[1, :, 0, 0].reshape(len(self.x), 1) -
                          (self.zarr + self.H + self.Av0 / self.sf) * xiM0.reshape(len(self.x), 1))
 
         # M4 contribution #
-        # Define boundary conditions
-        self.__bc = np.array([0., 0., 0., 0.])
-        # Define problem to solve the ode for the water level
-        problem = scikits.bvp_solver.ProblemDefinition(num_ODE=4,
-                                                       num_parameters=0,
-                                                       num_left_boundary_conditions=2,
-                                                       boundary_points=(self.x[0], self.x[-1]),
-                                                       function=self.system_ode,
-                                                       boundary_conditions=self.bcs,
-                                                       function_derivative=self.system_ode_der)
-        guess = np.array([0., 0., 0., 0.])
-        solution = scikits.bvp_solver.solve(problem, solution_guess=guess, tolerance=self.TOL)
-        # Extract solution
-        Z1, Z2 = solution(self.x, eval_derivative=True)
-        # Surface elevation and its derivatives wrt x
-        zeta[0, :, 0, 2] = Z1[0] + 1j * Z1[1]
-        zeta[1, :, 0, 2] = Z1[2] + 1j * Z1[3]
-        zeta[2, :, 0, 2] = Z2[2] + 1j * Z2[3]
+        if self.input.v('solver') == (None or 'numerical'):
+            FnsB = (self.Bx / self.B) * (xiM4.reshape(len(self.x), 1) * (1 - self.alpha) / self.r ** 2.)
+            Fnsdx = ((xiM4x.reshape(len(self.x), 1) * self.r * (1 - self.alpha) -
+                      xiM4.reshape(len(self.x), 1) * (self.r * self.af(self.x, self.rf(self.x))[1].reshape(len(self.x), 1) +
+                                                      2. * self.rf(self.x)[1].reshape(len(self.x), 1) * (1 - self.alpha))) / self.r ** 3.)
+            F = 2. * self.B * (FnsB + Fnsdx)
+            Fopen = np.zeros((1, 1), dtype=complex)  # Forcing term shape (1, number of right-hand sides)
+            Fclosed = np.zeros((1, 1), dtype=complex)  # Forcing term shape (1, number of right-hand sides)
+            Z, Zx, _ = zetaFunctionUncoupled(2, self.M[:, 0], F, Fopen, Fclosed, self.input, hasMatrix=False)
+            zeta[0, :, 0, 2] = Z[:, 0]
+            zeta[1, :, 0, 2] = Zx[:, 0]
+        elif self.input.v('solver') == 'bvp':
+            try:
+                import scikits.bvp_solver
+            except ImportError:
+                raise KnownError('The scikits.bvp_solver module is not known')
+
+            # Define boundary conditions
+            self.__bc = np.array([0., 0., 0., 0.])
+            # Define problem to solve the ode for the water level
+            problem = scikits.bvp_solver.ProblemDefinition(num_ODE=4,
+                                                           num_parameters=0,
+                                                           num_left_boundary_conditions=2,
+                                                           boundary_points=(self.x[0], self.x[-1]),
+                                                           function=self.system_ode,
+                                                           boundary_conditions=self.bcs,
+                                                           function_derivative=self.system_ode_der)
+            guess = np.array([0., 0., 0., 0.])
+            solution = scikits.bvp_solver.solve(problem, solution_guess=guess, tolerance=self.TOL)
+            # Extract solution
+            Z1, Z2 = solution(self.x, eval_derivative=True)
+            # Surface elevation and its derivatives wrt x
+            zeta[0, :, 0, 2] = Z1[0] + 1j * Z1[1]
+            zeta[1, :, 0, 2] = Z1[2] + 1j * Z1[3]
+            zeta[2, :, 0, 2] = Z2[2] + 1j * Z2[3]
         u[0, :, :, 2] = (-(self.G / (2 * 1j * self.SIGMA)) * zeta[1, :, 0, 2].reshape(len(self.x), 1) *
                          (1 - self.alpha * np.cosh(self.r * self.zarr)) - 2 * self.alpha *
                          xiM4.reshape(len(self.x), 1) * (self.Av0 * np.cosh(self.r * (self.zarr + self.H)) + self.sf *
@@ -459,8 +508,6 @@ class HydroFirst:
                          (Up / self.Av0) - (self.zarr / self.Av0 + self.H / self.Av0 + 1. / self.sf) * h.reshape(len(self.x), 1))
 
         # M4 contribution #
-        # Define boundary conditions
-        self.__bc = np.array([0., 0., 0., 0.])
         # Calculate variables
         # G1 variable from manual, separated in an (a) and a (b) part first
         G1a = np.fliplr(integrate.cumtrapz(np.fliplr(etaM4 * np.exp(-self.r * self.zarr)),
@@ -484,22 +531,37 @@ class HydroFirst:
         Fadv2[1:-1, 0] = (Fadv1[2:, 0] - Fadv1[:-2, 0]) / (2. * self.dx[1:])
         Fadv = ((self.Av0 * self.r**2. / self.G) * (Fadv2 + self.Bx * Fadv1 / self.B)).reshape(len(self.x))
         self.input.addData('Fadv', Fadv)
-        # Define problem to solve the ode for the water level
-        problem = scikits.bvp_solver.ProblemDefinition(num_ODE=4,
-                                                       num_parameters=0,
-                                                       num_left_boundary_conditions=2,
-                                                       boundary_points=(self.x[0], self.x[-1]),
-                                                       function=self.system_ode,
-                                                       boundary_conditions=self.bcs,
-                                                       function_derivative=self.system_ode_der)
-        guess = np.array([0., 0., 0., 0.])
-        solution = scikits.bvp_solver.solve(problem, solution_guess=guess, tolerance=self.TOL)
-        # Extract solution
-        Z1, Z2 = solution(self.x, eval_derivative=True)
-        # Surface elevation and its derivatives wrt x
-        zeta[0, :, 0, 2] = Z1[0] + 1j * Z1[1]
-        zeta[1, :, 0, 2] = Z1[2] + 1j * Z1[3]
-        zeta[2, :, 0, 2] = Z2[2] + 1j * Z2[3]
+        if self.input.v('solver') == (None or 'numerical'):
+            F = -self.B * Fadv.reshape(len(self.x), 1) * (self.G / (2 * 1j * self.SIGMA))
+            Fopen = np.zeros((1, 1), dtype=complex)  # Forcing term shape (1, number of right-hand sides)
+            Fclosed = np.zeros((1, 1), dtype=complex)  # Forcing term shape (1, number of right-hand sides)
+            Z, Zx, _ = zetaFunctionUncoupled(2, self.M[:, 0], F, Fopen, Fclosed, self.input, hasMatrix=False)
+            zeta[0, :, 0, 2] = Z[:, 0]
+            zeta[1, :, 0, 2] = Zx[:, 0]
+        elif self.input.v('solver') == 'bvp':
+            try:
+                import scikits.bvp_solver
+            except ImportError:
+                raise KnownError('The scikits.bvp_solver module is not known')
+
+            # Define boundary conditions
+            self.__bc = np.array([0., 0., 0., 0.])
+            # Define problem to solve the ode for the water level
+            problem = scikits.bvp_solver.ProblemDefinition(num_ODE=4,
+                                                           num_parameters=0,
+                                                           num_left_boundary_conditions=2,
+                                                           boundary_points=(self.x[0], self.x[-1]),
+                                                           function=self.system_ode,
+                                                           boundary_conditions=self.bcs,
+                                                           function_derivative=self.system_ode_der)
+            guess = np.array([0., 0., 0., 0.])
+            solution = scikits.bvp_solver.solve(problem, solution_guess=guess, tolerance=self.TOL)
+            # Extract solution
+            Z1, Z2 = solution(self.x, eval_derivative=True)
+            # Surface elevation and its derivatives wrt x
+            zeta[0, :, 0, 2] = Z1[0] + 1j * Z1[1]
+            zeta[1, :, 0, 2] = Z1[2] + 1j * Z1[3]
+            zeta[2, :, 0, 2] = Z2[2] + 1j * Z2[3]
         u[0, :, :, 2] = (-(self.G / (2. * 1j * self.SIGMA)) * zeta[1, :, 0, 2].reshape(len(self.x), 1) * (1. - self.alpha * np.cosh(self.r * self.zarr)) +
                          G1 /
                          (self.Av0 * self.r) - (self.alpha * G2.reshape(len(self.x), 1) / (self.Av0 * self.r *
