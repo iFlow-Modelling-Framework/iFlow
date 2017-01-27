@@ -40,7 +40,7 @@ class HydroFirst:
         self.dx = self.x[1:]-self.x[:-1]
         kmax = self.input.v('grid', 'maxIndex', 'z')
         self.z = self.input.v('grid', 'axis', 'z', 0, range(0, kmax+1))
-        self.zarr = (self.z.reshape(1, len(self.z)) * self.input.v('-H', x=self.x/self.L).reshape(len(self.x), 1))
+        self.zarr = (self.z.reshape(1, len(self.z)) * self.input.n('H', x=self.x/self.L).reshape(len(self.x), 1))
         self.Av0 = self.input.v('Av', x=self.x/self.L, z=0, f=0).reshape(len(self.x), 1)
         self.Av0x = self.input.d('Av', x=self.x/self.L, z=0, f=0, dim='x').reshape(len(self.x), 1)
         self.sf = self.input.v('Roughness', x=self.x/self.L, f=0).reshape(len(self.x), 1)

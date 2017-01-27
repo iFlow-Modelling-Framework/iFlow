@@ -26,7 +26,7 @@ class HydroLead:
         Returns:
             Dictionary with results. At least contains the variables listed as output in the registry
         """
-        self.logger.info('Running module HydroLead_new')
+        self.logger.info('Running module HydroLead')
 
         # Initiate variables
         self.TOL = self.input.v('TOLERANCEBVP')
@@ -36,7 +36,7 @@ class HydroLead:
         self.x = self.input.v('grid', 'axis', 'x') * self.input.v('L')
         kmax = self.input.v('grid', 'maxIndex', 'z')
         self.z = self.input.v('grid', 'axis', 'z', 0, range(0, kmax+1))
-        self.zarr = (self.z.reshape(1, len(self.z)) * self.input.v('-H', x=self.x/self.L).reshape(len(self.x), 1))
+        self.zarr = (self.z.reshape(1, len(self.z)) * self.input.n('H', x=self.x/self.L).reshape(len(self.x), 1))
         self.bca = ny.amp_phase_input(self.input.v('A0'), self.input.v('phase0'), (2,))[1]
        # Allocate space for results
         d = dict()
