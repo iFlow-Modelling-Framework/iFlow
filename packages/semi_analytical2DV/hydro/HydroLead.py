@@ -5,9 +5,10 @@ Authors: R.L. Brouwer
 
 import logging
 import numpy as np
-import scikits.bvp_solver
 from nifty.functionTemplates.NumericalFunctionWrapper import NumericalFunctionWrapper
 import nifty as ny
+from zetaFunctionUncoupled import zetaFunctionUncoupled
+from src.util.diagnostics import KnownError
 
 
 class HydroLead:
@@ -25,7 +26,7 @@ class HydroLead:
         Returns:
             Dictionary with results. At least contains the variables listed as output in the registry
         """
-        self.logger.info('Running module HydroLead')
+        self.logger.info('Running module HydroLead_new')
 
         # Initiate variables
         self.TOL = self.input.v('TOLERANCEBVP')
@@ -75,7 +76,7 @@ class HydroLead:
                        self.input.d('Av', x=x/self.L, z=0, f=0, dim='x'),
                        self.input.d('Av', x=x/self.L, z=0, f=0, dim='xx')])
 
-        r = np.zeros(3, dtype=complex)
+        r = np.zeros((3, np.array(x).size), dtype=complex)
         r[0] = np.sqrt(1j * self.SIGMA / Av[0])
         r[1] = -np.sqrt(1j * self.SIGMA) * Av[1] / (2. * Av[0]**(3./2.))
         r[2] = np.sqrt(1j * self.SIGMA) * (3. * Av[1]**2 - 2. * Av[0] * Av[2]) / (4. * Av[0]**(5./2.))
@@ -117,7 +118,7 @@ class HydroLead:
         Gx = sinhrh * K
         Gxx = E * K * coshrh + Kx * sinhrh
         # Calculate coefficient alpha
-        a = np.zeros(3, dtype=complex)
+        a = np.zeros((3, np.array(x).size), dtype=complex)
         a[0] = sf[0] / G    # a
         a[1] = sf[1] / G - sf[0] * Gx / G**2    # a_x
         a[2] = (sf[2] - 2. * (sf[1] * Gx + sf[0] * Gxx) / G + 2. * sf[0] * Gx**2 / G**2) / G    # a_xx
@@ -220,25 +221,44 @@ class HydroLead:
         Returns:
             zeta - water level and its first and second derivative w.r.t. x
         """
-        # Define problem
-        problem = scikits.bvp_solver.ProblemDefinition(num_ODE=4,
-                                                       num_parameters=0,
-                                                       num_left_boundary_conditions=2,
-                                                       boundary_points=(self.x[0], self.x[-1]),
-                                                       function=self.system_ode,
-                                                       boundary_conditions=self.bcs,
-                                                       function_derivative=self.system_ode_der)
-        # Define solution guess
-        guess = np.array([np.real(self.bca), np.imag(self.bca), 0., 0.])
-        # Solve boundary value problem
-        solution = scikits.bvp_solver.solve(problem, solution_guess=guess, tolerance=self.TOL)
-        # Extract solution
-        Z1, Z2 = solution(self.x, eval_derivative=True)
-        # Assign water level, including derivatives, to variable zeta
         zeta = np.zeros((3, len(self.x), 1, 3), dtype=complex)
-        zeta[0, :, 0, 1] = Z1[0] + 1j * Z1[1]
-        zeta[1, :, 0, 1] = Z1[2] + 1j * Z1[3]
-        zeta[2, :, 0, 1] = Z2[2] + 1j * Z2[3]
+        if self.input.v('solver') == (None or 'numerical'):
+            jmax = self.input.v('grid', 'maxIndex', 'x')
+            r = self.rf(self.x)
+            a = self.af(self.x, r)
+            H = self.input.v('H', x=self.x / self.L)
+            M = ((a[0] * np.sinh(r[0] * H) / r[0]) - H) * self.input.v('B', x=self.x / self.L) * (self.G / (1j * self.SIGMA))
+            F = np.zeros((jmax+1, 1), dtype=complex)    # Forcing term shape (x, number of right-hand sides)
+            Fopen = np.zeros((1, 1), dtype=complex)     # Forcing term shape (1, number of right-hand sides)
+            Fclosed = np.zeros((1, 1), dtype=complex)   # Forcing term shape (1, number of right-hand sides)
+            Fopen[0,0] = self.bca
+            Z, Zx, _ = zetaFunctionUncoupled(1, M, F, Fopen, Fclosed, self.input, hasMatrix = False)
+            zeta[0, :, 0, 1] = Z[:, 0]
+            zeta[1, :, 0, 1] = Zx[:, 0]
+            zeta[2, :, 0, 1] = np.gradient(Zx[:, 0], self.x[1], edge_order=2)
+        elif self.input.v('solver') == 'bvp':
+            try:
+                import scikits.bvp_solver
+            except ImportError:
+                raise KnownError('The scikits.bvp_solver module is not known')
+            # Define problem
+            problem = scikits.bvp_solver.ProblemDefinition(num_ODE=4,
+                                                           num_parameters=0,
+                                                           num_left_boundary_conditions=2,
+                                                           boundary_points=(self.x[0], self.x[-1]),
+                                                           function=self.system_ode,
+                                                           boundary_conditions=self.bcs,
+                                                           function_derivative=self.system_ode_der)
+            # Define solution guess
+            guess = np.array([np.real(self.bca), np.imag(self.bca), 0., 0.])
+            # Solve boundary value problem
+            solution = scikits.bvp_solver.solve(problem, solution_guess=guess, tolerance=self.TOL)
+            # Extract solution
+            Z1, Z2 = solution(self.x, eval_derivative=True)
+            # Assign water level, including derivatives, to variable zeta
+            zeta[0, :, 0, 1] = Z1[0] + 1j * Z1[1]
+            zeta[1, :, 0, 1] = Z1[2] + 1j * Z1[3]
+            zeta[2, :, 0, 1] = Z2[2] + 1j * Z2[3]
         return zeta
 
     def velocity(self, zeta):
@@ -255,12 +275,12 @@ class HydroLead:
         u = np.zeros((5, len(self.x), len(self.z), 3), dtype=complex)
         w = np.zeros((2, len(self.x), len(self.z), 3), dtype=complex)
         # Extract parameters alpha and r and B
-        rf = np.array([self.rf(x) for x in self.x])
-        r = rf[:, 0].reshape(len(self.x), 1)
-        rx = rf[:, 1].reshape(len(self.x), 1)
-        af = np.array([self.af(x, rf[i, :]) for i, x in enumerate(self.x)])
-        a = af[:, 0].reshape(len(self.x), 1)
-        ax = af[:, 1].reshape(len(self.x), 1)
+        rf = self.rf(self.x)
+        r = rf[0, :].reshape(len(self.x), 1)
+        rx = rf[1, :].reshape(len(self.x), 1)
+        af = self.af(self.x, rf)
+        a = af[0, :].reshape(len(self.x), 1)
+        ax = af[1, :].reshape(len(self.x), 1)
         B = np.array([self.input.v('B', x=self.x/self.L), self.input.d('B', x=self.x/self.L, dim='x')])
         b = B[0].reshape(len(self.x), 1)
         bx = B[1].reshape(len(self.x), 1)
@@ -272,22 +292,24 @@ class HydroLead:
         c = self.G / (1j * self.SIGMA)
         sinhrz = np.sinh(r * self.zarr)
         coshrz = np.cosh(r * self.zarr)
+        var1 = c * zetax
+        var2 = (a * coshrz - 1.)
+        var3 = a * rx * self.zarr * sinhrz
         # u
-        u[0, :, :, 1] = c * zetax * (a * coshrz - 1.)
+        u[0, :, :, 1] = var1 * var2
         # u_x
-        u[1, :, :, 1] = c * (zetaxx * (a * coshrz - 1.) + zetax * (ax * coshrz + a * rx * self.zarr * sinhrz))
+        u[1, :, :, 1] = c * zetaxx * var2 + var1 * (ax * coshrz + var3)
         # u_z
-        u[2, :, :, 1] = c * zetax * (a * r * sinhrz)
+        u[2, :, :, 1] = var1 * (a * r * sinhrz)
         # u_zz
-        u[3, :, :, 1] = c * zetax * (a * r**2 * coshrz)
+        u[3, :, :, 1] = var1 * (a * r**2 * coshrz)
         # u_zz_x
         u[4, :, :, 1] = c * (zetaxx * a * r**2 * coshrz + zetax * (ax * r**2 * coshrz + 2. * a * r * rx * coshrz +
-                                                                   a * r**2 * rx * self.zarr * sinhrz))
+                                                                   r**2 * var3))
         # w
         w[0, :, :, 1] = c * ((zetaxx + (bx / b) * zetax) * (self.zarr - (a / r) * sinhrz) - (1 / r) * zetax *
                          (sinhrz * ax + a * rx * (self.zarr * coshrz - (sinhrz / r))) - self.SIGMA**2 * zeta0 / self.G)
         # w_z
-        w[1, :, :, 1] = c * ((zetaxx + (bx / b) * zetax) * (1. - a * coshrz) -
-                             zetax * (ax * coshrz + a * rx * self.zarr * sinhrz))
+        w[1, :, :, 1] = -c * (var2 * (zetaxx + (bx / b) * zetax) + zetax * (ax * coshrz + var3))
         return u, w
 

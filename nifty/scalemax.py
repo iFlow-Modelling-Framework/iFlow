@@ -7,4 +7,8 @@ Authors: R.L. Brouwer
 
 
 def scalemax(value):
-    return value / (value.max() * 1000.)
+    if value.max() == 0:
+        ret = value
+    else:
+        ret = value / value.max()
+    return ret
