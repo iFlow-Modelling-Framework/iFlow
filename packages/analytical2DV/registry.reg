@@ -14,11 +14,6 @@ output      L B H
 ########################################################################################################################
 # subpackage turbulence
 ########################################################################################################################
-module      RoughnessProfile
-packagePath	turbulence/
-input       L roughnessParameter @roughnessParameter
-output		@roughnessParameter
-
 module      TurbulenceUniform
 packagePath	turbulence/
 input       grid Av0amp Av0phase sf0 m n
@@ -28,12 +23,6 @@ module      TurbulenceParabolic
 packagePath	turbulence/
 input       grid Av0amp Av0phase z0* m n
 output		Av Roughness BottomBC
-
-module      ParabolicFirst
-packagePath	turbulence/
-#input       grid Av1amp Av1phase z0* m n
-input       grid Av0amp Av0phase z0* m n zeta0
-output		Av1 Av2 Av3
 
 ########################################################################################################################
 # Subpackage salinity_diagnostic

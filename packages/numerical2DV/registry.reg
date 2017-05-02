@@ -129,30 +129,6 @@ packagePath sediment/
 input       zeta0 u0 u1 hatc0 hatc1 hatc2 B grid Kh sedbc @sedbc
 output      a c0 c1 c2 F T f
 
-module      StaticAvailability_timeint
-packagePath sediment/
-input       zeta0 u0 u1 hatc0 hatc1 hatc2 B grid Kh sedbc @sedbc
-output      a c0 c1 c2 F T f
-
-module      StaticAvailability_HS
-packagePath sediment/
-inputInit   ws00
-input       ws00 mhs cgel zeta0 u0 u1 hatc0 hatc1 hatc2 B grid Kh sedbc @sedbc
-output      a c0 c1 c2 F T f ws0
-iterative   True
-
-module      HinderedSettling
-packagePath sediment/
-inputInit   ws00 mhs cgel grid u0
-input       ws00 mhs cgel grid c0 c1
-output      ws0
-iterative   True
-
-module      CriticalErosion
-packagePath sediment/
-input       ws00 mhs cgel grid Av sigma_rho Kv
-output      Ecrit
-
 ########################################################################################################################
 # Subpackage turbulence
 ########################################################################################################################
