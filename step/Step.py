@@ -88,7 +88,7 @@ class Step:
         if len(loopvalues) >= 1:
             permutations = itertools.product(*loopvalues)
         else:
-            permutations = [(i,) for i in loopvalues[0]] #TODO buggy
+            permutations = [None] # 13-02-2017 YMD
 
         #########
         # determine number and shape of subplots
@@ -122,11 +122,14 @@ class Step:
             d[axis[gridAxisNo]] = self.input.v('grid', 'axis', axis[gridAxisNo]).reshape(self.input.v('grid', 'maxIndex', axis[gridAxisNo])+1)
             # append keylist with current sublevel
             keyListTemp = copy(keyList)
-            for k in range(0, len(combi)):
-                if looplist[k] == 'sublevel':
-                    keyListTemp.append(combi[k])
-                else:
-                    d[looplist[k]] = combi[k]
+            try:
+                for k in range(0, len(combi)):
+                    if looplist[k] == 'sublevel':
+                        keyListTemp.append(combi[k])
+                    else:
+                        d[looplist[k]] = combi[k]
+            except:
+                pass
             #   set axes
             axisData = [None]*2
             if not kwargs.get('der'):
@@ -319,7 +322,10 @@ class Step:
             value = value*conv
 
             # set cmap
-            if 'u' in value_label:
+            if 'c' in value_label:
+                cmap = 'YlOrBr'
+                normalisecolor = mpl.colors.Normalize(vmin=0, vmax=np.amax(np.abs(value)))
+            else:
                 if np.amax(np.abs(value))==0:
                     cmap = 'RdBu_r'
                     normalisecolor = mpl.colors.Normalize(vmin=0, vmax=0)
@@ -332,9 +338,6 @@ class Step:
                 else:
                     normalisecolor = mpl.colors.Normalize(vmin=-np.amax(np.abs(value)), vmax=np.amax(np.abs(value)))
                     cmap = 'RdBu_r'
-            elif 'c' in value_label:
-                cmap = 'YlOrBr'
-                normalisecolor = mpl.colors.Normalize(vmin=0, vmax=np.amax(np.abs(value)))
 
             # plot
             plt.pcolormesh(axis1_dim, axis2_dim, value, norm=normalisecolor, cmap=cmap, shading='gouraud') #, cmap='YlOrBr'
@@ -477,7 +480,7 @@ class Step:
         # determine number and shape of subplots
         ################################################################################################################
         numberOfSubplots = len(loopvalues)
-        subplotShape = (numberOfSubplots, 1)
+        subplotShape = (numberOfSubplots, 2)
 
         ################################################################################################################
         # plot
@@ -640,5 +643,6 @@ class Step:
                     yname = [r'$\mathcal{T}$']
                     yunit = ''
                     plt.label(yname + ' (' + yunit + ')')
+        plt.xlim(0, max(xdim))
         plt.draw()
         return

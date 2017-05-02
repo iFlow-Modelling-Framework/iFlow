@@ -84,7 +84,7 @@ def axisDerivative(u, dim, dimNo, grid, *args, **kwargs):
 
 
     # central derivative
-    if DERMETHOD == 'CENTRAL':
+    if DERMETHOD == 'CENTRAL':  # central method with first order at the boundaries
         upInds = inds
         try:
             upInd = np.minimum(np.asarray(args[dimNo])+1, maxIndex)
@@ -103,7 +103,26 @@ def axisDerivative(u, dim, dimNo, grid, *args, **kwargs):
         downaxis = np.multiply(grid.v('grid', 'axis', dim, *downInds, copy='all'), (grid.v('grid', 'high', dim, *downInds, copy='all')-grid.v('grid', 'low', dim, *downInds, copy='all')))+grid.v('grid', 'low', dim, *downInds, copy='all')
 
         ux = (u[np.ix_(*upInds)]-u[np.ix_(*downInds)])/(upaxis-downaxis)
-    elif DERMETHOD == 'CENTRAL2':
+    elif DERMETHOD == 'FORWARD':    # first order forward
+        upInds = inds
+        try:
+            upInd = np.minimum(np.asarray(args[dimNo])+1, maxIndex)
+        except:
+            upInd = np.asarray(range(1, maxIndex+1)+[maxIndex])
+        upInds[dimNo] = upInd
+
+        downInds = inds[:]
+        try:
+            downInd = np.minimum(np.asarray(args[dimNo]), maxIndex-1)
+        except:
+            downInd = np.asarray(range(0, maxIndex) + [maxIndex-1])
+        downInds[dimNo] = downInd
+
+        upaxis = np.multiply(grid.v('grid', 'axis', dim, *upInds, copy='all'), (grid.v('grid', 'high', dim, *upInds, copy='all')-grid.v('grid', 'low', dim, *upInds, copy='all')))+grid.v('grid', 'low', dim, *upInds, copy='all')
+        downaxis = np.multiply(grid.v('grid', 'axis', dim, *downInds, copy='all'), (grid.v('grid', 'high', dim, *downInds, copy='all')-grid.v('grid', 'low', dim, *downInds, copy='all')))+grid.v('grid', 'low', dim, *downInds, copy='all')
+
+        ux = (u[np.ix_(*upInds)]-u[np.ix_(*downInds)])/(upaxis-downaxis)
+    elif DERMETHOD == 'CENTRAL2':   # central method with second order at the boundaries
 
         midInds = inds[:]
         try:
