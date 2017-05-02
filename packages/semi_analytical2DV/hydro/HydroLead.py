@@ -26,7 +26,7 @@ class HydroLead:
         Returns:
             Dictionary with results. At least contains the variables listed as output in the registry
         """
-        self.logger.info('Running module HydroLead_new')
+        self.logger.info('Running module HydroLead')
 
         # Initiate variables
         self.TOL = self.input.v('TOLERANCEBVP')

@@ -7,50 +7,54 @@ Authors: R.L. Brouwer
 import logging
 import numpy as np
 from scipy import integrate
-from scipy.interpolate import interp1d
 import scipy.sparse as sps
 import scipy.linalg as linalg
 import nifty as ny
 from src.util.diagnostics import KnownError
 import sys
-from math import sqrt
+from nifty import toList
+from erodibility_stock_relation import erodibility_stock_relation, erodibility_stock_relation_der
+import numbers
+from copy import copy
 
 
-class DynamicAvailability:
+class DynamicAvailability_new:
     # Variables
     logger = logging.getLogger(__name__)
 
     # Methods
-    def __init__(self, input, submodulesToRun):
+    def __init__(self, input):
         self.input = input
         return
 
     def run(self):
-        """Run function to initiate the calculation of the sediment concentration based on dynamic availability. We have
-        to find an expression for f = g*a, where a is the availability when the system is in morphodynamic equilibrium
-        and g is a function that describes the dependence on Q (or t). We solve g from the following equation:
+        """Run function to initiate the calculation of the sediment concentration based on dynamic availability.
+        We have to find an expression for f = g*a_eq, where a_eq is the availability when the system is in morphodynamic
+        equilibrium and g is a function that describes the dependence on Q (or t). We solve for a and g from the
+        following equation:
 
-            g_t = gamma * (1-beta*a*g)[F*g_xx + (A - T)*g_x] - g*a_t/a,                         (1)
+            ell * a_t + D(x) * (a_eq * g)_t = -gamma * a_eq * [F * g_xx + (A - T) * g_x],                       (1)
 
         where,
 
-            gamma = 1 / (mu_s*rho_s*(1-p)H_0),                                                  (2)
-            A = F_x + B_x*F/B,                                                                  (3)
-            a_t/a = -int_0^x[(T/F)_t dx].                                                       (4)
+            ell     = l / H_0                                                                                   (2)
+            gamma   = 1 / (mu_s * rho_s * (1-p) * H_0),                                                         (3)
+            A       = (B * F)_x / B,                                                                            (4)
+            D(x)    = gamma * H * (c00 + c20)_depth_averaged.                                                   (5)
 
          Returns:
              Dictionary with results. At least contains the variables listed as output in the registry
          """
-        self.logger.info('Module DynamicAvailability is running')
+        self.logger.info('Running module DynamicAvailability_new')
 
         # Initiate variables
         self.RHOS = self.input.v('RHOS')
         self.DS = self.input.v('DS')
         self.WS = self.input.v('ws')
         self.GPRIME = self.input.v('G') * (self.RHOS - self.input.v('RHO0')) / self.input.v('RHO0')
-        self.MUS = self.input.v('mus')
-        self.FCAP = self.input.v('fcap')
+        self.FINF = self.input.v('finf')
         self.CSEA = self.input.v('csea')
+        self.FCAP = self.input.v('fcap')
         self.P = self.input.v('p')
         self.TOL = self.input.v('tol')
         self.ASTAR = self.input.v('astar')
@@ -58,311 +62,288 @@ class DynamicAvailability:
         self.L = self.input.v('L')
         self.x = self.input.v('grid', 'axis', 'x') * self.L
         self.dx = (self.x[1:]-self.x[:-1]).reshape(len(self.x)-1, 1)
+        jmax = self.input.v('grid', 'maxIndex', 'x')
         kmax = self.input.v('grid', 'maxIndex', 'z')
+        fmax = self.input.v('grid', 'maxIndex', 'f')
         self.z = self.input.v('grid', 'axis', 'z', 0, range(0, kmax+1))
         self.zarr = ny.dimensionalAxis(self.input.slice('grid'), 'z')[:, :, 0]
-        self.H = (self.input.v('H', x=self.x/self.L).reshape(len(self.x), 1) +
-                  self.input.v('R', x=self.x/self.L).reshape(len(self.x), 1))
-        self.Hx = (self.input.d('H', x=self.x/self.L, dim='x').reshape(len(self.x), 1) +
-                   self.input.d('R', x=self.x / self.L, dim='x').reshape(len(self.x), 1))
-        self.B = self.input.v('B', x=self.x/self.L).reshape(len(self.x), 1)
-        self.Bx = self.input.d('B', x=self.x/self.L, dim='x').reshape(len(self.x), 1)
-        self.sf = self.input.v('Roughness', x=self.x/self.L, f=0).reshape(len(self.x), 1)
-        self.Av0 = self.input.v('Av', x=self.x/self.L, z=0, f=0).reshape(len(self.x), 1).reshape(len(self.x), 1)
-        self.Fc = self.input.v('F', x=self.x/self.L).reshape(len(self.x), 1) - self.input.v('F', 'Fdiff', 'c20', x=self.x/self.L).reshape(len(self.x), 1)
-        self.Tc = (self.input.v('T') - (self.input.v('T', 'TM0', 'tide_river', x=self.x/self.L) +
-                                        self.input.v('T', 'TM0', 'river_river', x=self.x/self.L) +
-                                        self.input.v('T', 'TM2', 'TM2M0', 'tide_river', x=self.x / self.L))).reshape(len(self.x), 1)
-        self.TQ = (self.input.v('T', 'TM0', 'tide_river', x=self.x/self.L) +
-                   self.input.v('T', 'TM2', 'TM2M0', 'tide_river', x=self.x/self.L)).reshape(len(self.x), 1) / self.input.v('Q1')
-        self.c00 = np.real(self.input.v('hatc', 'a', 'c00', range(0, len(self.x)), range(0, len(self.z))))
-        self.FSEA = self.CSEA * self.H[0] / np.trapz(self.c00[0, :], dx=-self.zarr[0, 1])
-        # Calculate constant factor gamma
-        self.gamma = 1. / (self.MUS * self.RHOS * (1. - self.P) * self.H[0])
+        self.H = (self.input.v('H', range(0, jmax+1)).reshape(jmax+1, 1) +
+                  self.input.v('R', range(0, jmax+1)).reshape(jmax+1, 1))
+        self.Hx = (self.input.d('H', range(0, jmax+1), dim='x').reshape(jmax+1, 1) +
+                   self.input.d('R', range(0, jmax+1), dim='x').reshape(jmax+1, 1))
+        self.B = self.input.v('B', range(0, jmax+1)).reshape(jmax+1, 1)
+        self.Bx = self.input.d('B', range(0, jmax+1), dim='x').reshape(jmax+1, 1)
+        self.sf = self.input.v('Roughness', range(0, jmax+1), 0, 0).reshape(jmax+1, 1)
+        self.Av0 = self.input.v('Av', range(0, jmax+1), 0, 0).reshape(jmax+1, 1)
+        self.Fc = (self.input.v('F', range(0, jmax+1)) -
+                   self.input.v('F', 'diffusion_river', range(0, jmax+1))).reshape(jmax+1, 1)
+        self.Tc = (self.input.v('T') - (self.input.v('T', 'river', range(0, jmax+1)) +
+                                        self.input.v('T', 'river_river', range(0, jmax+1)) +
+                                        self.input.v('T', 'diffusion_river', range(0, jmax+1)))).reshape(len(self.x), 1)
+        self.u1river = np.real(self.input.v('u1', 'river', range(0, jmax+1), range(0, kmax + 1), 0))
+        self.Q_fromhydro = -np.trapz(self.u1river[-1, :], x=-self.zarr[-1, :]) * self.B[-1]
+        self.TQ = self.input.v('T', 'river', range(0, jmax+1)).reshape(jmax+1, 1) / self.Q_fromhydro
+        self.c00 = np.real(self.input.v('hatc0', range(0, jmax+1), range(0, kmax+1), 0))
+        self.c04 = self.input.v('hatc0', range(0, jmax+1), range(0, kmax+1), 2)
+        # self.ALPHA2 = (abs(np.trapz(self.c04, x=-self.zarr, axis=1)) / (np.trapz(self.c00, x=-self.zarr, axis=1)) + 1.e-15).reshape(len(self.x), 1)
+        # self.ALPHA2[-1] = 3 * (self.ALPHA2[-2]-self.ALPHA2[-3]) + self.ALPHA2[-4] #c04 and c00 are zero at x=L, but alpha2 remains finite based on backward euler and central differences
+        # self.FSEA = self.CSEA * self.H[0] / np.trapz(self.c00[0, :], dx=-self.zarr[0, 1])
+        # # self.FSEA = self.CSEA / (np.mean(self.c00[0, :]) * self.FINF)
+        # # Calculate constant factor gamma
+        # self.gamma = 1. / (self.RHOS * (1. - self.P) * self.H[0])
 
         #load time serie Q
-        self.step = 1
-        # self.dt = 24 * 3600
-        # self.t = np.arange(0, 366 * self.dt, self.dt/self.step)
-        ### constant profile ###
-        # self.Q = np.ones(1000) * 20 #self.input.v('Q1')
-        # self.Qt = np.zeros(1000)
-        ### sinusoidal profile ###
-        # self.Q = 40 + 10 * np.sin(2 * np.pi * self.t / (365 * self.dt))
-        # self.Qt = 10 * np.cos(2 * np.pi * self.t / (365 * self.dt)) * 2 * np.pi / (365 * self.dt)
-        ### tangent hyperbolic profile ###
-        # self.Q = -17.5*np.tanh((self.t - self.dt*200)/2e6) + 42.5
-        # self.Q = np.append(self.Q, 17.5*np.tanh((self.t - self.dt*200)/2e6) + 42.5)
-        # self.Q = -20.*np.tanh((self.t - self.dt*200)/2e6) + 40.
-        # self.Q = np.append(self.Q, 20.*np.tanh((self.t - self.dt*200)/2e6) + 40.)
-        # self.t = np.arange(0, 2 * 366 * self.dt, self.dt/self.step)
-        # self.t = np.arange(0, 366 * self.dt, self.dt/self.step)
-        # self.Qt = np.gradient(self.Q, self.dt, edge_order=2)
-        ### fitted data Scheldt ###
-        # data = np.loadtxt('/Users/RLBrouwer/Box Sync/WL Antwerpen/WL2016R13_103_4_WP1Sed_texfiles/python/WP14/input/tday_Qmeasured_Qfit_dQfitdt.dat')
-        data = np.loadtxt('/Users/RLBrouwer/Box Sync/WL Antwerpen/WL2016R13_103_4_WP1Sed_texfiles/python/WP14/input/Qfit_91days.dat')
-        t0_2001 = 10592 + 366
-        yr2001 = range(t0_2001, t0_2001+365)
-        t0_2009 = t0_2001 + 6*365 +2*366
-        yr2009 = range(t0_2009, t0_2009+365)
-        self.Q = data[yr2009, 0]
-        # # Qt = data[5000:7000, 1]
-        # t = np.arange(0, len(Q) * self.dt, self.dt)
-        # t2 = np.arange(0, len(Q) * self.dt, self.dt / 10)[:-9]
-        # Qinterp = interp1d(t, Q, kind='cubic')
-        # self.Q = Qinterp(t2)
-        # Qtinterp = interp1d(t, Qt, kind='cubic')
-        # self.Qt = Qtinterp(t2)
-        ### linear Q ###
-        # self.Q = np.arange(5, 121)
-        # self.Qt = np.gradient(self.Q, self.dt, edge_order=2)
+        self.dt = self.interpretValues(self.input.v('dt'))
+        if self.input.v('t') is not None:
+            self.t = self.interpretValues(self.input.v('t'))
+        self.Q = self.interpretValues(self.input.v('Q'))
 
-        # Allocate space to save results
-        # d = {}
-        # d['f'] = {}
-        # d['flux'] ={}
-        # # d['Tt'] = {}
-        # # d['Ft'] = {}
-        # d['c0bar'] = {}
-        # # d['Msed'] = {}
-        # d['eigs'] = {}
+        self.logger.info('Running time-integrator')
 
-        print 'Time-integrator is running'
-
-        # # Initialize vector g
-        # g = self.FSEA * np.ones((len(self.x),1)) #(1. - self.x / self.L)
-        # # g = (self.FSEA * (1. - self.x / self.L)**2).reshape(len(self.x), 1)
-        # # G = []
-        # # G.append(g)
-        # g_old = g
-        # # Initialize availability a
-        # Tt = []
-        # Tr_old, C20_old = self.river_river_interaction(self.Q[0])
-        # T_old = self.Tc + self.TQ * self.Q[0] + Tr_old
-        # Tt.append(T_old)
-        # # # Calculate and append diffusive coefficient F
-        # Ft = []
-        # fdiff_c20_old = np.real(-np.trapz(self.Kh * C20_old, x=-self.zarr, axis=1))
-        # F_old = self.Fc + fdiff_c20_old.reshape(len(self.x), 1)
-        # Ft.append(F_old)
-        # # a_old = self.availability(F[0], T[0])
-        # a_old = self.availability(F_old, T_old)
-        # a_old = a_old / a_old[0]
-        # Fx_old = np.gradient(F_old, self.dx[0], axis=0, edge_order=2)
-        # A_old = Fx_old + self.Bx * F_old / self.B
-        # Initialize variables to be saved
-        # f = []
-        # f_old = g_old * a_old
-        # f.append(f_old)
-        # flux = []
-        # flux_old = self.B * F_old * a_old * np.gradient(g, self.dx[0], axis=0, edge_order=2)
-        # flux.append(flux_old)
-        # c0bar = []
-        # c0bareq = []
-        # M = []
-        # Meq = []
-        # eigvals = []
-        # eigvecs = []
-        # a_init = self.FSEA * a_old
-
-        # vars = self.rk4()
         vars = self.implicit()
-
-        # for i, q in enumerate(self.Q[1:]):
-        #     # print 'Q =', q, 'step: ', i+1, '/', len(self.Q[1:])
-        #     Tr, C20 = self.river_river_interaction(q)
-        #     T = self.Tc + self.TQ * q + Tr
-        #     # Calculate and append diffusive coefficient F
-        #     fdiff_c20 = np.real(-np.trapz(self.Kh * C20, x=-self.zarr, axis=1))
-        #     F = self.Fc + fdiff_c20.reshape(len(self.x), 1)
-        #     Fx = np.gradient(F, self.dx[0], axis=0, edge_order=2)
-        #     A = Fx + self.Bx * F / self.B
-        #     a = self.availability(F, T)
-        #     # scale the availability such that a = 1 at the sea boundary
-        #     a = a / a[0]
-        #     # test if min[1 - cap * a * g] is negative at t=0. If so raise an error
-        #     cap = 1 - self.FCAP * a * g
-        #     ind, = np.where(cap[:, 0] < 0.)
-        #     if not len(ind) == 0:
-        #         # print 'capped'
-        #         g[ind] = (1. - 10 * np.finfo(float).eps) / (self.FCAP * a[ind])
-        #     # print min(1 - self.FCAP * a * g)
-        #
-        #     if i == 0 and min(1 - self.FCAP * a * g) < 0:
-        #         maxfcap = 1 / max(a * g)
-        #         raise KnownError('Given the initial and boundary conditions, fcap should be smaller than %.2g' % maxfcap)
-        #
-        #     # Determine eigenvalues of the system for a certain discharge
-        #     if self.FCAP == 0:
-        #         eigval, eigvec = self.stability(A, T, F, a)
-        #         eigvals.append(eigval)
-        #         eigvecs.append(eigvec)
-        #     else:
-        #         eigvals.append(0.)
-        #         eigvals.append(0.)
-        #
-        #     gvec, jac = self.jacvec(A, A_old, T, T_old, F, F_old, g, g_old, a, a_old)
-        #     while max(abs(gvec)) > acc:
-        #         dg = linalg.solve(jac, gvec)
-        #         g = g - dg.reshape(len(self.x), 1)
-        #         gvec, jac = self.jacvec(A, A_old, T, T_old, F, F_old, g, g_old, a, a_old)
-        #     cap = 1 - self.FCAP * a * g
-        #     ind, = np.where(cap[:, 0] < 0.)
-        #     if not len(ind) == 0:
-        #         # print 'capped again'
-        #         g[ind] = (1. - 10 * np.finfo(float).eps) / (self.FCAP * a[ind])
-        #     # print min(1 - self.FCAP * a * g)
-        #     g_old = g
-        #     a_old = a
-        #     T_old = T
-        #     F_old = F
-        #     A_old = A
-        #     fnew = a * g
-        #     c0barnew = (self.c00 + C20) * fnew.reshape(len(self.x), 1)
-        #     c0bareqnew = (self.c00 + C20) * (a * self.FSEA).reshape(len(self.x), 1)
-        #     # m = np.trapz(self.B * np.trapz(c0barnew, x=-self.zarr, axis=1).reshape(len(self.x), 1), dx=self.dx, axis=0)
-        #     # meq = np.trapz(self.B * np.trapz(c0bareqnew, x=-self.zarr, axis=1).reshape(len(self.z), 1), dx=self.dx[0], axis=0)
-        #     flux.append(self.B * F * a * np.gradient(g, self.dx[0], axis=0, edge_order=2))
-        #     f.append(fnew)
-        #     c0bar.append(c0barnew)
-        #     c0bareq.append(c0bareqnew)
-        #     # M.append(m)
-        #     # Meq.append(meq)
-        #     Tt.append(T)
-        #     Ft.append(F)
-        #     # G.append(g)
-        #
-        #     if (i%np.floor(len(self.Q[1:])/10.)==0):
-        #         percent = float(i) / len(self.Q[1:])
-        #         hashes = '#' * int(round(percent * 10))
-        #         spaces = ' ' * (10 - len(hashes))
-        #         sys.stdout.write("\rProgress: [{0}] {1}%".format(hashes + spaces, int(round(percent * 100))))
-        #         sys.stdout.flush()
 
         d = {}
         for key, value in vars.iteritems():
             d[key] = value
         return d
 
-    def implicit(self):
+    def init_stock(self, aeq, alpha1):
+        """Initiates the solution vector X = (g, S), when describing the amount of sediment in the system as a function
+        of the stock S
+
+        Parameters:
+            aeq - availability at morphodynamic availability
+            alpha1 - depth-integrated, tide-averaged concentration f_inf * int_-H^R <c> dz
+
+        Returns:
+            X - solution vector (g, S), with g and stock S
+        """
+        # initiate global variables alpha_2 and f_sea
+        if isinstance(self.input.v('alpha2'), numbers.Real):
+            self.ALPHA2 = self.input.v('alpha2')
+        else:
+            self.ALPHA2 = (abs(np.trapz(self.c04, x=-self.zarr, axis=1)) /
+                           (np.trapz(self.c00, x=-self.zarr, axis=1) + 1.e-15)).reshape(len(self.x), 1)
+            self.ALPHA2[-1] = 3 * (self.ALPHA2[-2]-self.ALPHA2[-3]) + self.ALPHA2[-4] #c04 and c00 are zero at x=L, but alpha2 remains finite based on backward euler and central differences
+        self.FSEA = self.CSEA / (np.mean(self.c00[0, :]) * self.FINF)
+        # Calculate variable alpha_1
+        # ALPHA1 = self.FINF * np.trapz(self.c00 + c20, x=-self.zarr, axis=1).reshape(len(self.x), 1)
         # Initialize vector g
-        g = self.FSEA * np.ones((len(self.x), 1))
-        # g = (self.FSEA * (1. - self.x / self.L)**2).reshape(len(self.x), 1)
-        # Calculate transport fucnctions F and T
+        g = self.interpretValues(self.input.v('ginit')).reshape(len(self.x), 1)
+        # define initial erodibility f
+        f = aeq * g
+        if self.input.v('concept')[1] == 'approximation':
+            # Initiate stock S with approximation S = alpha1 * Shat = alpha1 * f / beta * (1 - f)
+            Shat = f / (1. - f)
+        elif self.input.v('concept')[1] == 'exact':
+            # Initiate stock S with exact expression (see notes Yoeri)
+            Shat = f
+            F = erodibility_stock_relation(self.ALPHA2, Shat) - f
+            # Newton-Raphson iteration towards actual Shat
+            while max(abs(F)) > self.TOL:
+                dfdS = erodibility_stock_relation_der(self.ALPHA2, Shat)
+                Shat = Shat - F / dfdS
+                F = erodibility_stock_relation(self.ALPHA2, Shat) - f
+        # Define solution vector X = (g, S)
+        X = np.append(g, Shat).reshape(2 * len(self.x), 1)
+        return X
+
+    def init_availability(self, aeq):
+        """Initiates the solution vector X = (g, a), when describing the amount of sediment in the system as a function
+        of the availability a
+
+        Parameters:
+            aeq - availability at morphodynamic availability
+
+        Returns:
+            X - solution vector (g, a), with g and availability
+        """
+        # Initiate global variables gamma and f_sea
+        self.gamma = 1. / (self.RHOS * (1. - self.P) * self.H[0])
+        self.FSEA = self.FSEA = self.CSEA / np.mean(self.c00[0, :])
+        # Initialize vector g
+        g = self.interpretValues(self.input.v('ginit'))
+        # Define availability as: a = f / (1 - f_sea * f) or equivalently f = a / (1 + f_sea * a)
+        a = aeq * self.FSEA / (1. - self.FCAP * aeq * self.FSEA)
+        # Define solution vector X = (g, a)
+        X = np.append(g, a).reshape(2*len(self.x), 1)
+        return X
+
+    def implicit(self):
+        """Calculates the time-evolution of the sediment distribution in an estuary using an implicit solution method
+
+        Returns:
+             Xt - solution vector X = (g, a) or X = (g, S) as a function of a time-dependent forcing variable, e.g. Q(t)
+             Ft - diffusion function F as a function of a time-dependent forcing variable, e.g. Q(t)
+             Tt - advection function T as a function of a time-dependent forcing variable, e.g. Q(t)
+             etc.
+        """
+        # Calculate transport functions F and T
         T_old, F_old, A_old, C20_old = self.transport_terms(self.Q[0])
         Tt = []
         Tt.append(T_old)
         Ft = []
         Ft.append(F_old)
-        # Calculate availability a
-        aeq_old = self.availability(F_old, T_old)
-        aeq_old = aeq_old / aeq_old[0]
-        a = aeq_old * self.FSEA / (1. - self.FCAP * self.FSEA)
-        # Define solution vector X = (g, a)
+        # Calculate equilibrium availability a_eq
+        aeq_old = self.availability(F_old, T_old, self.Q[0])
+        aeq_old = aeq_old / aeq_old[0]  # scale the availability such that aeq=0 at x=0
+
+        ##### Initialise solution vector X depending on which concept is used ######
         Xt = []
-        X = np.append(g, a).reshape(2*len(self.x), 1)
-        X_old = X
-        Xt.append(X)
-        # Calculate flux over open boundary
-        flux = []
-        flux_old = self.B * F_old * aeq_old * np.gradient(g, self.dx[0], axis=0, edge_order=2)
-        flux.append(flux_old)
+        if self.input.v('concept') == 'availability':
+            # Solution matrix X = (g, a)
+            X = self.init_availability(aeq_old)
+            X_old = copy(X)
+            Xt.append(X)
+            # Define factor D
+            D_old = self.gamma * self.H * np.mean(self.c00 + C20_old, axis=1).reshape(len(self.x), 1)
+        elif self.input.v('concept')[0] == 'stock':
+            ALPHA1_old = self.FINF * np.trapz(self.c00 + C20_old, x=-self.zarr, axis=1).reshape(len(self.x), 1)
+            # Solution matrix X = (g, S)
+            X = self.init_stock(aeq_old, ALPHA1_old)
+            X_old = copy(X)
+            Xt.append(X_old * np.append(np.ones(len(self.x)), ALPHA1_old).reshape(2*len(self.x), 1))
+
+        ft = []
+        ft.append(aeq_old * X_old[:len(self.x)])
+        aeqt = []
+        aeqt.append(aeq_old)
+        # Calculate river transport term
+        Fr = self.interpretValues(self.input.v('rivertrans'))
+        if len(Fr) == 1.:
+            Fr = Fr * np.ones(len(self.Q))
+        fr_old = -aeq_old * Fr[0] * integrate.cumtrapz(1. / (self.B * F_old * aeq_old), x=self.x, axis=0, initial=0)
+        # # Calculate flux over open boundary
+        # flux = []
+        # flux_old = self.B * F_old * aeq_old * np.gradient(X_old[:len(self.x)], self.dx[0], axis=0, edge_order=2).reshape(len(self.x), 1)
+        # flux.append(flux_old)
+        # # Total sediment volume in the bottom layer
+        # Msed = []
+        # M_old = self.RHOS * (1 - self.P) * np.trapz(self.B * self.input.v('ell') * self.H[0] * X_old[len(self.x):], x=self.x.reshape(len(self.x), 1), axis=0)
+        # Msed.append(M_old)
         # Calculate tidally-averaged actual and equilibrium sediment concentration
         c0bar = []
-        c0bar.append((self.c00 + C20_old) * aeq_old * g)
+        c0bar.append(self.FINF * (self.c00 + C20_old) * aeq_old * X_old[:len(self.x)])
         c0bareq = []
-        c0bareq.append((self.c00 + C20_old) * aeq_old * self.FSEA)
+        c0bareq.append(self.FINF * (self.c00 + C20_old) * aeq_old * self.FSEA)
         eigvals = []
         eigvecs = []
-        c0hat = []
-        c0hat.append(self.c00[:, 0]+C20_old[:, 0])
+        # c0hat = []
+        # c0hat.append(self.c00[:, 0] + C20_old[:, 0])
         for i, q in enumerate(self.Q[1:]):
             T, F, A, C20 = self.transport_terms(q)
-            aeq = self.availability(F, T)
-            # scale the availability such that a = 1 at the sea boundary
-            aeq = aeq / aeq[0]
-            # test if min[1 - cap * a * g] is negative at t=0. If so raise an error
-            # cap = 1 - self.FCAP * a * g
-            # ind, = np.where(cap[:, 0] < 0.)
-            # if not len(ind) == 0:
-            #     # print 'capped'
-            #     g[ind] = (1. - 10 * np.finfo(float).eps) / (self.FCAP * a[ind])
-            # print min(1 - self.FCAP * a * g)
+            aeq = self.availability(F, T, q)
+            aeq = aeq / aeq[0]  # scale the availability such that aeq=0 at x=0
+            fr = -aeq * Fr[i+1] * integrate.cumtrapz(1. / (self.B * F * aeq), x=self.x, axis=0, initial=0)
 
-            # if i == 0 and min(1 - self.FCAP * a * g) < 0:
-            #     maxfcap = 1 / max(a * g)
-            #     raise KnownError(
-            #         'Given the initial and boundary conditions, fcap should be smaller than %.2g' % maxfcap)
+            if self.input.v('concept') == 'availability':
+                D = self.gamma * self.H * np.mean(self.c00 + C20, axis=1).reshape(len(self.x), 1)
+                Xvec, jac = self.jacvec_availability(A, A_old, T, T_old, F, F_old, aeq, aeq_old, D, D_old, X, X_old, fr, fr_old)
+            elif self.input.v('concept')[0] == 'stock':
+                ALPHA1 = self.FINF * np.trapz(self.c00 + C20, x=-self.zarr, axis=1).reshape(len(self.x), 1)
+                Xvec, jac = self.jacvec_stock(A, A_old, T, T_old, F, F_old, aeq, aeq_old, X, X_old, ALPHA1_old, ALPHA1, fr, fr_old)
+
+            while max(abs(Xvec)) > self.TOL:
+                dX = linalg.solve(jac, Xvec)
+                X = X - dX.reshape(len(X), 1)
+                if self.input.v('concept') == 'availability':
+                    Xvec, jac = self.jacvec_availability(A, A_old, T, T_old, F, F_old, aeq, aeq_old, D, D_old, X, X_old, fr, fr_old)
+                elif self.input.v('concept')[0] == 'stock':
+                    Xvec, jac = self.jacvec_stock(A, A_old, T, T_old, F, F_old, aeq, aeq_old, X, X_old, ALPHA1_old, ALPHA1, fr, fr_old)
 
             # Determine eigenvalues of the system for a certain discharge
-            # if self.FCAP == 0:
-            #     eigval, eigvec = self.stability(A, T, F, aeq)
-            #     eigvals.append(eigval)
-            #     eigvecs.append(eigvec)
-            # else:
-            #     eigvals.append(0.)
-            #     eigvals.append(0.)
-            #
-            # Xvec, jac = self.jacvec2(A, A_old, T, T_old, F, F_old, aeq, aeq_old, X, X_old)
-            # while max(abs(Xvec)) > self.TOL:
-            #     dX = linalg.solve(jac, Xvec)
-            #     X = X - dX.reshape(len(X), 1)
-            #     Xvec, jac = self.jacvec2(A, A_old, T, T_old, F, F_old, aeq, aeq_old, X, X_old)
+            if self.input.v('concept') == 'availability' and self.FCAP == 0:
+                eigval, eigvec = self.stability_availability(A, T, F, D, aeq)
+                eigvals.append(eigval)
+                eigvecs.append(eigvec)
+            elif self.input.v('concept')[0] == 'stock':
+                eigval, eigvec = self.stability_stock(A, T, F, ALPHA1)
+                eigvals.append(eigval)
+                eigvecs.append(eigvec)
+            else:
+                eigvals.append(0.)
+                eigvals.append(0.)
 
-            # cap = 1 - self.FCAP * aeq * g
-            # ind, = np.where(cap[:, 0] < 0.)
-            # if not len(ind) == 0:
-            #     # print 'capped again'
-            #     g[ind] = (1. - 10 * np.finfo(float).eps) / (self.FCAP * a[ind])
-            # print min(1 - self.FCAP * a * g)
-            # g_old = g
-            # aeq_old = aeq
-            # X_old = X
-            # T_old = T
-            # F_old = F
-            # A_old = A
-            # fnew = aeq * X[:len(self.x)]
-            # c0barnew = (self.c00 + C20) * fnew.reshape(len(self.x), 1)
-            # c0bareqnew = (self.c00 + C20) * (aeq * self.FSEA).reshape(len(self.x), 1)
-            # flux.append(self.B * F * aeq * np.gradient(X[:len(self.x)], self.dx[0], axis=0, edge_order=2))
-            # Xt.append(X)
-            # c0bar.append(c0barnew)
-            # c0bareq.append(c0bareqnew)
+            aeq_old = aeq
+            X_old = copy(X)
+            T_old = copy(T)
+            F_old = copy(F)
+            A_old = copy(A)
+            if self.input.v('concept') == 'availability':
+                D_old = copy(D)
+                Xt.append(X)
+            elif self.input.v('concept')[0] == 'stock':
+                ALPHA1_old = copy(ALPHA1)
+                Xt.append(X * np.append(np.ones(len(self.x)), ALPHA1).reshape(2*len(self.x), 1))
+            fnew = aeq * X[:len(self.x)]
+            ft.append(fnew)
+            c0barnew = self.FINF * (self.c00 + C20) * fnew.reshape(len(self.x), 1)
+            c0bareqnew = self.FINF * (self.c00 + C20) * (aeq * self.FSEA).reshape(len(self.x), 1)
+            # flux.append(self.B * F * aeq * np.gradient(X[:len(self.x)], self.dx[0], axis=0, edge_order=2).reshape(len(self.x), 1))
+            # Msed.append(self.RHOS * (1 - self.P) * np.trapz(self.B * self.input.v('ell') * self.H[0] * X[len(self.x):], x=self.x.reshape(len(self.x), 1), axis=0))
+            c0bar.append(c0barnew)
+            c0bareq.append(c0bareqnew)
             Tt.append(T)
             Ft.append(F)
-            c0hat.append(self.c00[:, 0] + C20[:, 0])
+            aeqt.append(aeq)
+            # c0hat.append(self.c00[:, 0] + C20[:, 0])
 
+            # display progress
             if i % np.floor(len(self.Q[1:]) / 10.) == 0:
                 percent = float(i) / len(self.Q[1:])
                 hashes = '#' * int(round(percent * 10))
                 spaces = ' ' * (10 - len(hashes))
-                sys.stdout.write("\rProgress: [{0}] {1}%".format(hashes + spaces, int(round(percent * 100))))
+                sys.stdout.write("\rProgress: [{0}]{1}%".format(hashes + spaces, int(round(percent * 100))))
                 sys.stdout.flush()
+        St = np.array(Xt)[:, len(self.x):, :]
+        gt = np.array(Xt)[:, :len(self.x), :]
+        return {'St': St, 'gt': gt, 'aeqt': np.array(aeqt), 'Tt': np.array(Tt), 'Ft': np.array(Ft),
+                'ft': np.array(ft), 'c0bar': {'t': np.array(c0bar), 'eq': np.array(c0bareq)},
+                'eigs': {'eigvals': np.array(eigvals),'eigvecs': np.array(eigvecs)}, 'alpha2': self.ALPHA2}
 
-        np.savetxt('/Users/RLBrouwer/Box Sync/WL Antwerpen/WL_rapporten/13_103_WP1.5/iFlow/output/T_2009.dat', Tt)
-        np.savetxt('/Users/RLBrouwer/Box Sync/WL Antwerpen/WL_rapporten/13_103_WP1.5/iFlow/output/F_2009.dat', Ft)
-        np.savetxt('/Users/RLBrouwer/Box Sync/WL Antwerpen/WL_rapporten/13_103_WP1.5/iFlow/output/c0hat_2009.dat', c0hat)
-        np.savetxt('/Users/RLBrouwer/Box Sync/WL Antwerpen/WL_rapporten/13_103_WP1.5/iFlow/output/Q_2009.dat', self.Q)
-        return {'Tt': np.array(Tt)[::self.step], 'Ft': np.array(Ft)[::self.step]}
-        # return {'Xt': np.array(X)[::self.step], 'flux': np.array(flux)[::self.step], 'Tt': np.array(Tt)[::self.step],
-        #         'c0bar': {'t': np.array(c0bar)[::self.step], 'eq': np.array(c0bareq)[::self.step]},
-        #         'Ft': np.array(Ft)[::self.step], 'eigs': {'eigvals': np.array(eigvals)[::self.step],
-        #                                                   'eigvecs': np.array(eigvecs)[::self.step]}}
-        # return {'f': np.array(f)[::self.step], 'flux': np.array(flux)[::self.step], 'Tt': np.array(Tt)[::self.step],
-        #         'c0bar': {'t': np.array(c0bar)[::self.step], 'eq': np.array(c0bareq)[::self.step]},
-        #         'Ft': np.array(Ft)[::self.step], 'eigs': {'eigvals': np.array(eigvals)[::self.step],
-        #                                                   'eigvecs': np.array(eigvecs)[::self.step]}}
+    def transport_terms(self, q):
+        """Calculates the transport terms T, F and A and the second-order sediment concentration c20 based on the time-
+        dependent forcing variable, e.g. Q(t)
+
+        Parameters:
+            q - river discharge Q
+
+        Returns:
+            T - advection function
+            F - diffusion function
+            A - variable appearing the the Exner equation, i.e. A = (BF)_x / B
+            C20 - second-order sediment concentration
+        """
+        Triver_river, C20 = self.river_river_interaction(q)
+        C20x, __ = np.gradient(C20, self.x[1], edge_order=2)
+        Tdiff_river = np.real(-np.trapz(self.Kh * C20x, x=-self.zarr, axis=1)).reshape(len(self.x), 1)
+        T = self.Tc + self.TQ * q + Triver_river + Tdiff_river
+        # Calculate and append diffusive coefficient F
+        Fdiff_river = np.real(-np.trapz(self.Kh * C20, x=-self.zarr, axis=1))
+        F = self.Fc + Fdiff_river.reshape(len(self.x), 1)
+        Fx = np.gradient(F, self.dx[0], axis=0, edge_order=2)
+        A = Fx + self.Bx * F / self.B
+        return T, F, A, C20
 
     def river_river_interaction(self, q):
-        u0 = self.input.v('u0', 'tide', range(0, len(self.x)), len(self.z) - 1, 1)
-        ur = self.input.v('u1', 'river', range(0, len(self.x)), range(0, len(self.z)), 0) * q / self.input.v('Q1')
+        """Calculates the transport and second-order sediment concentration due to the river-river interaction
+
+        Parameters:
+            q - river discharge
+
+        Returns:
+            Tr - transport due to river-river interaction
+            c20 - second-order sediment concentration due to river-river interaction
+        """
+        u0b = self.input.v('u0', 'tide', range(0, len(self.x)), len(self.z) - 1, 1)
+        ur = self.u1river * q / self.Q_fromhydro
         u1b = ur[:, -1]
         time = np.linspace(0, 2 * np.pi, 100)
         utid = np.zeros((len(self.x), len(time))).astype('complex')
         ucomb = np.zeros((len(self.x), len(time))).astype('complex')
         for i, t in enumerate(time):
-            utid[:, i] = 0.5 * (u0 * np.exp(1j * t) + np.conj(u0) * np.exp(-1j * t))  # YMD
-            ucomb[:, i] = u1b + 0.5 * (u0 * np.exp(1j * t) + np.conj(u0) * np.exp(-1j * t))
+            utid[:, i] = 0.5 * (u0b * np.exp(1j * t) + np.conj(u0b) * np.exp(-1j * t))  # YMD
+            ucomb[:, i] = u1b + 0.5 * (u0b * np.exp(1j * t) + np.conj(u0b) * np.exp(-1j * t))
         uabs_tid = np.mean(np.abs(utid), axis=1)
         uabs_tot = np.mean(np.abs(ucomb), axis=1)
         uabs_eps = uabs_tot.reshape(len(self.x), 1) - uabs_tid.reshape(len(self.x), 1)
@@ -372,7 +353,7 @@ class DynamicAvailability:
         Tr = np.real(np.trapz(ur * c20, x=-self.zarr, axis=1)).reshape(len(self.x), 1)
         return Tr, c20
 
-    def availability(self, F, T):
+    def availability(self, F, T, Q):
         """Calculates the availability of sediment needed to derive the sediment concentration
 
         Parameters:
@@ -382,109 +363,209 @@ class DynamicAvailability:
         Returns:
             a - availability of sediment throughout the estuary
         """
-        # This exponent is set to zero (hard-coded) at the landward boundary because here the availability is zero too!
-        # exponent = np.append(np.exp(-np.append(0, integrate.cumtrapz(T / F, dx=self.dx, axis=0)[:-1])), 0)
-
-        # CORRECTION 13/9/16 R.L. BROUWER: BECAUSE WE INCLUDED THE RIVER-RIVER-RIVER INTERACTION, T AND F, AND THUS a,
-        # ARE NOT 0 AT THE WEIR ANYMORE!!!
-        exponent = np.exp(-integrate.cumtrapz(T / F, dx=self.dx, axis=0, initial=0))
+        # Exponent in the availability function.
+        if Q > 0:
+            exponent = np.exp(-integrate.cumtrapz(T / F, dx=self.dx, axis=0, initial=0))
+        else:
+            exponent = np.append(np.exp(-np.append(0, integrate.cumtrapz(T / F, dx=self.dx, axis=0)[:-1])), 0).reshape(len(self.x), 1)
         A = (self.ASTAR * np.trapz(self.B, dx=self.dx, axis=0) /
              np.trapz(self.B * exponent, dx=self.dx, axis=0))
         a = A * exponent
         return a
 
-    def jacvec2(self, A, A_old, T, T_old, F, F_old, aeq, aeq_old, X, X_old):
+    def jacvec_availability(self, A, A_old, T, T_old, F, F_old, aeq, aeq_old, D, D_old, X, X_old, fr, fr_old):
+        """Calculates the vector containing the Exner equation and the algebraic expression between a and f, and the
+        Jacobian matrix needed to solve for g and a
+
+        Parameters:
+            A, A_old - variable (BF)_x/B on the old and current time step
+            T, T_old - transport function T on the old and current time step
+            F, F_old -  diffusion furnction F on the old and current time step
+            aeq, aeq_old - availability in morphodynamic equilibrium on the old and current time step
+            D, D_old - factor D, Eq. (5) above, on the old and current time step
+            X, X_old - solution vector X = (g, a) on the old and current time step
+            fr, fr_old - erodibility f due to river transport term on the old and current time step
+
+        Returns:
+             Xvec - vector containing the Exner equation and the algebraic expression between a and f
+             jac - corresponding Jacobian matrix
+        """
         # Initiate jacobian matrix, Xvec and local variable N
         jac = sps.csc_matrix((len(X), len(X)))
         Xvec, N = np.zeros((len(X), 1)), np.zeros((len(self.x), 1))
         # define length of xgrid
         lx = len(self.x)
-        ivec = range(1, lx-1)
-        # Define local variable N^(n+1)
+        ivec = range(1, lx-1)  #interior points for g
+        jvec = range(lx+1, 2*lx-1)  #interior points for a
+        # Define local variable N^(n+1) = gamma * a_eq * [F*(g - 2g + g) / dx**2 + (A - T) * (g - g) / 2 * dx]
         N[ivec] = self.gamma * aeq[1:-1] * (F[1:-1] * (X[2:lx] - 2 * X[ivec] + X[:lx-2]) / self.dx[0]**2 +
-                                              (A[1:-1] - T[1:-1]) * (X[2:lx] - X[:lx-2]) / (2 * self.dx[0]))
-        # Fill interior points of Xvec related g for the differential equation (1)
+                                            (A[1:-1] - T[1:-1]) * (X[2:lx] - X[:lx-2]) / (2 * self.dx[0]))
+        # Fill interior points of Xvec related to N in Eq. (1)
         Xvec[ivec] += self.dt * N[ivec] / 2.
+        # Fill interior points of Xvec related to D * (a_eq * g)_t in Eq. (1)
+        Xvec[ivec] += D[1:-1] * aeq[1:-1] * X[ivec]
+        # # Fill interior points of Xvec related to river flux
+        # Xvec[ivec] -= self.dt * self.gamma * self.input.v('rivertrans') * (X[2:lx] - X[:lx-2]) / (2 * self.B[ivec] * self.dx[0])
         # Fill interior points of the jacobian matrix related to g for Eq. (1)
-        jval_c_g = -self.dt * self.gamma * aeq[1:-1, 0] * F[1:-1, 0] / self.dx[0]**2
+        jval_c_g = D[1:-1, 0] * aeq[1:-1, 0] - self.dt * self.gamma * aeq[1:-1, 0] * F[1:-1, 0] / self.dx[0]**2
         jac += sps.csc_matrix((jval_c_g, (ivec, ivec)), shape=jac.shape)
-        jval_l_g = self.dt * self.gamma * aeq[1:-1, 0] * (F[1:-1, 0] / self.dx[0] - (A[1:-1, 0] - T[1:-1, 0]) / 2.) / (2 * self.dx[0])
+        jval_l_g = (self.dt * self.gamma * aeq[1:-1, 0] * (F[1:-1, 0] / self.dx[0] - (A[1:-1, 0] - T[1:-1, 0]) / 2.) /
+                    (2 * self.dx[0]))
+        # jval_l_g = self.dt * self.gamma * (aeq[1:-1, 0] * (F[1:-1, 0] / self.dx[0] - (A[1:-1, 0] - T[1:-1, 0]) / 2.) +
+        #                                    self.input.v('rivertrans') / self.B[ivec, 0]) / (2 * self.dx[0])
         jac += sps.csc_matrix((jval_l_g, (ivec, range(lx-2))), shape=jac.shape)
         jval_r_g = self.dt * self.gamma * aeq[1:-1, 0] * (F[1:-1, 0] / self.dx[0] + (A[1:-1, 0] - T[1:-1, 0]) / 2.) / (2 * self.dx[0])
+        # jval_r_g = self.dt * self.gamma * (aeq[1:-1, 0] * (F[1:-1, 0] / self.dx[0] + (A[1:-1, 0] - T[1:-1, 0]) / 2.) -
+        #                         self.input.v('rivertrans') / self.B[ivec, 0]) / (2 * self.dx[0])
         jac += sps.csc_matrix((jval_r_g, (ivec, range(2, lx))), shape=jac.shape)
+
         # Boundary condition at sea
         Xvec[0] = X[0] - self.FSEA
         jac += sps.csc_matrix(([1.], ([0.], [0.])), shape=jac.shape)
         # Boundary condition at weir
         Xvec[lx-1] = (3. * X[lx-1] - 4. * X[lx-2] + X[lx-3])
         jac += sps.csc_matrix(([3., -4., 1.], ([lx-1, lx-1, lx-1], [lx-1, lx-2, lx-3])), shape=jac.shape)
-        # Fill interior points of Xvec and diagonal of jacobian related to a for Eq. (1)
-        Xvec[lx+1:-1] += X[lx+1:-1]
-        jac += sps.csc_matrix((np.ones(lx-2), (ivec, range(lx+1, len(X)-1))), shape=jac.shape)
+        # Xvec[lx-1] = self.B[-1] * F[-1] * aeq[-1] * (3. * X[lx-1] - 4. * X[lx-2] + X[lx-3]) + 2. * self.dx[0] * self.input.v('rivertrans')
+        # jac += sps.csc_matrix((self.B[-1] * F[-1] * aeq[-1] * [3., -4., 1.], ([lx-1, lx-1, lx-1], [lx-1, lx-2, lx-3])), shape=jac.shape)
+        # Xvec[lx-1] = (self.B[-1] * F[-1] * aeq[-1] * (3. * X[lx-1] - 4. * X[lx-2] + X[lx-3]) -
+        #               2. * self.dx[0] * self.input.v('rivertrans') * (X[lx-1] - 1))
+        # jval_g = self.B[-1] * F[-1] * aeq[-1] * [(3. - 2. * self.dx[0] * self.input.v('rivertrans'))[0], -4., 1.]
+        # jac += sps.csc_matrix((jval_g, ([lx-1, lx-1, lx-1], [lx-1, lx-2, lx-3])), shape=jac.shape)
+        # Fill interior points of Xvec and diagonal of jacobian related to ell*a in Eq. (1)
+        ell = self.input.v('ell')
+        Xvec[ivec] += ell * X[jvec]
+        jac += sps.csc_matrix((ell * np.ones(lx-2), (ivec, jvec)), shape=jac.shape)
         # Fill Xvec and jacobian for the algebraic relation between g and a, Eq. (2)
         Xvec[lx:] = aeq * X[:lx] + self.FCAP * aeq * X[:lx] * X[lx:] - X[lx:]
+        # Xvec[lx:] += fr + self.FCAP * fr * X[lx:]
         jac += sps.csc_matrix((self.FCAP * aeq[:, 0] * X[:lx, 0] - 1., (range(lx, 2*lx), range(lx, 2*lx))), shape=jac.shape)
         jac += sps.csc_matrix((aeq[:, 0] + self.FCAP * aeq[:, 0] * X[lx:, 0], (range(lx, 2*lx), range(lx))), shape=jac.shape)
+        # jac += sps.csc_matrix((self.FCAP * fr[:, 0], (range(lx, 2*lx), range(lx, 2*lx))), shape=jac.shape)
         # Convert jacobian matrix to dense matrix
         jac = jac.todense()
         # Inhomogeneous part of the PDE related to a and g at interior points
-        Xvec[lx:] += -X_old[lx:]
+        Xvec[ivec] -= ell * X_old[jvec]
         N[ivec] = self.gamma * aeq_old[1:-1] * (F_old[1:-1] * (X_old[2:lx] - 2 * X_old[ivec] + X_old[:lx-2]) / self.dx[0]**2 +
                                                 (A_old[1:-1] - T_old[1:-1]) * (X_old[2:lx] - X_old[:lx-2]) / (2 * self.dx[0]))
-        Xvec[ivec] += self.dt * N[ivec] / 2.
+        Xvec[ivec] += self.dt * N[ivec] / 2. - D_old[1:-1] * aeq_old[1:-1] * X_old[ivec]
+        # Extra term in the inhomogeneous part due to the river transport
+        # Xvec[ivec] += D[1:-1] * fr[1:-1] - D_old[1:-1] * fr_old[1:-1]
         return Xvec, jac
 
-    def jacvec(self, A, A_old, T, T_old, F, F_old, g, g_old, a, a_old):
-        gvec, M, N = np.zeros((len(self.x),1)), np.zeros((len(self.x),1)), np.zeros((len(self.x),1))
-        # fill g^n+1 and build Jacobian matrix
-        gvec[1:-1] = g[1:-1]
-        jac = sps.identity(len(self.x))
-        # add values to the vector G and define the values for the diagonals for the interior points for the jacobian matrix
-        M[1:-1] = self.gamma * (1 - self.FCAP * a[1:-1] * g[1:-1])
-        N[1:-1] = F[1:-1] * (g[2:] - 2 * g[1:-1] + g[:-2]) / self.dx[0]**2 + (A[1:-1] - T[1:-1]) * (g[2:] - g[:-2]) / (2 * self.dx[0])
-        gvec += self.dt * (M * N) / 2.
-        jval_c = (self.dt / 2) * (-self.gamma * self.FCAP * a * N - 2 * M * F / self.dx[0]**2)
-        jval_l = self.dt * M * (F / self.dx[0] - (A - T) / 2.) / (2 * self.dx[0])
-        jval_r = self.dt * M * (F / self.dx[0] + (A - T) / 2.) / (2 * self.dx[0])
-        # Boundary condition at sea (jacobian matrix at x=0 is already defined by the identity matrix)
-        gvec[0] = g[0] - self.FSEA
-        # Boundary condition at weir
-        # gvec[-1] = g[-4] - 3 * g[-3] + 3 * g[-2] - g[-1]
-        gvec[-1] = (3 * g[-1] - 4 * g[-2] + g[-3]) / (2 * self.dx[-1])
-        # jval_c[-1] = -2 # the final result should be -1 at J[-1, -1]. since we initialized the main diagonal with ones, we have to subtract 2!
-        jval_c[-1] = -1 + 3 / (2 * self.dx[-1])
-        # jval_l[-1] = 3
-        jval_l[-1] = -2 / self.dx[-1]
-        jval_2l, jval_3l = np.zeros(len(self.x) - 2), np.zeros(len(self.x) - 3)
-        # jval_2l[-1] = -3
-        jval_2l[-1] = 1 / (2 * self.dx[-1])
-        # jval_3l[-1] = 1
-        # add diagonals to jacobian matrix
-        # jac += sps.diags([jval_3l, jval_2l, jval_l[1:], jval_c, jval_r[:-1]], [-3, -2, -1, 0, 1])
-        jac += sps.diags([jval_2l, jval_l[1:, 0], jval_c[:, 0], jval_r[:-1, 0]], [-2, -1, 0, 1])
-        jac = jac.todense()
-        # Inhomogeneous part of the PDE at interior points
-        gvec[1:-1] += -a_old[1:-1] * g_old[1:-1] / a[1:-1]
-        M[1:-1] = self.gamma * (1 - self.FCAP * a_old[1:-1] * g_old[1:-1])
-        N[1:-1] = F_old[1:-1] * (g_old[2:] - 2 * g_old[1:-1] + g_old[:-2]) / self.dx[0]**2 + (A_old[1:-1] - T_old[1:-1]) * (g_old[2:] - g_old[:-2]) / (2 * self.dx[0])
-        gvec += self.dt * a_old * (M * N) / (2. * a)
-        return gvec, jac
+    def jacvec_stock(self, A, A_old, T, T_old, F, F_old, aeq, aeq_old, X, X_old, alpha1_old, alpha1, fr, fr_old):
+        """Calculates the vector containing the Exner equation and the algebraic expression between S and f, and the
+        Jacobian matrix needed to solve for g and S
 
-    def stability(self, A, T, F, a):
+        Parameters:
+            A, A_old - variable (BF)_x/B on the old and current time step
+            T, T_old - transport function T on the old and current time step
+            F, F_old -  diffusion furnction F on the old and current time step
+            aeq, aeq_old - availability in morphodynamic equilibrium on the old and current time step
+            X, X_old - solution vector X = (g, a) on the old and current time step
+            alpha1, alpha1_old - alpha1 on the old and current time step
+            fr, fr_old - erodibility f due to river transport term on the old and current time step
+
+        Returns:
+             Xvec - vector containing the Exner equation and the algebraic expression between S and f
+             jac - corresponding Jacobian matrix
+        """
+        # Initiate jacobian matrix, Xvec and local variable N
+        jac = sps.csc_matrix((len(X), len(X)))
+        Xvec, N = np.zeros((len(X), 1)), np.zeros((len(self.x), 1))
+        # define length of xgrid
+        lx = len(self.x)
+        ivec = range(1, lx-1)  #interior points for g
+        jvec = range(lx+1, 2*lx-1)  #interior points for S
+        # Define local variable N^(n+1) = f_inf * a_eq * [F*(g - 2g + g) / dx**2 + (A - T) * (g - g) / 2 * dx]
+        N[ivec] = self.FINF * aeq[1:-1] * (F[1:-1] * (X[2:lx] - 2 * X[ivec] + X[:lx-2]) / self.dx[0]**2 +
+                                            (A[1:-1] - T[1:-1]) * (X[2:lx] - X[:lx-2]) / (2 * self.dx[0]))
+        # Fill interior points of Xvec related to N in Eq. (1)
+        Xvec[ivec] += self.dt * N[ivec] / (2. * alpha1[ivec])
+
+        # # Fill interior points of Xvec related to river flux
+        # Xvec[ivec] -= self.dt * self.gamma * self.input.v('rivertrans') * (X[2:lx] - X[:lx-2]) / (2 * self.B[ivec] * self.dx[0])
+
+        # Fill interior points of the jacobian matrix related to g for Eq. (1)
+        jval_c_g = - self.dt * self.FINF * aeq[1:-1, 0] * F[1:-1, 0] / (self.dx[0]**2 * alpha1[1:-1, 0])
+        jac += sps.csc_matrix((jval_c_g, (ivec, ivec)), shape=jac.shape)
+        jval_l_g = (self.dt * self.FINF * aeq[1:-1, 0] * (F[1:-1, 0] / self.dx[0] - (A[1:-1, 0] - T[1:-1, 0]) / 2.) /
+                    (2 * alpha1[1:-1, 0] * self.dx[0]))
+        # jval_l_g = self.dt * self.gamma * (aeq[1:-1, 0] * (F[1:-1, 0] / self.dx[0] - (A[1:-1, 0] - T[1:-1, 0]) / 2.) +
+        #                                    self.input.v('rivertrans') / self.B[ivec, 0]) / (2 * self.dx[0])
+        jac += sps.csc_matrix((jval_l_g, (ivec, range(lx-2))), shape=jac.shape)
+        jval_r_g = self.dt * self.FINF * aeq[1:-1, 0] * (F[1:-1, 0] / self.dx[0] + (A[1:-1, 0] - T[1:-1, 0]) / 2.) / \
+                   (2 * alpha1[1:-1, 0] * self.dx[0])
+        # jval_r_g = self.dt * self.gamma * (aeq[1:-1, 0] * (F[1:-1, 0] / self.dx[0] + (A[1:-1, 0] - T[1:-1, 0]) / 2.) -
+        #                         self.input.v('rivertrans') / self.B[ivec, 0]) / (2 * self.dx[0])
+        jac += sps.csc_matrix((jval_r_g, (ivec, range(2, lx))), shape=jac.shape)
+
+        # Boundary condition at sea
+        Xvec[0] = X[0] - self.FSEA
+        jac += sps.csc_matrix(([1.], ([0.], [0.])), shape=jac.shape)
+        # Boundary condition at weir
+        Xvec[lx-1] = (3. * X[lx-1] - 4. * X[lx-2] + X[lx-3])
+        jac += sps.csc_matrix(([3., -4., 1.], ([lx-1, lx-1, lx-1], [lx-1, lx-2, lx-3])), shape=jac.shape)
+
+        # Xvec[lx-1] = self.B[-1] * F[-1] * aeq[-1] * (3. * X[lx-1] - 4. * X[lx-2] + X[lx-3]) + 2. * self.dx[0] * self.input.v('rivertrans')
+        # jac += sps.csc_matrix((self.B[-1] * F[-1] * aeq[-1] * [3., -4., 1.], ([lx-1, lx-1, lx-1], [lx-1, lx-2, lx-3])), shape=jac.shape)
+        # Xvec[lx-1] = (self.B[-1] * F[-1] * aeq[-1] * (3. * X[lx-1] - 4. * X[lx-2] + X[lx-3]) -
+        #               2. * self.dx[0] * self.input.v('rivertrans') * (X[lx-1] - 1))
+        # jval_g = self.B[-1] * F[-1] * aeq[-1] * [(3. - 2. * self.dx[0] * self.input.v('rivertrans'))[0], -4., 1.]
+        # jac += sps.csc_matrix((jval_g, ([lx-1, lx-1, lx-1], [lx-1, lx-2, lx-3])), shape=jac.shape)
+
+        # Fill interior points of Xvec and diagonal of jacobian related to S in Eq. (1)
+        Xvec[ivec] += X[jvec]
+        jac += sps.csc_matrix((np.ones(lx-2), (ivec, jvec)), shape=jac.shape)
+
+        if self.input.v('concept')[1] == 'approximation':
+            # Fill Xvec and jacobian for the algebraic relation between g and stock S when using the approximation S = alpha1 * f / (1 + beta * f)
+            Xvec[lx:] = aeq * X[:lx] * (1. + X[lx:]) - X[lx:]
+            # Xvec[lx:] += fr + self.FCAP * fr * X[lx:]
+            jac += sps.csc_matrix(((aeq * X[:lx] - 1.)[:, 0], (range(lx, 2*lx), range(lx, 2*lx))), shape=jac.shape)
+            jac += sps.csc_matrix((aeq[:, 0] * (1. + X[lx:])[:, 0], (range(lx, 2*lx), range(lx))), shape=jac.shape)
+            # jac += sps.csc_matrix((self.FCAP * fr[:, 0], (range(lx, 2*lx), range(lx, 2*lx))), shape=jac.shape)
+        elif self.input.v('concept')[1] == 'exact':
+            # Fill Xvec and jacobian for the algebraic relation between g and stock S when using the exact relation between S and f
+            Xvec[lx:] = aeq * X[:lx] - erodibility_stock_relation(self.ALPHA2, X[lx:])
+            jac += sps.csc_matrix((-erodibility_stock_relation_der(self.ALPHA2, X[lx:])[:, 0], (range(lx, 2*lx), range(lx, 2*lx))), shape=jac.shape)
+            jac += sps.csc_matrix((aeq[:, 0], (range(lx, 2*lx), range(lx))), shape=jac.shape)
+            # jac += sps.csc_matrix((self.FCAP * fr[:, 0], (range(lx, 2*lx), range(lx, 2*lx))), shape=jac.shape)
+        # Convert jacobian matrix to dense matrix
+        jac = jac.todense()
+        # Inhomogeneous part of the PDE related to g and S at interior points
+        Xvec[ivec] -= alpha1_old[ivec] * X_old[jvec] / alpha1[ivec]
+        N[ivec] = self.FINF * aeq_old[1:-1] * (F_old[1:-1] * (X_old[2:lx] - 2 * X_old[ivec] + X_old[:lx-2]) / self.dx[0]**2 +
+                                                (A_old[1:-1] - T_old[1:-1]) * (X_old[2:lx] - X_old[:lx-2]) / (2 * self.dx[0]))
+        Xvec[ivec] += self.dt * N[ivec] / (2. * alpha1[ivec])
+        # Extra term in the inhomogeneous part due to the river transport
+        # Xvec[ivec] += D[1:-1] * fr[1:-1] - D_old[1:-1] * fr_old[1:-1]
+        return Xvec, jac
+
+    def stability_availability(self, A, T, F, D, aeq):
+        """Calculates the eigenvalues and eigenvectors of the Sturm-Liousville problem related to the dynamic 
+        availability concept
+        
+        Parameters
+            A - variable (BF)_x/B
+            T - advection function
+            F - diffusion function
+            D - see Eq. (5) above
+            aeq  - availability in morphodynamic equilibrium
+
+        Returns:
+             eigval - eigenvalues
+             eigvec - eigenvectors
+        """
         M = np.zeros((len(self.x), 1))
         # initialize Jacobian matrix with zeros
         jac = sps.dia_matrix((len(self.x), len(self.x)))
         # define the values for the diagonals for the interior points for the jacobian matrix to the generalized
         # eigenvalue problem
-        M[1:-1] = self.gamma * (1 - self.FCAP * a[1:-1] * self.FSEA)
+        R = (1 - self.FCAP * aeq[1:-1] * self.FSEA)**2
+        M[1:-1] = self.gamma * (self.H[0] * R / (self.input.v('ell') + D[1:-1] * R * self.H[0]))
         jval_c = -2 * M * F / self.dx[0]**2
         jval_l = M * (F / self.dx[0] - (A - T) / 2.) / (self.dx[0])
         jval_r = M * (F / self.dx[0] + (A - T) / 2.) / (self.dx[0])
-        # Boundary condition at weir. Actually, this is not necessary since we used the standard eigenvalue problem
-        # jval_c[-1] += 3
-        # jval_l[-1] += -4
-        # jval_2l = np.zeros(len(self.x) - 2)
-        # jval_2l[-1] += 1
         # Modify jacobian matrix to use it for the standard eigenvalue problem.
         jval_c[-2] += 4 * jval_r[-2] / 3 # Sturm-Liousville modification
         jval_l[-2] += -jval_r[-2] / 3 # Sturm-Liousville modification
@@ -495,120 +576,65 @@ class DynamicAvailability:
         eigval, eigvec = linalg.eig(jacd)
         return eigval, eigvec
 
-    def rk4(self):
-        T0, F0, A0, C20 = self.Transport_terms(self.Q[0])
-        a0 = self.availability(F0, T0)
-        a0 = a0 / a0[0]
-        a_init = self.FSEA * a0
-        a = []
-        a.append(a_init)
-        c20 = []
-        Tt = []
-        Ft = []
-        for i, q in enumerate(self.Q[1:]):
-            qb = self.Q[i]
-            qe = q
-            qi = (qb + qe) / 2.
-            h = self.t[i+1] - self.t[i]
-            T0, F0, A0, C20 = self.transport_terms(qb)
-            if i==0:
-                Tt.append(T0)
-                Ft.append(F0)
-                c20.append(C20)
-            trans1 = self.transport_rk4(T0, F0, A0, a[i])
-            k1 = h * trans1
-            k1[0] = 0.
-            Ti, Fi, Ai, C20i = self.transport_terms(qi)
-            trans2 = self.transport(Ti, Fi, Ai, a[i] + 0.5 * k1)
-            k2 = h * trans2
-            k2[0] = 0.
-            trans3 = self.transport(Ti, Fi, Ai, a[i] + 0.5 * k2)
-            k3 = h * trans3
-            k3[0] = 0.
-            Te, Fe, Ae, C20e = self.transport_terms(qe)
-            trans4 = self.transport(Te, Fe, Ae, a[i] + k3)
-            k4 = h * trans4
-            k4[0] = 0.
-            a.append(a[i] + (k1 + 2 * k2 + 2 * k3 + k4) / 6.)
-            f3 = (1. / self.FCAP) * (1. - np.exp(-self.FCAP * a[i+1][-3]))
-            f2 = (1. / self.FCAP) * (1. - np.exp(-self.FCAP * a[i+1][-2]))
-            f1 = Fi[-1] * (4 * f2 - f3) / (2 * self.dx[0] * Ti[-1] + 3 * Fi[-1])
-            a[i+1][-1] = -(1. / self.FCAP) * np.log(1. - self.FCAP * f1)
-            c20.append(C20e)
-            Tt.append(Te)
-            Ft.append(Fe)
-            if (i%np.floor(len(self.Q[1:])/10.)==0):
-                percent = float(i) / len(self.Q[1:])
-                hashes = '#' * int(round(percent * 10))
-                spaces = ' ' * (10 - len(hashes))
-                sys.stdout.write("\rProgress: [{0}] {1}%".format(hashes + spaces, int(round(percent * 100))))
-                sys.stdout.flush()
-        a = np.array(a)
-        f = (1. / self.FCAP) * (1. - np.exp(-self.FCAP * a))
-        return {'a': a[::self.step], 'f': f[::self.step], 'c20': np.array(c20)[::self.step],
-                'Tt': np.array(Tt)[::self.step], 'Ft': np.array(Ft)[::self.step]}
+    def stability_stock(self, A, T, F, alpha1):
+        """Calculates the eigenvalues and eigenvectors of the Sturm-Liousville problem related to the dynamic
+        erodibility concept
 
-    def transport_terms(self, q):
-        Tr, C20 = self.river_river_interaction(q)
-        T = self.Tc + self.TQ * q + Tr
-        # Calculate and append diffusive coefficient F
-        fdiff_c20 = np.real(-np.trapz(self.Kh * C20, x=-self.zarr, axis=1))
-        F = self.Fc + fdiff_c20.reshape(len(self.x), 1)
-        Fx = np.gradient(F, self.dx[0], axis=0, edge_order=2)
-        A = Fx + self.Bx * F / self.B
-        return T, F, A, C20
+        Parameters
+            A - variable (BF)_x/B
+            T - advection function
+            F - diffusion function
+            aeq  - availability in morphodynamic equilibrium
+            alpha1 - factor indicating the maximum amount of sediment in the water column in a tidally averaged sense
 
-    def transport_rk4(self, T, F, A, a):
-        Tx = np.gradient(T, self.dx[0], axis=0, edge_order=2)
-        # Calculate f
-        f = (1. / self.FCAP) * (1. - np.exp(-self.FCAP * a))
-        fx = np.gradient(f, self.dx[0], axis=0, edge_order=2)
-        fxx = np.gradient(fx, self.dx[0], axis=0, edge_order=2)
-        # Calculate transport at interior points for rk4 method only
-        transport = -self.gamma * (F * fxx + (A + T) * fx + (Tx + self.Bx * T / self.B) * f)
-        return transport
+        Returns:
+             eigval - eigenvalues
+             eigvec - eigenvectors
+        """
+        M = np.zeros((len(self.x), 1))
+        # initialize Jacobian matrix with zeros
+        jac = sps.dia_matrix((len(self.x), len(self.x)))
+        # define the values for the diagonals for the interior points for the jacobian matrix to the generalized
+        # eigenvalue problem
+        M[1:-1] = self.FINF / alpha1[1:-1]
+        jval_c = -2 * M * F / self.dx[0]**2
+        jval_l = M * (F / self.dx[0] - (A - T) / 2.) / (self.dx[0])
+        jval_r = M * (F / self.dx[0] + (A - T) / 2.) / (self.dx[0])
+        # Modify jacobian matrix to use it for the standard eigenvalue problem.
+        jval_c[-2] += 4 * jval_r[-2] / 3 # Sturm-Liousville modification
+        jval_l[-2] += -jval_r[-2] / 3 # Sturm-Liousville modification
+        jac += sps.diags([jval_l[1:, 0], jval_c[:, 0], jval_r[:-1, 0]], [-1, 0, 1])
+        jac = jac[1:-1, 1:-1]
+        #Determine eigenvalues and eigenvectors
+        jacd = jac.todense()
+        eigval, eigvec = linalg.eig(jacd)
+        return eigval, eigvec
 
-# def jacvec2(self, A, T, F, g, g_old, a, a_old, intTF):
-#     gvec, M, N, R = np.zeros((len(self.x), 1)), np.zeros((len(self.x), 1)), np.zeros((len(self.x), 1)), np.zeros(
-#         (len(self.x), 1))
-#     # fill g^n+1 and build Jacobian matrix
-#     gvec[1:-1] = g[1:-1]
-#     jac = sps.identity(len(self.x))
-#     # add values to the vector G and define the values for the diagonals for the interior points for the jacobian matrix
-#     M[1:-1] = self.gamma * (1 - self.FCAP * a[1:-1] * g[1:-1])
-#     N[1:-1] = F[1, 1:-1] * (g[2:] - 2 * g[1:-1] + g[:-2]) / self.dx[0] ** 2 + (A[1, 1:-1] - T[1, 1:-1]) * (
-#     g[2:] - g[:-2]) / (2 * self.dx[0])
-#     # R[1:-1] = -(Qt * self.intTQF[1:-1] + intTrt[1:-1]) * g[1:-1]
-#     R[1:-1] = -intTF[1, 1:-1] * g[1:-1]
-#     gvec += self.dt * (M * N + R) / 2.
-#     # jval_c = (self.dt / 2) * (-gamma * self.FCAP * a * N - 2 * M * F / self.dx[0]**2 - Qt * self.intTQF - intTrt)
-#     jval_c = (self.dt / 2) * (-self.gamma * self.FCAP * a * N - 2 * M * F[1] / self.dx[0] ** 2 - intTF[1])
-#     jval_l = self.dt * M * (F[1] / self.dx[0] - (A[1] - T[1]) / 2.) / (2 * self.dx[0])
-#     jval_r = self.dt * M * (F[1] / self.dx[0] + (A[1] - T[1]) / 2.) / (2 * self.dx[0])
-#     # Boundary condition at sea (jacobian matrix at x=0 is already defined by the identity matrix)
-#     gvec[0] = g[0] - self.FSEA
-#     # Boundary condition at weir
-#     # gvec[-1] = g[-4] - 3 * g[-3] + 3 * g[-2] - g[-1]
-#     gvec[-1] = (3 * g[-1] - 4 * g[-2] + g[-3]) / (2 * self.dx[-1])
-#     # jval_c[-1] = -2 # the final result should be -1 at J[-1, -1]. since we initialized the main diagonal with ones, we have to subtract 2!
-#     jval_c[-1] = -1 + 3 / (2 * self.dx[-1])
-#     # jval_l[-1] = 3
-#     jval_l[-1] = -2 / self.dx[-1]
-#     jval_2l, jval_3l = np.zeros(len(self.x) - 2), np.zeros(len(self.x) - 3)
-#     # jval_2l[-1] = -3
-#     jval_2l[-1] = 1 / (2 * self.dx[-1])
-#     # jval_3l[-1] = 1
-#     # add diagonals to jacobian matrix
-#     # jac += sps.diags([jval_3l, jval_2l, jval_l[1:], jval_c, jval_r[:-1]], [-3, -2, -1, 0, 1])
-#     jac += sps.diags([jval_2l, jval_l[1:, 0], jval_c[:, 0], jval_r[:-1, 0]], [-2, -1, 0, 1])
-#     jac = jac.todense()
-#     # Inhomogeneous part of the PDE at interior points
-#     gvec[1:-1] += -g_old[1:-1]
-#     M[1:-1] = self.gamma * (1 - self.FCAP * a_old[1:-1] * g_old[1:-1])
-#     N[1:-1] = F[0, 1:-1] * (g_old[2:] - 2 * g_old[1:-1] + g_old[:-2]) / self.dx[0] ** 2 + (A[0, 1:-1] - T[0, 1:-1]) * (
-#     g_old[2:] - g_old[:-2]) / (2 * self.dx[0])
-#     # R[1:-1] = -(Qt * self.intTQF[1:-1] + intTrt[1:-1]) * gold[1:-1]
-#     R[1:-1] = -intTF[0, 1:-1] * g_old[1:-1]
-#     gvec += self.dt * (M * N + R) / 2.
-#     return gvec, jac
+    def interpretValues(self, values):
+        """inpterpret values on input as space-separated list or as pure python input
 
+        Parameters
+            values - values to evaluate
+
+        Returns:
+            values - evaluated values
+        """
+        values = toList(values)
+
+        # case 1: pure python: check for (, [, range, np.arange
+        #   merge list to a string
+        valString = ' '.join([str(f) for f in values])
+        #   try to interpret as python string
+        if any([i in valString for i in ['(', '[', ',', '/', '*', '+', '-']]):
+            try:
+                valuespy = None
+                exec('valuespy ='+valString)
+                return valuespy
+            except Exception as e:
+                try: errorString = ': '+ e.msg
+                except: errorString = ''
+                raise KnownError('Failed to interpret input as python command %s in input: %s' %(errorString, valString), e)
+
+        # case 2: else interpret as space-separated list
+        else:
+            return values
