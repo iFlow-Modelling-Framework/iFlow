@@ -36,7 +36,7 @@ import numpy as np
 import nifty as ny
 import logging
 from src.util.diagnostics.KnownError import KnownError
-from profiles import ParabolicXZF, UniformXF, UniformX
+from packages.analytical2DV.turbulence.profiles import ParabolicXZF, UniformXF, UniformX
 from ..hydro.ReferenceLevel import ReferenceLevel
 
 
@@ -91,7 +91,7 @@ class TurbulenceKepFitted_core:
         R = None
         if self.referenceLevel == 'True' and init and order < 1:
             # make reference level (only initial)
-            self.RL = ReferenceLevel(self.input, [])
+            self.RL = ReferenceLevel(self.input)
             R = self.RL.run_init()['R']
             self.input.merge({'R': R})
 
@@ -164,7 +164,7 @@ class TurbulenceKepFitted_core:
         jmax = self.input.v('grid', 'maxIndex', 'x')  # maximum index of x grid (jmax+1 grid points incl. 0)
         kmax = self.input.v('grid', 'maxIndex', 'z')  # maximum index of z grid (kmax+1 grid points incl. 0)
         fmax = self.input.v('grid', 'maxIndex', 'f')  # maximum index of f grid (fmax+1 grid points incl. 0)
-        depth = self.input.v('grid', 'low', 'z', range(0, jmax+1), [0], range(0, fmax+1)) - self.input.v('grid', 'high', 'z', range(0, jmax+1), [0], range(0, fmax+1))
+        depth = self.input.v('grid', 'low', 'z', range(0, jmax+1), [0], [0]) - self.input.v('grid', 'high', 'z', range(0, jmax+1), [0], [0])
 
         ################################################################################################################
         # 1. make the absolute velocity
@@ -339,7 +339,7 @@ class TurbulenceKepFitted_core:
             ## 1. Eddy viscosity
             Av0 = np.zeros((jmax + 1, fmax + 1), dtype=complex)
             if order == None:
-                depth = np.zeros((jmax+1, fmax+1))
+                depth = np.zeros((jmax+1, fmax+1), dtype=complex)
                 depth[:,0] = self.input.v('grid', 'low', 'z', range(0,jmax+1)) - self.input.v('grid', 'high', 'z', range(0,jmax+1))
                 i = 0
                 while self.input.v('zeta'+str(i)) and i<=self.truncationorder:
@@ -526,7 +526,7 @@ class TurbulenceKepFitted_core:
 
         # correct by reducing time varying components
         if not np.min(np.real(np.minimum(1, abs(Av[:, :, 0]-10**-6)/(-np.min(Avt, axis=-1)+10**-10))))==1.:
-            value_currentorder[:,:,1:] = value_currentorder[:,:,1:]*np.real(np.minimum(1, abs(Av[:, :, 0]-10**-6)/(-np.min(Avt, axis=-1)+10**-10)).reshape((jmax+1, kmax+1, 1)))
+            value_currentorder[:, :, 1:] = value_currentorder[:, :, 1:]*np.real(np.minimum(1, .95*abs(Av[:, :, 0]-10**-6)/(-np.min(Avt, axis=-1)+10**-10)).reshape((jmax+1, kmax+1, 1)))
             value_currentorder = self.positivity_correction(quantity, value_currentorder, include_vertical)
 
         if not include_vertical:

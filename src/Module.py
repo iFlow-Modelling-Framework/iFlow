@@ -293,12 +293,14 @@ class Module:
             if self.__submodulesToRunInit:
                 self.runModule = True        # if any submodules should be run, then so does the module
 
-        else:
-            # loop over variables in the output requirements
-            for var in toList(self.__outputReq.v('requirements')):
-                outputList = toList(self.__register.v('output'))
-                if var in outputList:
-                    self.runModule = True
+        # check general module output
+        #   loop over variables in the output requirements
+        for var in toList(self.__outputReq.v('requirements')):
+            outputList = toList(self.__register.v('output'))
+            if var in outputList:
+                self.runModule = True
+
+        # set submodules to run
         self.submodulesToRun = self.__submodulesToRunInit
         return
 
@@ -345,7 +347,7 @@ class Module:
             elif submodExcludeList != [] and submodExcludeList != ['none'] and submodExcludeList != ['None']:
                 sublist = [i for i in self.__register.v('submodules')if i not in submodExcludeList]
             else:
-                sublist = self.__register.v('submodules')
+                sublist = toList(self.__register.v('submodules'))
         else:
             sublist = []
 
