@@ -8,7 +8,7 @@ import numpy as np
 from scipy.linalg import solve_banded
 from nifty.integrate import integrate
 import nifty as ny
-
+from bandedMatrixMultiplication import bandedMatrixMultiplication
 
 def uFunction(Av, F, Fsurf, Fbed, data, hasMatrix = False):
     # Init
@@ -88,14 +88,14 @@ def uFunction(Av, F, Fsurf, Fbed, data, hasMatrix = False):
         elif bottomBC in ['QuadraticSlip']:
             D = (np.arange(-fmax, ftot-fmax)*1j*OMEGA).reshape((1, ftot))
 
-            cfUNbed = ny.bandedMatrixMultiplication(cfU, N[kmax, :, :], truncate=True)
-            cfUNabovebed = ny.bandedMatrixMultiplication(cfU, N[kmax-1, :, :], truncate=True)
-            cfUD = ny.bandedMatrixMultiplication(D, cfU, truncate=True)
+            cfUNbed = bandedMatrixMultiplication(cfU, N[kmax, :, :], truncate=True)
+            cfUNabovebed = bandedMatrixMultiplication(cfU, N[kmax-1, :, :], truncate=True)
+            cfUD = bandedMatrixMultiplication(D, cfU, truncate=True)
             A[2*ftot:, -2*ftot:-ftot] = cfUNabovebed/dz[-1]
             A[2*fmax+1:2*fmax+2*bandwidth+2, -ftot:] = -cfUNbed/dz[-1]
             A[2*fmax+1:2*fmax+2*bandwidth+2, -ftot:] += -0.5*dz[-1]*cfUD
 
-            DNsmall = ny.bandedMatrixMultiplication(D, N[kmax, :, :], truncate=True)
+            DNsmall = bandedMatrixMultiplication(D, N[kmax, :, :], truncate=True)
             DN = np.zeros((2*bandwidth+1, ftot), dtype=complex)
             DN[bandwidth-(DNsmall.shape[0]-1)/2:bandwidth+(DNsmall.shape[0]-1)/2 + 1, :] = DNsmall
             A[2*fmax+1:2*fmax+2*bandwidth+2, -ftot:] += DN
@@ -161,7 +161,7 @@ def uFunction(Av, F, Fsurf, Fbed, data, hasMatrix = False):
             ubedFirst += -Fbed[[0], :, :]/data.v('Roughness')*np.ones([kmax+1, 1, 1])
         elif bottomBC in ['QuadraticSlip']:
             cfUInv = cfUMat(data, True)
-            cfUN = ny.bandedMatrixMultiplication(cfUInv, N[-1, Ellipsis], truncate=True)
+            cfUN = bandedMatrixMultiplication(cfUInv, N[-1, Ellipsis], truncate=True)
             cfUFbed = bandedMatVec(cfUInv, Fbed[0,:, :])
 
             bandwidth = (cfUN.shape[0]-1)/2

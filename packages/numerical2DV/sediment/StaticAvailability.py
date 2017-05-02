@@ -25,8 +25,6 @@ class StaticAvailability:
 
     def run(self):
         self.logger.info('Running module StaticAvailability')
-        jmax = self.input.v('grid', 'maxIndex', 'x')
-        fmax = self.input.v('grid', 'maxIndex', 'f')
 
         ################################################################################################################
         ## Init
@@ -34,7 +32,6 @@ class StaticAvailability:
         jmax = self.input.v('grid', 'maxIndex', 'x')
         kmax = self.input.v('grid', 'maxIndex', 'z')
         fmax = self.input.v('grid', 'maxIndex', 'f')
-        ftot = 2*fmax+1
 
         c0 = self.input.v('hatc0', 'a', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))
         c1_a0 = self.input.v('hatc1', 'a', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))
@@ -183,33 +180,139 @@ class StaticAvailability:
         from src.DataContainer import DataContainer
         dc = DataContainer(d)
         dc.merge(self.input.slice('grid'))
-        T_til = dc.v('T', range(0, jmax+1))
-        F_til = dc.v('F', range(0, jmax+1))
-        print np.max(abs((dc.v('T', range(0, jmax+1))-T0[:, 0, 0])/(T0[:, 0, 0]+10**-10)))
-        print np.max(abs((dc.v('F', range(0, jmax+1))-F0[:, 0, 0])/(F0[:, 0, 0]+10**-10)))
+        T_til = np.real(dc.v('T', range(0, jmax+1)))
+        F_til = np.real(dc.v('F', range(0, jmax+1)))
 
-        integral = -ny.integrate(T_til/(F_til+10**-6), 'x', 0, range(0, jmax+1), self.input.slice('grid'))
+        # DEBUG: CHECKS IF COMPOSITE T, F == total T, F
+        # print np.max(abs((dc.v('T', range(0, jmax+1))-T0[:, 0, 0])/(T0[:, 0, 0]+10**-10)))
+        # print np.max(abs((dc.v('F', range(0, jmax+1))-F0[:, 0, 0])/(F0[:, 0, 0]+10**-10)))
 
+        integral = -ny.integrate(T_til/(F_til-10**-6), 'x', 0, range(0, jmax+1), self.input.slice('grid'))
+
+        ################################################################################################################
         # Boundary condition 1
+        ################################################################################################################
         if self.input.v('sedbc')=='astar':
             astar = self.input.v('astar')
-            A = astar * ny.integrate(B[:, 0, 0], 'x', 0, jmax, self.input.slice('grid'))/ny.integrate(B[:, 0, 0]*np.exp(integral), 'x', 0, jmax, self.input.slice('grid'))
+            k = astar * ny.integrate(B[:, 0, 0], 'x', 0, jmax, self.input.slice('grid'))/ny.integrate(B[:, 0, 0]*np.exp(integral), 'x', 0, jmax, self.input.slice('grid'))
 
+            f0uncap = k*np.exp(integral)
+            f0 = f0uncap
+            f0x = -T_til/F_til*f0uncap
+            G = np.zeros(jmax+1)
+
+        ################################################################################################################
         # Boundary condition 2
+        ################################################################################################################
         elif self.input.v('sedbc')=='csea':
             csea = self.input.v('csea')
             c000 = np.real(c0_int[0,0,0])
-            A = csea/c000*(self.input.v('grid', 'low', 'z', range(0, jmax+1))-self.input.v('grid', 'high', 'z', range(0, jmax+1)))
+            k = csea/c000*(self.input.v('grid', 'low', 'z', 0)-self.input.v('grid', 'high', 'z', 0))
 
-        a0c = A*np.exp(integral)
-        a0xc = -T_til/F_til*a0c
+            ################################################################################################################
+            # Determine equilibria (only if BC is csea)
+            ################################################################################################################
+            f0uncap = k*np.exp(integral)
+            f0 = np.ones(jmax+1)
+            G = np.zeros(jmax+1)
+            # 1. determine end of last f=1 area, if there is one
+            xd = 0
+            for j in range(jmax-1, -1, -1):
+                f = np.exp(integral[j+1:]-integral[j])
+                if any(f >= 1):
+                    xd = j+1
+                    break
+
+            # NEW ALGORITHM
+            import scipy.interpolate
+            import scipy.optimize
+            x = ny.dimensionalAxis(self.input.slice('grid'), 'x')[:, 0, 0]
+            L = max(x)
+            integralContinuous = scipy.interpolate.interp1d(x, integral, kind='linear')
+
+            xdbounds = (L, 0)
+            while xdbounds[0]-xdbounds[1]>10**-6*L:
+                xdlist = np.linspace(xdbounds[0], xdbounds[1], 100)
+                for i, xdc in enumerate(xdlist):
+                    res = self.xdfun(xdc, integralContinuous, L)
+                    if res > 0:
+                        xdbounds = (xdlist[i-1], xdlist[i])
+                        break
+            xdc = xdbounds[1]
+
+            maxx, maxf, _, _ = scipy.optimize.fminbound(self.xdfun, 0, L, args=(integralContinuous, L), full_output=1)
+            TContinuous = scipy.interpolate.interp1d(x, T_til, kind='linear')
+            # 2. determine start of first f=1 area
+            xa = 0
+            if xd > 0:
+                fxa = np.nan*np.zeros(jmax+1)
+                for j in range(0, xd+1):
+                # for j in range(0, xd+2):
+                    Pa = ny.integrate(T_til[j]/F_til*np.exp(-integral), 'x', 0, j, self.input.slice('grid'))
+                    fxa[j] = np.real(np.exp(integral[j])*(k + Pa)[0])
+                    if fxa[j] >=1:
+                        xa = j-1
+                        Txa = ((np.exp(-integral[xa])-k)/ny.integrate(1/F_til*np.exp(-integral), 'x', 0, xa, self.input.slice('grid')))
+                        if Txa > 0:     # only take stable solutions # TODO
+                        # if True:        # Take stable and unstable solutions
+                            break
+                        else:
+                            xa = 0
+
+            if xd > 0 and xa > 0:
+                # Make f from x=0 to xa
+                Txa = (np.exp(-integral[xa])-k)/ny.integrate(1/F_til*np.exp(-integral), 'x', 0, xa, self.input.slice('grid'))
+                P = ny.integrate(Txa/F_til*np.exp(-integral), 'x', 0, range(0, xa), self.input.slice('grid'))
+                f0[:xa] = np.real(np.exp(integral[:xa])*(k + P))
+                G[:xa] = np.real(Txa)
+                # G[xa:xd] = np.real(-T[xa:xd])
+
+                # Make f from x=xd to L
+                f0[xd:] = np.real(np.exp(integral[xd:]-integral[xd]))
+            else:
+                f0 = f0uncap
+
+            # 3. determine f between xa and xd
+            if xd > 0 and xa > 0:
+                x = ny.dimensionalAxis(self.input.slice('grid'), 'x')[:, 0, 0]
+                dx = x[1:]-x[:-1]
+                G[:xd] = np.real(T_til[xd])
+                for j in range(xd-1, -1, -1):
+                    Tmid = 0.5*(T_til[j]+T_til[j+1])
+                    Fmid = 0.5*(F_til[j]+F_til[j+1])
+
+                    f0[j] = (G[j]-(0.5*Tmid+Fmid/dx[j])*f0[j+1])/(0.5*Tmid-Fmid/dx[j])
+                    if f0[j] >=1:
+                        f0[j] = 1
+                        G[xa:j+1] = T_til[j]
+
+            f0x = ny.derivative(f0, 'x', self.input.slice('grid'))
+
+            if any(f0>1) or any(f0<0):
+                self.logger.error('invalid value of f computed by StaticAvailability; script is not accurate')
+        else: # incorrect boundary description
+            from src.util.diagnostics.KnownError import KnownError
+            raise KnownError('incorrect seaward boundary type (sedbc) for sediment module')
 
         ################################################################################################################
         # Store in dict
         ################################################################################################################
-        d['a'] = a0c
+        d['a'] = f0uncap
+        d['f'] = f0
+        d['c0'] = c0*f0.reshape((jmax+1, 1, 1))
+        d['c1'] = c1_a0*f0.reshape((jmax+1, 1, 1)) + c1_a0x*f0x.reshape((jmax+1, 1, 1))
+        d['c2'] = c2*f0.reshape((jmax+1, 1, 1))
+
+
+
+        # from figures.Plot_sediment import Plot_sediment
+        # self.input.merge(d)
+        # mod = Plot_sediment(self.input)
+        # mod.run()
 
         return d
+
+
 
     def dictExpand(self, d, subindex, subsubindices):
         if not subindex in d:
@@ -249,3 +352,14 @@ class StaticAvailability:
         a_obj = -1./gamma*np.log(1-f_time)
         a = ny.fft(a_obj, 2)[:, :, :f.shape[-1]]
         return a
+
+    def xdfun(self, xd, fun, L):
+
+        x = np.linspace(xd, L, 10000)
+        maxf = np.max(np.exp(fun(x)-fun(xd)))
+
+        # import scipy.optimize
+        # maxx, maxf, _, _ = scipy.optimize.fminbound(lambda x: -np.exp(fun(x)-fun(xd)), xd, L, full_output=1)
+        # maxf = -maxf
+        # print maxf, L, xd
+        return abs(maxf-1)

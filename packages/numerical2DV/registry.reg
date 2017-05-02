@@ -98,13 +98,13 @@ submodules	advection diffusion nostress
 ########################################################################################################################
 module      SedDynamicLead
 packagePath sediment/
-input       grid G OMEGA RHOS RHO0 DS Av sigma_rho ws u0
+input       grid G OMEGA RHOS RHO0 DS Kv ws0 u0 finf erosion_formulation
 output      hatc0
 submodules	erosion
 
 module      SedDynamicFirst
 packagePath sediment/
-input       grid G OMEGA RHOS RHO0 DS Av sigma_rho ws u0
+input       grid G OMEGA RHOS RHO0 DS Kv ws0 u0 finf erosion_formulation
 output      hatc1
 submodules	sedadv fallvel mixing erosion noflux
 sedadv  	    input		w0 hatc0
@@ -120,11 +120,67 @@ noflux			input		zeta0 hatc0
 
 module      SedDynamicSecond
 packagePath sediment/
-input       grid G OMEGA RHOS RHO0 DS Av sigma_rho ws u1
+input       grid G OMEGA RHOS RHO0 DS Kv ws0 u1 finf erosion_formulation
 output      hatc2
 submodules	erosion
 
 module      StaticAvailability
 packagePath sediment/
 input       zeta0 u0 u1 hatc0 hatc1 hatc2 B grid Kh sedbc @sedbc
-output      a c0 c1 c2
+output      a c0 c1 c2 F T f
+
+module      StaticAvailability_timeint
+packagePath sediment/
+input       zeta0 u0 u1 hatc0 hatc1 hatc2 B grid Kh sedbc @sedbc
+output      a c0 c1 c2 F T f
+
+module      StaticAvailability_HS
+packagePath sediment/
+inputInit   ws00
+input       ws00 mhs cgel zeta0 u0 u1 hatc0 hatc1 hatc2 B grid Kh sedbc @sedbc
+output      a c0 c1 c2 F T f ws0
+iterative   True
+
+module      HinderedSettling
+packagePath sediment/
+inputInit   ws00 mhs cgel grid u0
+input       ws00 mhs cgel grid c0 c1
+output      ws0
+iterative   True
+
+module      CriticalErosion
+packagePath sediment/
+input       ws00 mhs cgel grid Av sigma_rho Kv
+output      Ecrit
+
+########################################################################################################################
+# Subpackage turbulence
+########################################################################################################################
+# k-epsilon fitted models
+module      KEFittedLead
+packagePath	turbulence/
+inputInit	if{grid,@{referenceLevel}==0} if{Q0,@{referenceLevel}==1} if{Q1,@{referenceLevel}==1} G B H profile roughnessParameter @roughnessParameter n Avmin  lambda referenceLevel ignoreSubmodule
+input       grid u0
+output		Av Roughness BottomBC
+iterative	True
+
+module      KEFittedTruncated
+packagePath	turbulence/
+inputInit	if{grid,@{referenceLevel}==0} if{Q0,@{referenceLevel}==1} if{Q1,@{referenceLevel}==1} G B H profile roughnessParameter @roughnessParameter n Avmin  lambda referenceLevel ignoreSubmodule truncationOrder
+input       grid u+{0,@{truncationOrder}+1} zeta+{0,@{truncationOrder}+1}
+output		Av Roughness BottomBC
+iterative	True
+
+module      KEFittedFirst
+packagePath	turbulence/
+inputInit	grid H profile roughnessParameter @roughnessParameter n lambda ignoreSubmodule u0
+input       grid u0 zeta0  u1
+output		Av1 Roughness1
+iterative	True
+
+module      KEFittedHigher
+packagePath	turbulence/
+inputInit	grid H profile roughnessParameter @roughnessParameter n lambda ignoreSubmodule order u0 u1 zeta0
+input       grid order maxOrder u+{0,@{maxOrder}+1} zeta+{0,@{maxOrder}+1}
+output		Av+{2,@{maxOrder}+1} Roughness+{2,@{maxOrder}+1}
+iterative	True

@@ -7,8 +7,8 @@ Authors: Y.M. Dijkstra
 import logging
 import numpy as np
 import nifty as ny
-from svarFunction import svarFunction
-from sclosureFunction import sclosureFunction
+from packages.numerical2DV.salinity_prognostic.svarFunction import svarFunction
+from packages.numerical2DV.salinity_prognostic.sclosureFunction import sclosureFunction
 
 
 class SalinitySecond:

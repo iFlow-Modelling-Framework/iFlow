@@ -46,7 +46,6 @@ class Geometry2DVCS:
         d = {}
         d['B'] = width.function
         d['H'] = depth.function
-        d['-H'] = depth.negfunction
         d['L'] = self.input.v('L')
 
         return d

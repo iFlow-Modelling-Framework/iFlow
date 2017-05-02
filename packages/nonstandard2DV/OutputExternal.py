@@ -6,7 +6,7 @@ Date: 18-06-15
 Authors: Y.M. Dijkstra
 """
 from src.util.grid import callDataOnGrid
-from Output import Output
+from packages.general.Output import Output
 
 
 class OutputExternal(Output):

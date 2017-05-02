@@ -7,7 +7,7 @@ Authors: Y.M. Dijkstra
 import numpy as np
 import nifty as ny
 from scipy.optimize import minimize
-
+from runCallStackLoop import runCallStackLoop
 
 class AutoCalibration:
     # Variables
@@ -62,7 +62,7 @@ class AutoCalibration:
             d[var] = x0[i]
 
         # run modules
-        ny.runCallStackLoop(startUpdate=d)
+        runCallStackLoop(startUpdate=d)
 
         # compute cost function
         #   NB. now only take M2 component

@@ -1,0 +1,34 @@
+# Registry for package Nonstandard2DV
+#
+# date: 	25-01-2017
+# authors: 	Y.M.Dijkstra
+
+module      RoughnessProfile
+packagePath
+input       L roughnessParameter @roughnessParameter
+output		@roughnessParameter
+
+module          AutoCalibration
+input           zeta0 variables @variables
+inputInit
+output          @variables
+iterative       True
+
+module      Geometry2DVCS
+packagePath
+input       L A0 H0
+output      L B H
+
+
+module      SalinitySecond
+packagePath	salinity_prognostic/
+input       grid Kh B H u0 u1 un zeta0 zeta1 s0 s1 s1var s2var Q1
+output      s2 s3var
+submodules	advection diffusion nostress sea
+
+# output module for external applications. Uses cPickle, but only stores numerical data
+module          OutputExternal
+input           @output.requirements path filename  # optional 'iteratesWith'
+output          outputDirectory
+outputModule    True
+
