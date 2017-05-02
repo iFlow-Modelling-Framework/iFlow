@@ -31,7 +31,7 @@ def show(block=True, fname=None, hspace=0.6, wspace=0.4):
         # axis ticks and legend frame line width
         for ax in fig.axes:
             ax.tick_params(axis='x', which='both', top='off')
-            ax.tick_params(axis='y', which='both', right='off')
+            ax.tick_params(axis='y', which='both')
             try:
                 ax.get_legend().get_frame().set_linewidth(0.5)
             except:

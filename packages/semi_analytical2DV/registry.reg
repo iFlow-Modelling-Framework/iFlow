@@ -5,7 +5,7 @@
 ## Module HydroLead: semi-analytical2DV perturbation model - leading order ##
 module          HydroLead
 packagePath		hydro/
-input 			A0 phase0 Q0 BottomBC grid Av Roughness OMEGA G TOLERANCEBVP
+input 			A0 phase0 Q0 BottomBC grid Av Roughness OMEGA G TOLERANCEBVP solver
 output			u0 zeta0
 submodules		tide river
 river	input
@@ -17,7 +17,7 @@ tide	input
 ## Module HydroFirst: semi-analytical2DV perturbation model - first order ##
 module          HydroFirst
 packagePath		hydro/
-input 			A1 phase1 Q1 BottomBC grid Av Roughness OMEGA G BETA TOLERANCEBVP
+input 			A1 phase1 Q1 BottomBC grid Av Roughness OMEGA G BETA TOLERANCEBVP solver
 output			u1 zeta1
 submodules		tide river baroc stokes nostress adv
 tide	    input
@@ -39,3 +39,18 @@ packagePath	sediment/
 input		grid zeta0 u0 u1 Av Roughness astar ws Kh OMEGA G RHO0 RHOS DS
 output		c0 c1 c2 hatc0 hatc1 hatc2 a F T
 submodules  erosion noflux sedadv mixing
+
+erosion     input
+            output
+noflux      input
+            output
+sedadv      input
+            output
+mixing      input s0 Kv1amp Kv1phase
+            output
+
+## Dynamic Availability related ##
+module      DynamicAvailability
+packagePath dynamic_availability/
+input       grid hatc0 hatc1 hatc2 a F T csea p tol Q dt concept #if{finf,@{concept}=='stock'} if{fcap,@{concept}=='availability'} if{ell,@{concept}=='availability'}
+output      St gt ft aeqt Ft Tt c0bar eigs
