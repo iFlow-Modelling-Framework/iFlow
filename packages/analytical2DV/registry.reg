@@ -12,59 +12,6 @@ input       L B0 H0
 output      L B H
 
 ########################################################################################################################
-# subpackage turbulence
-########################################################################################################################
-module      RoughnessProfile
-packagePath	turbulence/
-input       L roughnessParameter @roughnessParameter
-output		@roughnessParameter
-
-module      TurbulenceUniform
-packagePath	turbulence/
-input       grid Av0amp Av0phase sf0 m n
-output		Av Roughness BottomBC
-
-module      TurbulenceParabolic
-packagePath	turbulence/
-input       grid Av0amp Av0phase z0* m n
-output		Av Roughness BottomBC
-
-module      ParabolicFirst
-packagePath	turbulence/
-#input       grid Av1amp Av1phase z0* m n
-input       grid Av0amp Av0phase z0* m n zeta0
-output		Av1 Av2 Av3
-
-# k-epsilon fitted models
-module      KEFittedLead
-packagePath	turbulence/
-inputInit	if{grid,@{referenceLevel}==0} if{Q0,@{referenceLevel}==1} if{Q1,@{referenceLevel}==1} G B H profile roughnessParameter @roughnessParameter n Avmin  lambda referenceLevel ignoreSubmodule
-input       grid u0
-output		Av Roughness BottomBC
-iterative	True
-
-module      KEFittedTruncated
-packagePath	turbulence/
-inputInit	if{grid,@{referenceLevel}==0} if{Q0,@{referenceLevel}==1} if{Q1,@{referenceLevel}==1} G B H profile roughnessParameter @roughnessParameter n Avmin  lambda referenceLevel ignoreSubmodule truncationOrder
-input       grid u+{0,@{truncationOrder}+1} zeta+{0,@{truncationOrder}+1}
-output		Av Roughness BottomBC
-iterative	True
-
-module      KEFittedFirst
-packagePath	turbulence/
-inputInit	grid H profile roughnessParameter @roughnessParameter n lambda ignoreSubmodule u0
-input       grid u0 zeta0  u1
-output		Av1 Roughness1
-iterative	True
-
-module      KEFittedHigher
-packagePath	turbulence/
-inputInit	grid H profile roughnessParameter @roughnessParameter n lambda ignoreSubmodule order u0 u1 zeta0
-input       grid order maxOrder u+{0,@{maxOrder}+1} zeta+{0,@{maxOrder}+1}
-output		Av+{2,@{maxOrder}+1} Roughness+{2,@{maxOrder}+1}
-iterative	True
-
-########################################################################################################################
 # Subpackage salinity_diagnostic
 ########################################################################################################################
 module      SaltHyperbolicTangent

@@ -33,20 +33,9 @@ nostress	input	u0 zeta0
 adv		    input	u0
 		    output
 
-## Turbulence related - uses packages from Numerical2DV module ##
-
-## Salinity related - uses packages from Numerical2DV module ##
-
 ## Module SedDynamic: semi-analytical2DV perturbation model ##
 module		SedDynamic
 packagePath	sediment/
 input		grid zeta0 u0 u1 Av Roughness astar ws Kh OMEGA G RHO0 RHOS DS
 output		c0 c1 c2 hatc0 hatc1 hatc2 a F T
 submodules  erosion noflux sedadv mixing
-
-
-## Dynamic Availability related ##
-module      DynamicAvailability
-packagePath dynamic_availability/
-input       grid hatc a F T mus fcap csea p Q1 tol
-output      Xt Ft Tt flux c0bar eigs
