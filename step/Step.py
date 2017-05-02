@@ -576,7 +576,7 @@ class Step:
                         if subplot_number == 0:
                             plt.title('Advective Transport')
                         else:
-                            title = keyList[subplot_number]
+                            title = keyList[subplot_number-1]
                             try:
                                 title = cf.names[title]
                             except:
@@ -591,7 +591,7 @@ class Step:
                         if subplot_number == 0:
                             plt.title('Advective Transport', y=1.09)
                         else:
-                            title = keyList[subplot_number]
+                            title = keyList[subplot_number-1]
                             try:
                                 title = cf.names[title]
                             except:
@@ -603,7 +603,7 @@ class Step:
                     if subplot_number == 0:
                         plt.title('Advective Transport')
                     else:
-                        title = keyList[subplot_number]
+                        title = keyList[subplot_number-1]
                         try:
                             title = cf.names[title]
                         except:
