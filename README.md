@@ -25,7 +25,7 @@ The iFlow code is property of the Flemish Dutch Scheldt Committee (VNSC) and is 
 
 # Authors
 * Yoeri Dijkstra - Main developer, responsible for the iFlow core and numerical, analytical and general module packages [(GitHub profile)](https://github.com/YoeriDijkstra) 
-* Ronald Brouwer - Main developer, responsible for the semi-analytical module package
+* Ronald Brouwer - Main developer, responsible for the semi-analytical module package [(GitHub profile)](https://github.com/rlbrouwer) 
 
 # Contributing
 Contributions to iFlow are welcome. Contact Yoeri Dijkstra through GitHub for more information.
