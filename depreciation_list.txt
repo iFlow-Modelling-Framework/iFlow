@@ -1,2 +1,0 @@
-dep01: double derivative through dd command (since v2.2). Now via d command with multiple symbols to indicate multi-derivative
-dep02: submodules no longer passed to module through static argument in __init__; this argument is now dropped (since v2.4). keyword 'submodules' accesses this, now dynamic, information in input DC
