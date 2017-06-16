@@ -346,7 +346,7 @@ class HydroFirst:
 
         # M4 contribution #
         if self.input.v('solver') == (None or 'numerical'):
-            F = -2. * (self.B * gammaM4x.reshape(len(self.x), 1) + self.Bx * gammaM4.reshape(len(self.x), 1))
+            F = 2. * (self.B * gammaM4x.reshape(len(self.x), 1) + self.Bx * gammaM4.reshape(len(self.x), 1))
             Fopen = np.zeros((1, 1), dtype=complex)  # Forcing term shape (1, number of right-hand sides)
             Fclosed = np.zeros((1, 1), dtype=complex)  # Forcing term shape (1, number of right-hand sides)
             Fclosed[0] = (-2. * gammaM4[-1] / (self.alpha[-1, 0] * np.sinh(self.r[-1, 0] * self.H[-1]) / self.r[-1, 0] - self.H[-1]))
@@ -432,7 +432,7 @@ class HydroFirst:
             Fnsdx = ((xiM4x.reshape(len(self.x), 1) * self.r * (1 - self.alpha) -
                       xiM4.reshape(len(self.x), 1) * (self.r * self.af(self.x, self.rf(self.x))[1].reshape(len(self.x), 1) +
                                                       2. * self.rf(self.x)[1].reshape(len(self.x), 1) * (1 - self.alpha))) / self.r ** 3.)
-            F = 2. * self.B * (FnsB + Fnsdx)
+            F = -2. * self.B * (FnsB + Fnsdx)
             Fopen = np.zeros((1, 1), dtype=complex)  # Forcing term shape (1, number of right-hand sides)
             Fclosed = np.zeros((1, 1), dtype=complex)  # Forcing term shape (1, number of right-hand sides)
             Z, Zx, _ = zetaFunctionUncoupled(2, self.M[:, 0], F, Fopen, Fclosed, self.input, hasMatrix=False)
