@@ -34,7 +34,7 @@ class SedDynamic:
         self.DS = self.input.v('DS')
         self.GPRIME = self.input.v('G') * (self.RHOS - self.input.v('RHO0')) / self.input.v('RHO0')    #
         self.ASTAR = self.input.v('astar')
-        self.WS = self.input.v('ws')
+        self.WS = self.input.v('ws0')
         self.KH = self.input.v('Kh')
         self.L = self.input.v('L')
         self.x = self.input.v('grid', 'axis', 'x') * self.input.v('L')
