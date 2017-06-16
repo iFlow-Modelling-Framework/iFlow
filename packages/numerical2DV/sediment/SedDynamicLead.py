@@ -22,6 +22,7 @@ class SedDynamicLead:
 
     def run(self):
         self.logger.info('Running module SedDynamic - leading order')
+        d = {}
 
         jmax = self.input.v('grid', 'maxIndex', 'x')
         kmax = self.input.v('grid', 'maxIndex', 'z')
@@ -34,12 +35,20 @@ class SedDynamicLead:
         ################################################################################################################
         # Left hand side
         ################################################################################################################
-        # PrSchm = self.input.v('sigma_rho', range(0, jmax+1), range(0, kmax+1), [0])  # assume it is constant in time; else division with AV fails
         Av = self.input.v('Av', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))
-        # Kv = Av/PrSchm
         Kv = self.input.v('Kv', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))
 
-        # ws = np.zeros((jmax+1, kmax+1, fmax+1))
+        # NB. If Kv is not provided on input, use the module DiffusivityUndamped to compute it. This is a fix for making this module easier to use.
+        if Kv is None:
+            from DiffusivityUndamped import DiffusivityUndamped
+            sr = self.input.v('sigma_rho')
+            if sr is None:  # add Prandtl-Schmidt number if it does not exist
+                self.input.addData('sigma_rho', 1.)
+            md = DiffusivityUndamped(self.input)
+            self.input.merge(md.run())
+            Kv = self.input.v('Kv', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))
+            d['Kv'] = Kv
+
         ws = self.input.v('ws0', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))
 
         ################################################################################################################
@@ -59,10 +68,15 @@ class SedDynamicLead:
         c, cMatrix = cFunction(ws, Kv, F, Fsurf, Fbed, self.input, hasMatrix = False)
         c = c.reshape((jmax+1, kmax+1, ftot))
 
-        d = {}
+        hatc0 = ny.eliminateNegativeFourier(c, 2)
+        # correction at the bed (optional)
+        # cbed00 = E[:, -1, 0]/ws[:, -1, 0]
+        # frac = cbed00/hatc0[:, -1, 0]
+        # hatc0 = hatc0*frac.reshape((jmax+1, 1, 1))
+
         d['hatc0'] = {}
         d['hatc0']['a'] = {}
-        d['hatc0']['a']['erosion'] = ny.eliminateNegativeFourier(c, 2)
+        d['hatc0']['a']['erosion'] = hatc0
         return d
 
 

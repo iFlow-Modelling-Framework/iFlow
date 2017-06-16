@@ -98,13 +98,13 @@ submodules	advection diffusion nostress
 ########################################################################################################################
 module      SedDynamicLead
 packagePath sediment/
-input       grid G OMEGA RHOS RHO0 DS Kv ws0 u0 finf erosion_formulation
+input       grid G OMEGA RHOS RHO0 DS u0 finf erosion_formulation
 output      hatc0
 submodules	erosion
 
 module      SedDynamicFirst
 packagePath sediment/
-input       grid G OMEGA RHOS RHO0 DS Kv ws0 u0 finf erosion_formulation
+input       grid G OMEGA RHOS RHO0 DS u0 finf erosion_formulation
 output      hatc1
 submodules	sedadv fallvel mixing erosion noflux
 sedadv  	    input		w0 hatc0
@@ -120,38 +120,19 @@ noflux			input		zeta0 hatc0
 
 module      SedDynamicSecond
 packagePath sediment/
-input       grid G OMEGA RHOS RHO0 DS Kv ws0 u1 finf erosion_formulation
+input       grid G OMEGA RHOS RHO0 DS ws0 u1 finf erosion_formulation
 output      hatc2
 submodules	erosion
 
 module      StaticAvailability
 packagePath sediment/
 input       zeta0 u0 u1 hatc0 hatc1 hatc2 B grid Kh sedbc @sedbc
-output      a c0 c1 c2 F T f
+output      a c0 c1 c2 F T
 
-module      StaticAvailability_timeint
-packagePath sediment/
-input       zeta0 u0 u1 hatc0 hatc1 hatc2 B grid Kh sedbc @sedbc
-output      a c0 c1 c2 F T f
-
-module      StaticAvailability_HS
-packagePath sediment/
-inputInit   ws00
-input       ws00 mhs cgel zeta0 u0 u1 hatc0 hatc1 hatc2 B grid Kh sedbc @sedbc
-output      a c0 c1 c2 F T f ws0
-iterative   True
-
-module      HinderedSettling
-packagePath sediment/
-inputInit   ws00 mhs cgel grid u0
-input       ws00 mhs cgel grid c0 c1
-output      ws0
-iterative   True
-
-module      CriticalErosion
-packagePath sediment/
-input       ws00 mhs cgel grid Av sigma_rho Kv
-output      Ecrit
+module          DiffusivityUndamped
+packagePath
+input           sigma_rho Av
+output          Kv
 
 ########################################################################################################################
 # Subpackage turbulence
