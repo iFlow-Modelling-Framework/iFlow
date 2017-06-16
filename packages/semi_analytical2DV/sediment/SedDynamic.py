@@ -34,7 +34,7 @@ class SedDynamic:
         self.DS = self.input.v('DS')
         self.GPRIME = self.input.v('G') * (self.RHOS - self.input.v('RHO0')) / self.input.v('RHO0')    #
         self.ASTAR = self.input.v('astar')
-        self.WS = self.input.v('ws')
+        self.WS = self.input.v('ws0')
         self.KH = self.input.v('Kh')
         self.L = self.input.v('L')
         self.x = self.input.v('grid', 'axis', 'x') * self.input.v('L')
@@ -149,15 +149,16 @@ class SedDynamic:
             d['T']['diffusion_river']['TM0'] = tmp
 
         # Transport terms that are related to Stokes drift, i.e. u0*c0*zeta0
-        for n in (0, 2):
-            u0s = self.u0[:, 0]
-            tmp = d['hatc0']['a']['erosion'][:, 0, n]
-            if n==0:
-                tmp = np.real(np.conj(u0s) * tmp * self.zeta0[:, 0] + u0s * tmp * np.conj(self.zeta0[:, 0])) / 4
-            elif n==2:
-                tmp = np.real(u0s * np.conj(tmp) * self.zeta0[:, 0] + np.conj(u0s) * tmp * np.conj(self.zeta0[:, 0])) / 8
-            if any(tmp) > 10**-14:
-                d['T']['stokes']['TM' + str(2 * n)]['drift'] = tmp
+        if 'stokes' in self.submodules_hydro:
+            for n in (0, 2):
+                u0s = self.u0[:, 0]
+                tmp = d['hatc0']['a']['erosion'][:, 0, n]
+                if n==0:
+                    tmp = np.real(np.conj(u0s) * tmp * self.zeta0[:, 0] + u0s * tmp * np.conj(self.zeta0[:, 0])) / 4
+                elif n==2:
+                    tmp = np.real(u0s * np.conj(tmp) * self.zeta0[:, 0] + np.conj(u0s) * tmp * np.conj(self.zeta0[:, 0])) / 8
+                if any(tmp) > 10**-14:
+                    d['T']['stokes']['TM' + str(2 * n)]['drift'] = tmp
 
 
         # Transport term that is related to the river-river interaction u1river*c2river
@@ -247,9 +248,11 @@ class SedDynamic:
             c00  - concentration amplitude of the leading order M0 tidal component
             c00x - x-derivative of the concentration amplitude of the leading order M0 tidal component
             c00z - z-derivative of the concentration amplitude of the leading order M0 tidal component
+            c00z - zz-derivative of the concentration amplitude of the leading order M0 tidal component
             c04  - concentration amplitude of the leading order M4 tidal component
             c04x - x-derivative of the concentration amplitude of the leading order M4 tidal component
             c04z - z-derivative of the concentration amplitude of the leading order M4 tidal component
+            c04zz - zz-derivative of the concentration amplitude of the leading order M4 tidal component
         """
         # Extract velocity at the bottom
         u0b = self.u0[:, -1].reshape(len(self.x), 1)
@@ -257,16 +260,21 @@ class SedDynamic:
         uabs_M0 = absoluteU(u0b, 0).reshape(len(self.x), 1)
         uabs_M0_x = np.gradient(uabs_M0[:, 0], self.x[1], edge_order=2).reshape(len(self.x), 1)
         self.c00 = ((self.RHOS / (self.GPRIME * self.DS)) * self.sf * uabs_M0 *
-                np.exp(-self.WS * (self.H + self.zarr) / self.Av0))
+                    np.exp(-self.WS * (self.H + self.zarr) / self.Av0))
         self.c00x = ((self.RHOS / (self.GPRIME * self.DS)) * np.exp(-self.WS * (self.H + self.zarr) / self.Av0) *
-                (self.sfx * uabs_M0 + self.sf * uabs_M0_x + self.sf * uabs_M0 * self.WS *
-                 (self.Av0x * (self.H + self.zarr) - self.Av0 * self.Hx) / self.Av0**2))
+                     (self.sfx * uabs_M0 + self.sf * uabs_M0_x + self.sf * uabs_M0 * self.WS *
+                      (self.Av0x * (self.H + self.zarr) - self.Av0 * self.Hx) / self.Av0**2))
         self.c00x[-1, :] = (0.5 * self.c00[-3, :] - 2 * self.c00[-2, :]) / (self.x[-1]-self.x[-2])
         self.c00z = -self.WS * self.c00 / self.Av0
+        self.c00zz = - self.WS * self.c00z / self.Av0
 
         # M4 contribution
         uabs_M4 = absoluteU(u0b, 2)
-        lambda_M4 = np.sqrt(self.WS**2 + 8 * 1j * self.SIGMA * self.Av0)
+        if (self.input.v('TSL') or self.input.v('TSL') is None):
+            lambda_M4 = np.sqrt(self.WS**2 + 8 * 1j * self.SIGMA * self.Av0)
+        else:
+            lambda_M4 = self.WS
+        # lambda_M4 = np.sqrt(self.WS**2 + 8 * 1j * self.SIGMA * self.Av0)
         r1_M4 = (lambda_M4 - self.WS) / (2 * self.Av0)
         r2_M4 = -(lambda_M4 + self.WS) / (2 * self.Av0)
         p = (self.WS * self.RHOS * self.sf / (self.GPRIME * self.DS * self.Av0))
@@ -276,6 +284,7 @@ class SedDynamic:
         self.c04 = (A1 * np.exp(r1_M4 * self.zarr) + A2 * np.exp(r2_M4 * self.zarr))
         self.c04x, __ = np.gradient(self.c04, self.x[1], edge_order=2)
         self.c04z = (A1 * r1_M4 * np.exp(r1_M4 * self.zarr) + A2 * r2_M4 * np.exp(r2_M4 * self.zarr))
+        self.c04zz = (A1 * r1_M4 ** 2 * np.exp(r1_M4 * self.zarr) + A2 * r2_M4 ** 2 * np.exp(r2_M4 * self.zarr))
 
         hatc0 = np.zeros((len(self.x), len(self.z), 3), dtype=complex)
         hatc0[:, :, 0] = self.c00
@@ -303,16 +312,21 @@ class SedDynamic:
             uM0 = 2. * u1b[:, 0].reshape(len(self.x), 1) * sguM2
             uM4 = u1b[:, 2].reshape(len(self.x), 1) * np.conj(sguM2) + np.conj(u1b[:, 2].reshape(len(self.x), 1)) * sguM6
             # Define variables
-            lambda_M2 = np.sqrt(self.WS**2 + 4 * 1j * self.SIGMA * self.Av0)
+            if (self.input.v('TSL') or self.input.v('TSL') is None):
+                lambda_M2 = np.sqrt(self.WS**2 + 4 * 1j * self.SIGMA * self.Av0)
+            else:
+                lambda_M2 = self.WS
             r1_M2 = (lambda_M2 - self.WS) / (2 * self.Av0)
             r2_M2 = -(lambda_M2 + self.WS) / (2 * self.Av0)
             p = (self.WS * self.RHOS * self.sf / (self.GPRIME * self.DS * self.Av0))
             B1M0 = (p * uM0 * (self.WS - lambda_M2) / (r2_M2 * (self.WS + lambda_M2) * np.exp(-r2_M2 * self.H) -
                                                        r1_M2 * (self.WS - lambda_M2) * np.exp(-r1_M2 * self.H)))
-            B2M0 = -B1M0 * (self.WS + lambda_M2) / (self.WS - lambda_M2)
+            B2M0 = -(p * uM0  * (self.WS + lambda_M2) / (r2_M2 * (self.WS + lambda_M2) * np.exp(-r2_M2 * self.H) -
+                                                         r1_M2 * (self.WS - lambda_M2) * np.exp(-r1_M2 * self.H)))
             B1M4 = (p * uM4 * (self.WS - lambda_M2) / (r2_M2 * (self.WS + lambda_M2) * np.exp(-r2_M2 * self.H) -
                                                        r1_M2 * (self.WS - lambda_M2) * np.exp(-r1_M2 * self.H)))
-            B2M4 = -B1M4 * (self.WS + lambda_M2) / (self.WS - lambda_M2)
+            B2M4 = -(p * uM4 * (self.WS + lambda_M2) / (r2_M2 * (self.WS + lambda_M2) * np.exp(-r2_M2 * self.H) -
+                                                        r1_M2 * (self.WS - lambda_M2) * np.exp(-r1_M2 * self.H)))
             # Calculate the amplitude of the first order M2 contribution of the sediment concentration due to the M0-
             # and M4-part of u1
             hatc12_erosion = np.zeros((len(self.x), len(self.z), 3), dtype=complex)
@@ -374,7 +388,7 @@ class SedDynamic:
         with an M2 tidal component.
 
         Returns:
-            hatc2 - concentration amplitude due to river-river interaction of the M0 tidal component
+            hatc1 - concentration amplitude due to river-river interaction of the M0 tidal component
         """
         # CAlCULATE THE PART OF C12 DUE TO THE ADVECTION OF SEDIMENT
         # Define variables
@@ -404,7 +418,63 @@ class SedDynamic:
         return hatc1
 
     def mixing(self):
-        return {}
+        """Calculates the amplitude of the concentration due to asymettric mixing, which is a first order contribution with an M2
+        tidal component.
+
+        Returns:
+            hatc1 - concentration amplitude due to asymmetric mixing
+        """
+        # import variables
+        sx = self.input.v('s0', range(0, len(self.x)), 0, 0, dim='x').reshape(len(self.x), 1)
+        Kv1amp = self.input.v('Kv1amp') * sx
+        Kv1phase = -np.angle(self.u0) - self.input.v('Kv1phase') * np.pi / 180.
+
+        # CALCULATE THE PART OF C12 DUE THE MIX TERM TO I (INHOMOGENEOUS PDE)
+        D1M0 = self.c00zz * Kv1amp * np.exp(-1j * Kv1phase)
+        D1M4 = np.conj(self.c04zz) * Kv1amp * 0.5 * np.exp(-1j * Kv1phase)
+        # Define Variables
+        lambda_M2 = np.sqrt(self.WS ** 2 + 4 * 1j * self.SIGMA * self.Av0)
+        r1_M2 = (lambda_M2 - self.WS) / (2 * self.Av0)
+        r2_M2 = -(lambda_M2 + self.WS) / (2 * self.Av0)
+        B2mix = 2 * (lambda_M2 - self.WS) * self.WS * np.exp(-r1_M2 * self.H) / (1j * self.SIGMA * (
+                    (lambda_M2 - self.WS) ** 2 * np.exp(-r1_M2 * self.H) - (lambda_M2 + self.WS) ** 2 * np.exp(
+                        -r2_M2 * self.H)))
+        B1mix = B2mix * (lambda_M2 - self.WS) / (lambda_M2 + self.WS) - 2 * self.WS / (
+            1j * self.SIGMA * (lambda_M2 + self.WS))
+        hatc12_mixI = np.zeros((len(self.x), len(self.z), 3), dtype=complex)
+        hatc12_mixIb = np.zeros((len(self.x), len(self.z), 3), dtype=complex)
+        hatc12_mixI[:, :, 1] = D1M0 * (B1mix * np.exp(r1_M2 * self.zarr) + B2mix * np.exp(r2_M2 * self.zarr)
+                            + 1 / (1j * self.SIGMA))
+        # c12M0mixIz = D1M0 * (B1mix * r1_M2 * np.exp(r1_M2 * self.zarr) + B2mix * r2_M2 * np.exp(r2_M2 * self.zarr))
+        # c12M0mixIzz = D1M0 * (
+        #     B1mix * r1_M2 ** 2 * np.exp(r1_M2 * self.zarr) + B2mix * r2_M2 ** 2 * np.exp(r2_M2 * self.zarr))
+
+        hatc12_mixIb[:, :, 1] = D1M4 * (B1mix * np.exp(r1_M2 * self.zarr) + B2mix * np.exp(r2_M2 * self.zarr)
+                            + 1 / (1j * self.SIGMA))
+        # c12M4mixIz = D1M4 * (B1mix * r1_M2 * np.exp(r1_M2 * self.zarr) + B2mix * r2_M2 * np.exp(r2_M2 * self.zarr))
+        # c12M4mixIzz = D1M4 * (
+        #     B1mix * r1_M2 ** 2 * np.exp(r1_M2 * self.zarr) + B2mix * r2_M2 ** 2 * np.exp(r2_M2 * self.zarr))
+
+        # CALCULATE THE PART OF C12 DUE TO THE MIX TERM II
+        G1M0 = self.c00z * Kv1amp * np.exp(-1j * Kv1phase)
+        G1M4 = np.conj(self.c04z) * Kv1amp * 0.5 * np.exp(-1j * Kv1phase)
+        # Define variables
+        A2mix = (lambda_M2-self.WS)*np.exp(-r1_M2*self.H) / (
+            -(self.WS + lambda_M2) ** 2 * np.exp(-r2_M2 * self.H)+(lambda_M2 - self.WS) ** 2 * np.exp(-r1_M2 * self.H) )
+        A1mix = -(1 + (self.WS - lambda_M2) * A2mix) / (self.WS + lambda_M2)
+        hatc12_mixII = np.zeros((len(self.x), len(self.z), 3), dtype=complex)
+        hatc12_mixIIb = np.zeros((len(self.x), len(self.z), 3), dtype=complex)
+        hatc12_mixII[:, :, 1] = 2 * G1M0 * (A1mix * np.exp(r1_M2 * self.zarr) + A2mix * np.exp(r2_M2 * self.zarr))
+        # c12M0mixIIz = 2 * G1M0 * (A1mix * r1_M2 * np.exp(r1_M2 * self.zarr) + A2mix * r2_M2 * np.exp(r2_M2 * self.zarr))
+        # c12M0mixIIzz = 2 * G1M0 * (A1mix * r1_M2 ** 2 * np.exp(r1_M2 * self.zarr)
+        #                            + A2mix * r2_M2 ** 2 * np.exp(r2_M2 * self.zarr))
+
+        hatc12_mixIIb[:, :, 1] = 2 * G1M4 * (A1mix * np.exp(r1_M2 * self.zarr) + A2mix * np.exp(r2_M2 * self.zarr))
+        # c12M4mixIIz = 2 * G1M4 * (A1mix * r1_M2 * np.exp(r1_M2 * self.zarr) + A2mix * r2_M2 * np.exp(r2_M2 * self.zarr))
+        # c12M4mixIIzz = 2 * G1M4 * (A1mix * r1_M2 ** 2 * np.exp(r1_M2 * self.zarr)
+        #                            + A2mix * r2_M2 ** 2 * np.exp(r2_M2 * self.zarr))
+        hatc1 = {'a': {'mixing': hatc12_mixI + hatc12_mixII}}
+        return hatc1
 
     def availability(self, F, T):
         """Calculates the availability of sediment needed to derive the sediment concentration
@@ -444,5 +514,5 @@ class SedDynamic:
             d[subindex] = {}
         for ssi in ny.toList(subsubindices):
             if not ssi in d[subindex]:
-                d[subindex][ssi] = 0
+                d[subindex][ssi] = 0.
         return d

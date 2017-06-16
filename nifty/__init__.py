@@ -11,6 +11,7 @@ You are welcome to add your functions native to iFlow to the package. Please res
 - Include comments throughout the code, so that interested users may get to understand your script in detail
 """
 
+from toList import toList
 from Timer import Timer
 from amp_phase_input import amp_phase_input
 from arraydot import arraydot
@@ -29,7 +30,6 @@ from polyApproximation import polyApproximation
 from primitive import primitive
 from secondDerivative import secondDerivative
 from splitModuleName import splitModuleName
-from toList import toList
 from toMatrix import toMatrix
 from scalemax import scalemax
 

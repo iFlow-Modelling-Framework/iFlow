@@ -508,7 +508,7 @@ class DataContainer:
                     else:
                         order = len([i for i in dim if i==dir]) # collect the number of occurances of this dimension
                         if order == 1:
-                            value = nf.derivative(value, dir, self.slice('grid'), *args)
+                            value = nf.derivative(value, dir, self.slice('grid'), *args, DERMETHOD = kwargs.get('DERMETHOD'))
                         elif order == 2:
                             value = nf.secondDerivative(value, dir, self.slice('grid'), *args)
                         else:
@@ -614,7 +614,10 @@ class DataContainer:
         try:
             copy = self.data['grid']['copy'][:len(shape)]   # works in version 2.4
         except:
-            copy = np.ones(len(self.data['grid']['dimensions']))[:len(shape)]       # backward compatibility to v2.3 [dep03]
+            if self.data.get('grid') is None:
+                copy = np.ones(len(shape))
+            else:
+                copy = np.ones(len(self.data['grid']['dimensions']))[:len(shape)]       # backward compatibility to v2.3 [dep03]
         extensionMatrix = np.ones(shape)
 
         if not kwargs.get('copy') == 'all':

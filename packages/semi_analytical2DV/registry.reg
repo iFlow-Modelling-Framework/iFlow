@@ -36,6 +36,15 @@ adv		    input	u0
 ## Module SedDynamic: semi-analytical2DV perturbation model ##
 module		SedDynamic
 packagePath	sediment/
-input		grid zeta0 u0 u1 Av Roughness astar ws Kh OMEGA G RHO0 RHOS DS
+input		grid zeta0 u0 u1 Av Roughness astar ws0 Kh OMEGA G RHO0 RHOS DS
 output		c0 c1 c2 hatc0 hatc1 hatc2 a F T
 submodules  erosion noflux sedadv mixing
+erosion	    input
+		    output
+noflux	    input
+		    output
+sedadv	    input
+		    output
+mixing	    input   Kv1amp Kv1phase
+		    output
+

@@ -12,6 +12,19 @@ input       L B0 H0
 output      L B H
 
 ########################################################################################################################
+# subpackage turbulence
+########################################################################################################################
+module      TurbulenceUniform
+packagePath	turbulence/
+input       grid Av0amp Av0phase sf0 m n
+output		Av Roughness BottomBC
+
+module      TurbulenceParabolic
+packagePath	turbulence/
+input       grid Av0amp Av0phase z0* m n
+output		Av Roughness BottomBC
+
+########################################################################################################################
 # Subpackage salinity_diagnostic
 ########################################################################################################################
 module      SaltHyperbolicTangent
