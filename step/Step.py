@@ -108,7 +108,7 @@ class Step:
         #########
         # plot loop
         plt.figure(plotno, dpi=cf.dpi, figsize=subplotShape)
-        plt.hold(True)
+        # plt.hold(True)
 
         # loop over all combinations of the data
         for combi in permutations:
@@ -291,7 +291,7 @@ class Step:
         #########
         # plot loop
         plt.figure(plotno, figsize=subplotShape)
-        plt.hold(True)
+        # plt.hold(True)
 
         # loop over all combinations of the data
         for subplot_number, sub in enumerate(loopvalues):
@@ -345,7 +345,10 @@ class Step:
             plt.plot(axis1_dim[:,0], axis2_dim[:,0], 'k-', linewidth=0.2)
             plt.plot(axis1_dim[-1,:], axis2_dim[-1,:], 'k-', linewidth=0.2)
             plt.plot(axis1_dim[0,:], axis2_dim[0,:], 'k-', linewidth=0.2)
-            plt.gca().set_axis_bgcolor([.75, .75, .75])
+            if int(mpl.__version__.split('.')[0])>1:
+                plt.gca().set_facecolor([.75, .75, .75])
+            else:
+                plt.gca().set_axis_bgcolor([.75, .75, .75])
             cb = plt.colorbar()
 
             ## Title and axis labels
@@ -491,7 +494,7 @@ class Step:
         xdim = xdim * conv_grid
         ## plot
         plt.figure(plotno, dpi=cf.dpi, figsize=subplotShape)
-        plt.hold(True)
+        # plt.hold(True)
         if not sublevel:
             sp = plt.subplot()
             plt.axhline(0, color='k', linewidth=0.5)
