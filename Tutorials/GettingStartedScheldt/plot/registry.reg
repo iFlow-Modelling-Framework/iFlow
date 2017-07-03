@@ -1,0 +1,12 @@
+# Registry for plots paper Geophysical Model Devolopment
+#
+# date: 	16-06-2017
+# authors: 	Y.M.Dijkstra
+
+module                  Plot_base_model
+visualisationModule     True
+input                   H B grid u0 u1 zeta0 zeta1 Av Roughness c0 T F a
+
+module                  Plot_hydro_model
+visualisationModule     True
+input                   H B grid u0 u1 zeta0 zeta1 Av Roughness Length
