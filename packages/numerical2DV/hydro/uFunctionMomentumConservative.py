@@ -172,7 +172,10 @@ def uFunctionMomentumConservative(Av, F, Fsurf, Fbed, data, hasMatrix = False):
             ubedFirst[j, :, :, :] += -SfInvFbed.reshape((1,)+SfInvFbed.shape)*np.ones([kmax+1, 1, 1])
 
     uCoef = integrate(uzCoef, 'z', kmax, np.arange(0, kmax+1), data.slice('grid'), INTMETHOD='INTERPOLSIMPSON')[:, :, 0, :, :] + ubedCoef
-    uFirst = integrate(uzFirst, 'z', kmax, np.arange(0, kmax+1), data.slice('grid'), INTMETHOD='INTERPOLSIMPSON')[:, :, 0, :, :] + ubedFirst
+    if 0 in (uzFirst).shape:
+        uFirst = uzFirst
+    else:
+        uFirst = integrate(uzFirst, 'z', kmax, np.arange(0, kmax+1), data.slice('grid'), INTMETHOD='INTERPOLSIMPSON')[:, :, 0, :, :] + ubedFirst
 
     return uCoef, uFirst, uzCoef[:, :, 0, :, :], uzFirst[:, :, 0, :, :], velocityMatrix
 

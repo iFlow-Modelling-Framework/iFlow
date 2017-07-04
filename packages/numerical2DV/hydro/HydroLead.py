@@ -39,9 +39,9 @@ class HydroLead:
 
         # check if the river term should be compensated for by reference level. Only if river is on and non-zero
         if 'river' in submodulesToRun and self.input.v('Q0')!=0:
-            RiverReferenceCompensation = True
+            RiverReferenceCompensation = 1
         else:
-            RiverReferenceCompensation = False
+            RiverReferenceCompensation = 0
 
         ################################################################################################################
         # velocity as function of water level
