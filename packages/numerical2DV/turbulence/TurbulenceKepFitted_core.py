@@ -183,15 +183,18 @@ class TurbulenceKepFitted_core:
                     u -= self.input.v('u'+str(comp), submod, range(0, jmax + 1), range(0, kmax + 1), range(0, fmax + 1))
                 comp += 1
 
+            usurf = u[:, [0], :]
             u = ny.integrate(u, 'z', kmax, 0, self.input.slice('grid')) / depth
             ##   1b. Divide velocity by a maximum amplitude
-            uamp = (np.sum(np.abs(u), axis=-1)+10**-3).reshape((jmax+1, 1, 1))
-            u = u/uamp
+            uamp = [(np.sum(np.abs(u), axis=-1)+10**-3).reshape((jmax+1, 1, 1)), (np.sum(np.abs(usurf), axis=-1)+10**-3).reshape((jmax+1, 1, 1))]
+            u = u/uamp[0]
+            usurf = usurf/uamp[1]
 
         # Scaling method
         else:       
             zeta = []
             u = []
+            usurf = []
             for comp in range(0, order+1):
                 zetatemp = self.input.v('zeta'+str(comp), range(0, jmax + 1), [0], range(0, fmax + 1))
                 utemp = self.input.v('u'+str(comp), range(0, jmax + 1), range(0, kmax + 1), range(0, fmax + 1))
@@ -203,11 +206,15 @@ class TurbulenceKepFitted_core:
                         pass
 
                 zeta.append(zetatemp)
+                usurf.append(utemp[:, [0], :])
                 u.append(ny.integrate(utemp, 'z', kmax, 0, self.input.slice('grid')) / depth)
 
                 ##   1b. Divide velocity by a maximum amplitude
-                uamp = (np.sum(np.abs(sum(u)), axis=-1)+10**-3).reshape((jmax+1, 1, 1))
-                u = [i/uamp for i in u]
+                uamp = []
+                uamp.append((np.sum(np.abs(sum(u)), axis=-1)+10**-3).reshape((jmax+1, 1, 1)))
+                uamp.append((np.sum(np.abs(sum(usurf)), axis=-1)+10**-3).reshape((jmax+1, 1, 1)))
+                u = [i/uamp[0] for i in u]
+                usurf = [i/uamp[1] for i in usurf]
 
         ##  1c. Absolute velocity at all orders up to 'order'
         c = ny.polyApproximation(np.abs, 8)  # chebyshev coefficients for abs
@@ -215,43 +222,55 @@ class TurbulenceKepFitted_core:
         # Truncation method
         if order == None:
             c = ny.polyApproximation(np.abs, 8)  # chebyshev coefficients for abs
-            uabs = np.zeros(u.shape, dtype=complex)
-            uabs[:, :, 0] = c[0]
-            u2 = ny.complexAmplitudeProduct(u, u, 2)
-            uabs += c[2]*u2
-            u4 = ny.complexAmplitudeProduct(u2, u2, 2)
-            uabs += c[4]*u4
-            u6 = ny.complexAmplitudeProduct(u2, u4, 2)
-            uabs += c[6]*u6
-            del u2, u6
-            u8 = ny.complexAmplitudeProduct(u4, u4, 2)
-            uabs += c[8]*u8
-            del u4, u8
+            uabs = [np.zeros(u.shape, dtype=complex), np.zeros(u.shape, dtype=complex)]  # uabs at depth-av, surface
+            for n in [0, 1]:        # compute for DA (0) and surface (1)
+                if n == 0:
+                    ut = u
+                else:
+                    ut = usurf
+                uabs[n][:, :, 0] = c[0]
+                u2 = ny.complexAmplitudeProduct(ut, ut, 2)
+                uabs[n] += c[2]*u2
+                u4 = ny.complexAmplitudeProduct(u2, u2, 2)
+                uabs[n] += c[4]*u4
+                u6 = ny.complexAmplitudeProduct(u2, u4, 2)
+                uabs[n] += c[6]*u6
+                del u2, u6
+                u8 = ny.complexAmplitudeProduct(u4, u4, 2)
+                uabs[n] += c[8]*u8
+                del u4, u8
     
-            uabs = uabs * uamp.reshape((jmax+1, 1, 1))
+                uabs[n] = uabs[n] * uamp[n].reshape((jmax+1, 1, 1))
     
             #   Absolute velocity * depth
-            uabsH = uabs*depth
-            uabsH += ny.complexAmplitudeProduct(uabs, zeta, 2)                
+            uabsH = uabs[0]*depth
+            uabsH += ny.complexAmplitudeProduct(uabs[1]-uabs[0], zeta, 2)
+            uabs = uabs[0]      # only keep DA part
+
         # Scaling method
         else:
-            uabs = np.zeros(u[0].shape+(order+1,), dtype=complex)
-            uabs[:, :, 0, 0] = c[0]
-            for q in range(0, order+1):
-                uabs[:, :, :, q] += c[2]*self.umultiply(2, q, u)
-                uabs[:, :, :, q] += c[4]*self.umultiply(4, q, u)
-                uabs[:, :, :, q] += c[6]*self.umultiply(6, q, u)
-                uabs[:, :, :, q] += c[8]*self.umultiply(8, q, u)
+            uabs = [np.zeros(u[0].shape+(order+1,), dtype=complex), np.zeros(u[0].shape+(order+1,), dtype=complex)]
+            for n in [0, 1]:        # compute for DA (0) and surface (1)
+                if n == 0:
+                    ut = u
+                else:
+                    ut = usurf
+                uabs[n][:, :, 0, 0] = c[0]
+                for q in range(0, order+1):
+                    uabs[n][:, :, :, q] += c[2]*self.umultiply(2, q, ut)
+                    uabs[n][:, :, :, q] += c[4]*self.umultiply(4, q, ut)
+                    uabs[n][:, :, :, q] += c[6]*self.umultiply(6, q, ut)
+                    uabs[n][:, :, :, q] += c[8]*self.umultiply(8, q, ut)
 
-            uabs = uabs * uamp.reshape((jmax+1, 1, 1, 1))
+                uabs[n] = uabs[n] * uamp[n].reshape((jmax+1, 1, 1, 1))
     
             #   Absolute velocity * depth
-            uabsH = uabs[:, :, :, order]*depth
+            uabsH = uabs[0][:, :, :, order]*depth
             for q in range(0, order):
-                uabsH += ny.complexAmplitudeProduct(uabs[:, :, :, q], zeta[order-q-1], 2)
+                uabsH += ny.complexAmplitudeProduct(uabs[1][:, :, :, q]-uabs[0][:, :, :, q], zeta[order-q-1], 2)
     
             #   Only keep uabs at current order
-            uabs = uabs[:, :, :, order]
+            uabs = uabs[0][:, :, :, order]      # only keep DA part
 
         ################################################################################################################
         # 2. Relaxtion
