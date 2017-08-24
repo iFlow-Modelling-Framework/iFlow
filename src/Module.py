@@ -18,7 +18,7 @@ Update  28-12-2016: submodules to run per module, not per variable
 """
 import types
 from nifty.dynamicImport import dynamicImport
-from nifty import toList
+from nifty import toList, Timer
 from src.util.diagnostics import KnownError
 import DataContainer
 import inspect
@@ -29,14 +29,12 @@ class Module:
     # Variables
 
     # Methods
-    def __init__(self, input, register, outputReq, alwaysRun = False, outputModule = False):
+    def __init__(self, input, register, outputReq):
         """Load all variables needed for the module to (private)class variables.
         Parameters:
             input - (DataContainer) input variables and results of previous modules
             register - (DataContainer) register data of this module
             outputReq - (DataContainer) output requirements (from input file)
-            alwaysRun - (bool, optional) Set to True to force the module to run. Default: False.
-            outputModule - (bool, optional) Set to True to indicate that the underlying module is an output module. Default: False.
 
         Exception:
             KnownError if module cannot be instantiated
@@ -44,17 +42,26 @@ class Module:
             KnownError if an iterative method has no method stopping_criterion(iteration)
         """
         # check if module is an output module
-        if outputModule:
+
+        # check if the module is a visualisation module. If so, set alwaysRun to True
+        if register.v('outputModule') == 'True':
             self.__isOutputModule = True
+            self.iteratesWith = input.v('iteratesWith')
             alwaysRun = True
-            self.outputIterationModule = input.v('iteratesWith')
         else:
             self.__isOutputModule = False
+            self.iteratesWith = None
+            alwaysRun = False
+
+        if register.v('visualisationModule') == 'True':
+            self.iteratesWith = input.v('iteratesWith')
+            alwaysRun = True
 
         self.__input = input
         self.__register = register
         self.__outputReq = outputReq
         self.__toRun(alwaysRun)
+        self.timer = Timer()
         return
 
     def instantiateModule(self):
@@ -133,6 +140,8 @@ class Module:
         """
         if init and self.isIterative():
             return self.__returnSubmoduleRequirement('inputInit', self.submodulesToRun)
+        elif self.isIterative():
+            return list(set(self.__returnSubmoduleRequirement('inputInit', self.submodulesToRun)+self.__returnSubmoduleRequirement('input', self.submodulesToRun)))
         else:
             return self.__returnSubmoduleRequirement('input', self.submodulesToRun)
 
@@ -140,6 +149,10 @@ class Module:
         """Returns all names of input variables available to this module. This is given as a list of tuples with the
         tuple containing a hierarchy of variable names. Example: [('grid', 'axis', 'x'), (myvar, )]"""
         return self.__input.getAllKeys()
+
+    def getIteratesWith(self):
+        """Returns the module that this module may iterate with (only for output module and visualisation module) or None if it does not iterate with anything (also None for other modules)."""
+        return self.iteratesWith
 
     def isIterative(self):
         """Returns boolean saying whether the module is iterative.
@@ -181,7 +194,8 @@ class Module:
         Returns
             DataContainer with results of calculated module
         """
-        if init and hasattr(self.module, 'run_init') and callable(self.module.run_init):
+        self.timer.tic()
+        if init and self.isIterative():         #21-07-2017 YMD correction: check if iterative, not if run_init exists
             result = self.module.run_init()
         else:
             result = self.module.run()
@@ -191,7 +205,7 @@ class Module:
             self.result = DataContainer.DataContainer(result)
         except:
             raise KnownError('Output of module %s is invalid. Please make sure to return a dictionary.' % self.getName())
-
+        self.timer.toc()
         return self.result
 
     def stopping_criterion(self, iteration):

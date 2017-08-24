@@ -24,17 +24,15 @@ class ModuleList:
     def __init__(self):
         return
 
-    def addModule(self, inputData, register, output, alwaysRun = False, outputModule = False):
+    def addModule(self, inputData, register, output):
         """Add a module to the module list
 
         Parameters:
             input - (DataContainer)  input variables and results from preparatory modules
             register - (DataContainer) registry data of this module
             output - (DataContainer) with output requirements for this module
-            alwaysRun - (bool, optional) Set to True to force the module to run. Default: False.
-            outputModule - (bool, optional) Set to True to indicate that the underlying module is an output module. Default: False.
         """
-        module = Module(inputData, register, output, alwaysRun, outputModule)
+        module = Module(inputData, register, output)
         self.moduleList.append(module, )
         return
 
@@ -95,6 +93,36 @@ class ModuleList:
         iterationReqList = [[]]
         iterationNo = 0
 
+        ## rate iterative modules on interdependency: 2 not dependent on any other iterative module; 3, 4, .. dependent on one or more iterative modules - try to place interdependent modules last for optimal runtimes
+        unratedIterative = [i for i in unplacedList if i.isIterative()]        # list of iterative modules
+        level = len(unratedIterative)                                     # highest level awarded to iterative module
+        iterativeDependence = {}                                          # initialise list of interdependencies
+        # determine all modules that are required for a closing loop of this iterative module, i.e. all modules required for input and inputInit and their inputs
+        for mod in unratedIterative:
+            inp = list(set(inputInitMods[mod.getName()]+inputMods[mod.getName()]))
+            dif = len(inp)
+            while dif:
+                lenold = len(inp)
+                inp = list(set(inp + [qq for q in inp for qq in inputInitMods[q.getName()]] + [qq  for q in inp for qq in inputMods[q.getName()]]))
+                dif = len(inp)-lenold
+            try:
+                inp.remove(mod)     # remove self if in list
+            except:
+                pass
+            iterativeDependence[mod.getName()] = inp
+
+        #
+        while level > 1:
+            tmp = []        # temporary list of modules assigned this loop
+            for j, mod in enumerate(unplacedList):
+                if iterativeList[j] == True:
+                    if not any([mod in inp for inp in iterativeDependence.values()]):
+                        iterativeList[j] = level
+                        tmp.append(mod.getName())
+            [iterativeDependence.pop(i) for i in tmp]
+            level -= 1
+        del iterativeDependence
+
         # 4. place modules in call stack
         while unplacedList:
             listSizeBefore = len(unplacedList)
@@ -104,14 +132,15 @@ class ModuleList:
                 # no iteration
                 # sort the iterativeList and unplacedList so that non-iterative modules are always placed first
                 iterativeList, unplacedList = (list(x) for x in zip(*sorted(zip(iterativeList, unplacedList))))
+
             else:
                 # in an iteration
                 # sort so that modules that can contribute to the iteration requirements come first.
                 # if more modules can contribute, take non-iteratives first
                 contributionList = [(i in iterationReqList[-1]) for i in unplacedList]
-                iterativeList = [not i for i in iterativeList]      # sorting is reversed for contribution list, therefore also reverse iterativelist. Reverse back later
+                iterativeList = [-i for i in iterativeList]      # sorting is reversed for contribution list, therefore also reverse iterativelist. Reverse back later
                 contributionList, iterativeList, unplacedList = (list(x) for x in zip(*sorted(zip(contributionList, iterativeList, unplacedList), reverse=True)))
-                iterativeList = [not i for i in iterativeList]
+                iterativeList = [-i for i in iterativeList]
 
             # b. place modules that can be placed according to their input requirements
             for i, mod in enumerate(unplacedList):
@@ -123,7 +152,7 @@ class ModuleList:
 
                     self.callStack[0].append(mod)                                           # place in call stack
                     self.callStack[1].append(iterationNo)                                   # iteration loop this module is in; 0 means no iteration
-                    self.callStack[2].append(iterativeList[i]*'start')                      # 'start' if this is the starting point of a loop
+                    self.callStack[2].append(bool(iterativeList[i])*'start')                # 'start' if this is the starting point of a loop
                     unplacedList.pop(i)                                                     # remove from list of unplaced modules
                     iterativeList.pop(i)                                                    # " "
 
@@ -135,21 +164,38 @@ class ModuleList:
 
             # c. close iteration loop if in iteration but no requirements anymore
             while iterationNo > 0 and not iterationReqList[iterationNo]:
-                # add output module if iterative output is requested and it belongs to this iteration loop
-                outputModule = [mod for mod in self.moduleList if mod.isOutputModule()]              # find the output module
-                if outputModule:
-                    outputModule = outputModule[0]
-                    outputIterationModule = outputModule.outputIterationModule                              # find with which module the output iterates or None if non-iterative
-                    iterStartModuleName_list = [mod.getName() for i, mod in enumerate(self.callStack[0]) if (self.callStack[2][i]=='start' and self.callStack[1][i]==iterationNo)]    # find the module(s) that started the current iteration loop
+                # add module if iterative output is requested and it belongs to this iteration loop
+                iteratingModules = [mod for mod in unplacedList if mod.getIteratesWith()]
+                outputmodule = [mod.isOutputModule() for mod in iteratingModules]                   # find output modules ...
+                iteratingModules = [x for (y,x) in sorted(zip(outputmodule, iteratingModules))]     #.. and sort them to set at the front
+                for mod in iteratingModules:
+                    IterationModule = mod.getIteratesWith()                              # find with which module the output iterates or None if non-iterative
+                    iterStartModuleName_list = [q.getName() for i, q in enumerate(self.callStack[0]) if (self.callStack[2][i]=='start' and self.callStack[1][i]==iterationNo)]    # find the module(s) that started the current iteration loop
                     for iterStartModuleName in iterStartModuleName_list:
-                        if outputIterationModule and outputIterationModule == iterStartModuleName:              # if output iterates with current iterative module, add output module and remove from unplaced list
-                            self.callStack[0].append(outputModule)
+                        if IterationModule == iterStartModuleName:              # if output iterates with current iterative module, add output module and remove from unplaced list
+                            self.callStack[0].append(mod)
                             self.callStack[1].append(iterationNo)
                             self.callStack[2].append('')
                             try:
-                                unplacedList.remove(outputModule)
+                                unplacedList.remove(mod)
                             except Exception as e:
-                                raise KnownError('Output module is supposed to iterate with module %s, which is not used.' % outputIterationModule, e)
+                                raise KnownError('Module %s is supposed to iterate with module %s, which is not used.' % (mod.getName(), IterationModule), e)
+
+                # # add output module if iterative output is requested and it belongs to this iteration loop
+                # outputModule = [mod for mod in self.moduleList if mod.isOutputModule()]              # find the output module
+                # if outputModule:
+                #     outputModule = outputModule[0]
+                #     outputIterationModule = outputModule.outputIterationModule                              # find with which module the output iterates or None if non-iterative
+                #     iterStartModuleName_list = [mod.getName() for i, mod in enumerate(self.callStack[0]) if (self.callStack[2][i]=='start' and self.callStack[1][i]==iterationNo)]    # find the module(s) that started the current iteration loop
+                #     for iterStartModuleName in iterStartModuleName_list:
+                #         if outputIterationModule and outputIterationModule == iterStartModuleName:              # if output iterates with current iterative module, add output module and remove from unplaced list
+                #             self.callStack[0].append(outputModule)
+                #             self.callStack[1].append(iterationNo)
+                #             self.callStack[2].append('')
+                #             try:
+                #                 unplacedList.remove(outputModule)
+                #             except Exception as e:
+                #                 raise KnownError('Output module is supposed to iterate with module %s, which is not used.' % outputIterationModule, e)
 
                 # set iteration level back by 1
                 iterationReqList.pop(iterationNo)
