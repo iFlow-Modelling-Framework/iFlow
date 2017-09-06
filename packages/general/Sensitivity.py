@@ -9,11 +9,13 @@ import logging
 import numpy as np
 from src.util.diagnostics import KnownError
 from nifty import toList
-
+import numbers
+import os
 
 class Sensitivity:
     # Variables
     logger = logging.getLogger(__name__)
+    skippedfiles = 0
 
     # Methods
     def __init__(self, input):
@@ -28,7 +30,7 @@ class Sensitivity:
         return
 
     def stopping_criterion(self, iteration):
-        self.iteration = iteration
+        self.iteration = iteration+self.skippedfiles
         stop = False
 
         # stop if iteration number exceeds number of prescribed variables
@@ -88,27 +90,42 @@ class Sensitivity:
         return d
 
     def run(self):
-        self.logger.info('Sensitivity Analysis iteration %i of %i' % (self.iteration+1, np.prod(self.numLoops)))
         d = {}
-        # set variables
-        iterationindex = np.unravel_index(self.iteration, self.numLoops)
-        newvals = {}
-        #   In case of simultaneous variations or single parameter
-        if len(iterationindex)==1:
+        validfile = False
+        while not validfile:
+            # set variables
+            iterationindex = np.unravel_index(self.iteration, self.numLoops)
+            newvals = {}
+            #   In case of simultaneous variations or single parameter
+            if len(iterationindex)==1:
+                for key in self.variables:
+                    newvals[key] = self.values[key][iterationindex[0]]
+            #   In case of permutative variation of multiple parameters
+            else:
+                for i, key in enumerate(self.variables):
+                    newvals[key] = self.values[key][iterationindex[i]]
+
+            # load to dictionary
             for key in self.variables:
-                newvals[key] = self.values[key][iterationindex[0]]
-        #   In case of permutative variation of multiple parameters
-        else:
-            for i, key in enumerate(self.variables):
-                newvals[key] = self.values[key][iterationindex[i]]
+                d[key] = copy.deepcopy(newvals[key])
 
-        # load to dictionary
-        for key in self.variables:
-            d[key] = copy.deepcopy(newvals[key])
+            # check if this run can be skipped
+            if self.input.v('checkFiles') == 'True':
+                if self.checkIfExists(d):
+                    if not self.stopping_criterion(self.iteration-self.skippedfiles+1):
+                        self.skippedfiles += 1
+                    else:
+                        validfile = True
+                else:
+                    validfile = True
+            else:               # never skip a file
+                validfile = True
 
+        self.logger.info('Sensitivity Analysis iteration %i of %i' % (self.iteration+1, np.prod(self.numLoops)))
         self.logger.info('\tValues:')
         for key in d:
             self.logger.info('\t%s = %s' % (key, str(d[key])))
+
         return d
 
     def interpretValues(self, values):
@@ -132,3 +149,41 @@ class Sensitivity:
         # case 2: else interpret as space-separated list
         else:
             return values
+
+    def checkIfExists(self, newsettings):
+        cwdpath = self.input.v('CWD') or ''       # path to working directory
+        path = os.path.join(cwdpath, self.input.v('path'))
+        if path[-1]!='/' or path[-1]!='\\':
+            path += '/'
+        ext = '.p'
+        dc = self.input
+        dc.merge(newsettings)
+
+        # Prepare output file name format
+        outputformat = ''.join(self.input.v('filename'))
+        outputnames = []
+        while outputformat.find('@{')>0:
+            start = outputformat.find('@{')
+            end = outputformat.find('}')
+            outputnames.append(outputformat[start+2:end])
+            outputformat = outputformat.replace(outputformat[start:end+1], '%s')
+
+        counter = [0]*len(outputnames)    # set a counter for the case where the outputnames cannot be evaluated to a number; the counter then replaces this.
+
+        # set output file name
+        outnames = []
+        for i, key in enumerate(outputnames):
+            exec('outnames.append(dc.v('+key+'))')
+            if not isinstance(outnames[-1], numbers.Number):
+                try:
+                    outnames[-1] = float(outnames[-1])
+                except:
+                    outnames[-1] = counter[i]
+                    counter[i]+=1
+        filename = outputformat % tuple(outnames)
+
+        # check if file name already exists. If it does, append the filename by '_' + the first number >1 for which the path does not exist
+        if os.path.exists(path+filename+ext):
+            return True
+        else:
+            return False
