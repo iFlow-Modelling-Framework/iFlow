@@ -17,9 +17,9 @@ class Linear(FunctionBase):
     #Methods
     def __init__(self, dimNames, data):
         FunctionBase.__init__(self, dimNames)
-        self.L = data.v('L')
-        self.C0 = data.v('C0')
-        self.CL = data.v('CL')
+        self.L = float(data.v('L'))
+        self.C0 = float(data.v('C0'))
+        self.CL = float(data.v('CL'))
         FunctionBase.checkVariables(self, ('C0', self.C0), ('CL', self.CL), ('L', self.L))
         return
 

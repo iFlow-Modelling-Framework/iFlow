@@ -21,11 +21,11 @@ class HyperbolicTangent(FunctionBase):
     #Methods
     def __init__(self, dimNames, data):
         FunctionBase.__init__(self, dimNames)
-        self.L = data.v('L')
+        self.L = float(data.v('L'))
         self.C0 = data.v('C0')
         self.C1 = data.v('C1')
-        self.xc = data.v('xc')
-        self.xl = data.v('xl')
+        self.xc = float(data.v('xc'))
+        self.xl = float(data.v('xl'))
 
         # call checkVariables method of FunctionBase to make sure that the input is correct
         FunctionBase.checkVariables(self, ('C0', self.C0), ('C1', self.C1),('xc', self.xc), ('xl', self.xl), ('L', self.L))

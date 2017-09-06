@@ -19,7 +19,7 @@ class Polynomial(FunctionBase):
     #Methods
     def __init__(self, dimNames, data):
         FunctionBase.__init__(self, dimNames)
-        self.L = data.v('L')
+        self.L = float(data.v('L'))
         self.C = np.array(ny.toList(data.v('C')))
         FunctionBase.checkVariables(self, ('C', self.C), ('L', self.L))
         return

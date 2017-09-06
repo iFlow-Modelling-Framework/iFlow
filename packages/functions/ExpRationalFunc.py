@@ -19,7 +19,7 @@ class ExpRationalFunc(FunctionBase):
     #Methods
     def __init__(self, dimNames, data):
         FunctionBase.__init__(self, dimNames)
-        self.L = data.v('L')
+        self.L = float(data.v('L'))
         self.C1 = np.array(data.v('C1'))
         self.C2 = np.array(data.v('C2'))
         FunctionBase.checkVariables(self, ('L', self.L), ('C1', self.C1), ('C2', self.C2))

@@ -19,9 +19,9 @@ class Exponential(FunctionBase):
     #Methods
     def __init__(self, dimNames, data):
         FunctionBase.__init__(self, dimNames)
-        self.L = data.v('L')
-        self.C0 = data.v('C0')
-        self.Lc = data.v('Lc')
+        self.L = float(data.v('L'))
+        self.C0 = float(data.v('C0'))
+        self.Lc = float(data.v('Lc'))
 
         # call checkVariables method of FunctionBase to make sure that the input is correct
         FunctionBase.checkVariables(self, ('C0', self.C0), ('Lc', self.Lc), ('L', self.L))
@@ -48,5 +48,5 @@ class Exponential(FunctionBase):
             return self.C0/(self.Lc**2)*exp(-x/self.Lc)
         else:
             FunctionBase.derivative(self)
-            return 
+            return
 

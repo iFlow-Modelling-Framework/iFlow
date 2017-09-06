@@ -21,9 +21,9 @@ class PolynomialLinear(FunctionBase):
     #Methods
     def __init__(self, dimNames, data):
         FunctionBase.__init__(self, dimNames)
-        self.L = data.v('L')
+        self.L = float(data.v('L'))
         self.C = np.array(data.v('C'))
-        self.XL = np.array(data.v('XL'))
+        self.XL = float(np.array(data.v('XL')))
         FunctionBase.checkVariables(self, ('C', self.C), ('XL', self.XL), ('L', self.L))
 
         # coefficients for the linear function

@@ -16,7 +16,7 @@ class Constant(FunctionBase):
     # Methods
     def __init__(self, dimNames, data):
         FunctionBase.__init__(self, dimNames)
-        self.C0 = data.v('C0')
+        self.C0 = float(data.v('C0'))
 
         # call checkVariables method of FunctionBase to make sure that the input is correct
         FunctionBase.checkVariables(self, ('C0', self.C0))
@@ -26,4 +26,4 @@ class Constant(FunctionBase):
         return self.C0
 
     def derivative(self, *args, **kwargs):
-        return 0
+        return 0.
