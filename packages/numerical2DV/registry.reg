@@ -98,13 +98,13 @@ submodules	advection diffusion nostress
 ########################################################################################################################
 module      SedDynamicLead
 packagePath sediment/
-input       grid G OMEGA RHOS RHO0 DS u0 finf erosion_formulation Av Roughness Kv
+input       grid G OMEGA RHOS RHO0 DS u0 finf erosion_formulation Av Roughness Kv ws0
 output      hatc0
 submodules	erosion
 
 module      SedDynamicFirst
 packagePath sediment/
-input       grid G OMEGA RHOS RHO0 DS u0 finf erosion_formulation Av Roughness Kv
+input       grid G OMEGA RHOS RHO0 DS u0 finf erosion_formulation Av Roughness Kv ws0
 output      hatc1
 submodules	sedadv fallvel mixing erosion noflux
 sedadv  	    input		w0 hatc0
@@ -132,7 +132,7 @@ output      a c0 c1 c2 F T
 module          DiffusivityUndamped
 packagePath     sediment/
 input           sigma_rho Av
-output          Kv
+output          Kv skin_friction
 
 ########################################################################################################################
 # Subpackage turbulence

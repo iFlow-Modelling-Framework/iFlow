@@ -43,9 +43,9 @@ class SedDynamic:
         kmax = self.input.v('grid', 'maxIndex', 'z')
         fmax = self.input.v('grid', 'maxIndex', 'f')
         self.z = self.input.v('grid', 'axis', 'z', 0, range(0, kmax+1))
-        self.zarr = ny.dimensionalAxis(self.input.slice('grid'), 'z')[:, :, 0]
-        self.Av0 = self.input.v('Av', range(0, jmax+1), 0, 0).reshape(jmax+1, 1)
-        self.Av0x = self.input.d('Av', range(0, jmax+1), 0, 0, dim='x').reshape(jmax+1, 1)
+        self.zarr = ny.dimensionalAxis(self.input.slice('grid'), 'z')[:, :, 0]-self.input.v('R', x=self.x/self.L).reshape((len(self.x), 1))      #YMD 22-8-17 includes reference level; note that we take a reference frame z=[-H-R, 0]
+        self.Av0 = self.input.v('Kv', range(0, jmax+1), 0, 0).reshape(jmax+1, 1)
+        self.Av0x = self.input.d('Kv', range(0, jmax+1), 0, 0, dim='x').reshape(jmax+1, 1)
         self.H = (self.input.v('H', range(0, jmax+1)).reshape(jmax+1, 1) +
                   self.input.v('R', range(0, jmax+1)).reshape(jmax+1, 1))
         self.Hx = (self.input.d('H', range(0, jmax+1), dim='x').reshape(jmax+1, 1) +
@@ -286,6 +286,14 @@ class SedDynamic:
         self.c04z = (A1 * r1_M4 * np.exp(r1_M4 * self.zarr) + A2 * r2_M4 * np.exp(r2_M4 * self.zarr))
         self.c04zz = (A1 * r1_M4 ** 2 * np.exp(r1_M4 * self.zarr) + A2 * r2_M4 ** 2 * np.exp(r2_M4 * self.zarr))
 
+        # import step as st
+        # import matplotlib.pyplot as plt
+        #
+        # st.configure()
+        # plt.figure(1, figsize=(1,2))
+        # plt.plot(abs(uabs_M4))
+        # st.show()
+        #
         hatc0 = np.zeros((len(self.x), len(self.z), 3), dtype=complex)
         hatc0[:, :, 0] = self.c00
         hatc0[:, :, 2] = self.c04

@@ -40,14 +40,15 @@ class HydroFirst:
         self.dx = self.x[1:]-self.x[:-1]
         kmax = self.input.v('grid', 'maxIndex', 'z')
         self.z = self.input.v('grid', 'axis', 'z', 0, range(0, kmax+1))
-        self.zarr = (self.z.reshape(1, len(self.z)) * self.input.n('H', x=self.x/self.L).reshape(len(self.x), 1))
+        # self.zarr = (self.z.reshape(1, len(self.z)) * self.input.n('H', x=self.x/self.L).reshape(len(self.x), 1))
+        self.zarr = ny.dimensionalAxis(self.input.slice('grid'), 'z')[:, :, 0]-self.input.v('R', x=self.x/self.L).reshape((len(self.x), 1))      #YMD 22-8-17 includes reference level; note that we take a reference frame z=[-H-R, 0]
         self.Av0 = self.input.v('Av', x=self.x/self.L, z=0, f=0).reshape(len(self.x), 1)
         self.Av0x = self.input.d('Av', x=self.x/self.L, z=0, f=0, dim='x').reshape(len(self.x), 1)
         self.sf = self.input.v('Roughness', x=self.x/self.L, f=0).reshape(len(self.x), 1)
         self.sfx = self.input.d('Roughness', x=self.x/self.L, f=0, dim='x').reshape(len(self.x), 1)
         self.r = np.sqrt(2. * 1j * self.SIGMA / self.Av0).reshape(len(self.x), 1)
-        self.H = self.input.v('H', x=self.x/self.L).reshape(len(self.x), 1)
-        self.Hx = self.input.d('H', x=self.x/self.L, dim='x').reshape(len(self.x), 1)
+        self.H = self.input.v('H', x=self.x/self.L).reshape(len(self.x), 1) + self.input.v('R', x=self.x/self.L).reshape(len(self.x), 1)        # YMD added reference level 15-08-17
+        # self.Hx = self.input.d('H', x=self.x/self.L, dim='x').reshape(len(self.x), 1) + self.input.d('H', x=self.x/self.L, dim='x').reshape(len(self.x), 1)   # YMD not used 15-08-17
         self.alpha = (self.sf / (self.r * self.Av0 * np.sinh(self.r * self.H) + self.sf * np.cosh(self.r * self.H))).reshape(len(self.x), 1)
         self.B = self.input.v('B', x=self.x/self.L).reshape(len(self.x), 1)
         self.Bx = self.input.d('B', x=self.x/self.L, dim='x').reshape(len(self.x), 1).reshape(len(self.x), 1)
@@ -103,9 +104,9 @@ class HydroFirst:
         Returns:
             a - coefficient alpha
         """
-        H = np.array([self.input.v('H', x=x/self.L),
-                      self.input.d('H', x=x/self.L, dim='x'),
-                      self.input.d('H', x=x/self.L, dim='xx')])
+        H = np.array([self.input.v('H', x=x/self.L) + self.input.v('R', x=x/self.L),
+                      self.input.d('H', x=x/self.L, dim='x') + self.input.d('R', x=x/self.L, dim='x'),
+                      self.input.d('H', x=x/self.L, dim='xx') + self.input.d('R', x=x/self.L, dim='xx')])   # YMD 15-08-17 Reference level
         Av = np.array([self.input.v('Av', x=x/self.L, z=0, f=0),
                        self.input.d('Av', x=x/self.L, z=0, f=0, dim='x'),
                        self.input.d('Av', x=x/self.L, z=0, f=0, dim='xx')])
@@ -167,9 +168,9 @@ class HydroFirst:
                    zeta_x and zeta_xx. See manual for more information
         """
         # Import system variables
-        H = np.array([self.input.v('H', x=x/self.L),
-                      self.input.d('H', x=x/self.L, dim='x'),
-                      self.input.d('H', x=x/self.L, dim='xx')])
+        H = np.array([self.input.v('H', x=x/self.L) + self.input.v('R', x=x/self.L),
+                      self.input.d('H', x=x/self.L, dim='x') + self.input.d('R', x=x/self.L, dim='x'),
+                      self.input.d('H', x=x/self.L, dim='xx') + self.input.d('R', x=x/self.L, dim='xx')])   # YMD 15-08-17 Reference level
         B = np.array([self.input.v('B', x=x/self.L),
                       self.input.d('B', x=x/self.L, dim='x'),
                       self.input.d('B', x=x/self.L, dim='xx')])
@@ -218,9 +219,9 @@ class HydroFirst:
                    for more information
         """
         # Import system variables
-        H = np.array([self.input.v('H', x=x / self.L),
-                      self.input.d('H', x=x / self.L, dim='x'),
-                      self.input.d('H', x=x / self.L, dim='xx')])
+        H = np.array([self.input.v('H', x=x/self.L) + self.input.v('R', x=x/self.L),
+                      self.input.d('H', x=x/self.L, dim='x') + self.input.d('R', x=x/self.L, dim='x'),
+                      self.input.d('H', x=x/self.L, dim='xx') + self.input.d('R', x=x/self.L, dim='xx')])   # YMD 15-08-17 Reference level
         B = np.array([self.input.v('B', x=x / self.L),
                       self.input.d('B', x=x / self.L, dim='x'),
                       self.input.d('B', x=x / self.L, dim='xx')])
@@ -603,7 +604,12 @@ class HydroFirst:
         # M0 contribution #
         # Calculate M0 water level
         zeta[1, :, 0, 0] = (self.input.v('Q1') / (self.G * self.B * self.H**2. * (self.H / (3. * self.Av0) + 1. / self.sf))).reshape(len(self.x))
-        zeta[0, 1:, 0, 0] = integrate.cumtrapz(zeta[1, :, 0, 0], x=self.x)
+
         # Calculate M0 flow velocity
         u[0, :, :, 0] = (((self.zarr**2. - self.H**2.) / (2 * self.Av0) - self.H / self.sf) * self.G * zeta[1, :, 0, 0].reshape(len(self.x), 1))
+
+        # YMD REFERENCE LEVEL 15-08-17
+        Rx = self.input.d('R', x=self.x/self.L, dim='x')       # YMD Reference level 15-08-17
+        zeta[1, :, 0, 0] = zeta[1, :, 0, 0] - Rx
+        zeta[0, 1:, 0, 0] = integrate.cumtrapz(zeta[1, :, 0, 0], x=self.x)
         return zeta, u

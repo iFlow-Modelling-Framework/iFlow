@@ -36,7 +36,8 @@ class HydroLead:
         self.x = self.input.v('grid', 'axis', 'x') * self.input.v('L')
         kmax = self.input.v('grid', 'maxIndex', 'z')
         self.z = self.input.v('grid', 'axis', 'z', 0, range(0, kmax+1))
-        self.zarr = (self.z.reshape(1, len(self.z)) * self.input.n('H', x=self.x/self.L).reshape(len(self.x), 1))
+        # self.zarr = (self.z.reshape(1, len(self.z)) * self.input.n('H', x=self.x/self.L).reshape(len(self.x), 1))
+        self.zarr = ny.dimensionalAxis(self.input.slice('grid'), 'z')[:, :, 0]-self.input.v('R', x=self.x/self.L).reshape((len(self.x), 1))      #YMD 22-8-17 includes reference level; note that we take a reference frame z=[-H-R, 0]
         self.bca = ny.amp_phase_input(self.input.v('A0'), self.input.v('phase0'), (2,))[1]
        # Allocate space for results
         d = dict()
@@ -91,9 +92,9 @@ class HydroLead:
         Returns:
             a - coefficient alpha
         """
-        H = np.array([self.input.v('H', x=x/self.L),
-                      self.input.d('H', x=x/self.L, dim='x'),
-                      self.input.d('H', x=x/self.L, dim='xx')])
+        H = np.array([self.input.v('H', x=x/self.L) + self.input.v('R', x=x/self.L),
+                      self.input.d('H', x=x/self.L, dim='x') + self.input.d('R', x=x/self.L, dim='x'),
+                      self.input.d('H', x=x/self.L, dim='xx') + self.input.d('R', x=x/self.L, dim='xx')])   # YMD 15-08-17 Reference level
         Av = np.array([self.input.v('Av', x=x/self.L, z=0, f=0),
                        self.input.d('Av', x=x/self.L, z=0, f=0, dim='x'),
                        self.input.d('Av', x=x/self.L, z=0, f=0, dim='xx')])
@@ -155,8 +156,8 @@ class HydroLead:
                    zeta_x and zeta_xx. See manual for more information
         """
         # Import system variables
-        H = np.array([self.input.v('H', x=x/self.L),
-                      self.input.d('H', x=x/self.L, dim='x')])
+        H = np.array([self.input.v('H', x=x/self.L) + self.input.v('R', x=x/self.L),
+                      self.input.d('H', x=x/self.L, dim='x') + self.input.d('R', x=x/self.L, dim='x')])   # YMD 15-08-17 Reference level
         B = np.array([self.input.v('B', x=x/self.L),
                       self.input.d('B', x=x/self.L, dim='x')])
         r = self.rf(x)
@@ -192,8 +193,8 @@ class HydroLead:
                    for more information
         """
         # Import system variables
-        H = np.array([self.input.v('H', x=x / self.L),
-                      self.input.d('H', x=x / self.L, dim='x')])
+        H = np.array([self.input.v('H', x=x/self.L) + self.input.v('R', x=x/self.L),
+                      self.input.d('H', x=x/self.L, dim='x') + self.input.d('R', x=x/self.L, dim='x')])   # YMD 15-08-17 Reference level
         B = np.array([self.input.v('B', x=x / self.L),
                       self.input.d('B', x=x / self.L, dim='x')])
         r = self.rf(x)
@@ -226,7 +227,7 @@ class HydroLead:
             jmax = self.input.v('grid', 'maxIndex', 'x')
             r = self.rf(self.x)
             a = self.af(self.x, r)
-            H = self.input.v('H', x=self.x / self.L)
+            H = self.input.v('H', x=self.x / self.L) + self.input.v('R', x=self.x / self.L)
             M = ((a[0] * np.sinh(r[0] * H) / r[0]) - H) * self.input.v('B', x=self.x / self.L) * (self.G / (1j * self.SIGMA))
             F = np.zeros((jmax+1, 1), dtype=complex)    # Forcing term shape (x, number of right-hand sides)
             Fopen = np.zeros((1, 1), dtype=complex)     # Forcing term shape (1, number of right-hand sides)
