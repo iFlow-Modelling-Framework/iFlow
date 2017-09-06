@@ -47,15 +47,17 @@ class ModuleList:
            checked to verify the input. Input variables can be provided either by other modules (i.e. in 'output' tag
            in module registry), on input or in the config.py file. A KnownError Exception is raised when the input is
            invalid.
-        3. Initialise. First determine the the required module for each module (both for initial run (iterative mods) and
+        3. Reinitialise Iterator modules and use Iterator modules to ignore the iterative properties of its depending
+            iterative modules
+        4. Initialise. First determine the the required module for each module (both for initial run (iterative mods) and
             consecutive runs. Then prepare the lists required in step 3.
-        4. place modules in the call stack. This works with a two list system: a list of unplaced modules and
+        5. place modules in the call stack. This works with a two list system: a list of unplaced modules and
             a call stack (=list of placed modules).
             Iteratively do the following check:
             a. Sort the modules (see below at *)
             b. Place the first module in the list that does not require other unplaced modules.
             c. If the placed module is iterative, determine the requirements for closing the iteration loop
-        5. check if the any change occurred in the last iteration or if the unplaced list is depleted.
+        6. check if the any change occurred in the last iteration or if the unplaced list is depleted.
             If no change or depleted list, stop the iteration.
             Provide a warning (but continue the program) if not all output requirements have been met or if not
             all specified methods are used.
@@ -69,13 +71,16 @@ class ModuleList:
             Note that no exception is thrown when the call stack is incomplete, the program will then only provide a
             warning, but continues running.
         """
-        # 1. update the submodules to run based on the input requirements of all modules
+        # 1.a update the submodules to run based on the input requirements of all modules
         self.__updateSubmodulesToRun()
 
         # 2. check input requirements; have all variables been provided
         self.__checkInputRequirements()
 
-        # 3. Init
+        # 3 set the registry of Iterator modules
+        self.__setIterator()
+
+        # 4. Init
         #   Determine which modules are required for the modules to run
         inputInitMods = self.__loadInputRequirements(init=True)
         inputMods = self.__loadInputRequirements()
@@ -123,7 +128,7 @@ class ModuleList:
             level -= 1
         del iterativeDependence
 
-        # 4. place modules in call stack
+        # 5. place modules in call stack
         while unplacedList:
             listSizeBefore = len(unplacedList)
 
@@ -203,7 +208,7 @@ class ModuleList:
 
             listSizeAfter = len(unplacedList)
 
-            # 5. check the progress made in the last iteration
+            # 6. check the progress made in the last iteration
             if listSizeBefore == listSizeAfter or not unplacedList:
                 # a. there are vars required on output, but not calculated
                 if any([j for j in outputReqList if j not in outputList]):
@@ -345,7 +350,7 @@ class ModuleList:
             if mod.isOutputModule():
                 inputList = [i for i in inputList if i not in mod.getOutputRequirements()]
 
-            # if there
+            # if there are variables in the inputlist that cannot be provided by any source, show an error and abort.
             if inputList:
                 message = ("Not all required variables are given. Missing '%s' in module '%s'.\nVariables can be calculated in other modules, given on input or specified in the iFlow config file" % (', '.join(inputList), str(mod.getName())))
                 raise KnownError(message)
@@ -415,4 +420,10 @@ class ModuleList:
                 for mod_other in self.callStack[0][imin:imax]:
                     outputList = list(set(outputList + toList(mod_other.getOutputVariables())))
                 mod.updateToRunIter(outputList)
+        return
+
+    def __setIterator(self):
+        """Request iterator modules to append their registry and remove their dependent modules from the module list"""
+        for module in (self.moduleList):
+            self.moduleList = module.updateIteratorRegistry(self.moduleList)
         return

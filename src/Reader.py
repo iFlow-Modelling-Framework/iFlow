@@ -96,7 +96,10 @@ class Reader:
 
                 # convert raw data to a dictionary and load into a DataContainer
                 dataStructures = nestedListToDictionary(dataStructures)
-                dataStructures = DataContainer(dataStructures)
+                try:
+                    dataStructures = DataContainer(dataStructures)
+                except:
+                    raise KnownError('Incomplete entry in the input file. Please check if there is an unfinished entry with keyword "module".')
                 containerList.append(dataStructures)
 
             if startChapter[0] in linesplit and startChapter[1] in linesplit and not inChapter:

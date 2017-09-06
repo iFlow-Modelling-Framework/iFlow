@@ -1,10 +1,11 @@
-LASTINPUTFILES = []
-CWD = ''
+LASTINPUTFILES = ['input/Bo/Taw1.txt', 'input/toyproblem.txt', 'input/hs/ems_2005.txt', 'input/plotBaseModel.txt', 'input/testset/ems_2005_HS.txt']
+CWD = 'D:/Work/PhD/Projects/6. Ecology/iFlow_ecology'
 DERMETHOD = 'FORWARD'
 SECONDDERMETHOD = 'CENTRAL'
 INTMETHOD = 'TRAPEZOIDAL'
-MAXITERATIONS = 5000
+MAXITERATIONS = 1000000          # maximum number of iterations in a single loop of modules
 solver = 'numerical'            # solver for the semi analytical model 'numerical' or 'bvp'.
+mode = 'debug'
 
 # model constants
 OMEGA = 1.4056343e-4            # Angular frequency of the M2 tide (1/s)

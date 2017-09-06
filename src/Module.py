@@ -42,8 +42,6 @@ class Module:
             KnownError if an iterative method has no method stopping_criterion(iteration)
         """
         # check if module is an output module
-
-        # check if the module is a visualisation module. If so, set alwaysRun to True
         if register.v('outputModule') == 'True':
             self.__isOutputModule = True
             self.iteratesWith = input.v('iteratesWith')
@@ -53,15 +51,25 @@ class Module:
             self.iteratesWith = None
             alwaysRun = False
 
+        # check if the module is a visualisation module. If so, set alwaysRun to True
         if register.v('visualisationModule') == 'True':
             self.iteratesWith = input.v('iteratesWith')
             alwaysRun = True
 
+        # Load the data from input and register to private class variables and initiate a timer for this module
         self.__input = input
         self.__register = register
         self.__outputReq = outputReq
         self.__toRun(alwaysRun)
         self.timer = Timer()
+
+        # set if this module is iterative; it is when itself or any of its submodules is iterative
+        self.iterative = False
+        if self.__register.v('iterative') == 'True':
+            self.iterative = True
+        for submod in self.__submodulesToRunInit:
+            if self.__register.v(submod, 'iterative') == 'True':
+                self.iterative = True
         return
 
     def instantiateModule(self):
@@ -157,17 +165,18 @@ class Module:
     def isIterative(self):
         """Returns boolean saying whether the module is iterative.
         A module is iterative when any of its submodules to run is iterative."""
-        iterative = False
-        if self.__register.v('iterative') == 'True':
-            iterative = True
-        for submod in self.__submodulesToRunInit:
-            if self.__register.v(submod, 'iterative') == 'True':
-                iterative = True
-        return iterative
+        return self.iterative
 
     def isOutputModule(self):
         """Returns True is the underlying module is an output module, else returns False"""
         return self.__isOutputModule
+
+    def isIteratorModule(self):
+        """Returns if the module is an iterator module."""
+        if self.__register.v('iteratorModule') == 'True':
+            return True
+        else:
+            return False
 
     #   Other public methods
     def setSubmoduleRunList(self, iter):
@@ -366,3 +375,37 @@ class Module:
             sublist = []
 
         return sublist
+
+    def updateIteratorRegistry(self, moduleList):
+        """Update the register of the special iterator module (IteratorModule in register).
+        This has an input variable modules that it controls and it takes its registry data"""
+        if self.isIteratorModule():
+            modules = toList(self.__input.v('modules'))
+            modules = [i for j in modules for i in moduleList if (i.getName().split('.')[0]+'.'+i.getName().split('.')[-1] == j)]
+            inputInit = toList(self.__register.v('inputInit'))
+            input = toList(self.__register.v('input'))
+            output = toList(self.__register.v('output'))
+            run = []
+            for module in modules:
+                # get registry data of the dependent modules
+                inputInit += toList(module.getInputRequirements(True))
+                input += toList(module.getInputRequirements())
+                output += toList(module.getOutputVariables())
+
+                # remove the dependent module from the module list
+                moduleList.remove(module)
+
+            # compile final list of register data
+            self.__register.addData('inputInit', list(set(inputInit)))
+            self.__register.addData('input', list(set(input)))
+            self.__register.addData('output', list(set(output)))
+            self.__toRun()
+
+            # append input data with the module object references, instead of the module names
+            self.addInputData({'modules': modules})
+
+        return moduleList
+
+
+
+

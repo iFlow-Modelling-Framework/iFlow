@@ -17,6 +17,7 @@ from Reader import Reader
 from src.util import importModulePackages
 import matplotlib as mpl
 mpl.use('TkAgg')
+import src.config as cf
 
 
 class Program:
@@ -49,6 +50,12 @@ class Program:
 
         # run call stack
         self.__runCallStack()
+
+        # display elapsed time
+        if hasattr(cf, 'mode') and cf.mode == 'debug':
+            print 'Elapsed time per module:'
+            for i in self.moduleList.moduleList:
+                i.timer.disp(i.getName()+': ')
         return
 
     def __runCallStack(self):
@@ -126,21 +133,15 @@ class Program:
                 registerData = self._registryChecker.readRegistryEntry(moduleName)
                 self._registryChecker.refactorRegistry(data, registerData, output=outputReq)
 
-                # check if the module is a visualisation module. If so, set alwaysRun to True
-                alwaysRun = False
-                outputModule = False
-                if registerData.v('visualisationModule') == 'True':
-                    alwaysRun = True
+                # set different data set for output module
                 if registerData.v('outputModule') == 'True':
-                    outputModule = True
-                    # do not include config data for output module
-                    data = DataContainer()
+                    data = DataContainer()                              # do not include config data for output module; start a new one
                     data.merge(dataContainer)
                     data.addData('module', moduleName)
                     data.addData('inputFile', self.inputFilePath)       # output needs the input file, add this to its data
 
                 # make the module
-                self.moduleList.addModule(data, registerData, outputReq, alwaysRun=alwaysRun, outputModule=outputModule)
+                self.moduleList.addModule(data, registerData, outputReq)
         return
 
     def __buildCallStack(self):
