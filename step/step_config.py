@@ -1,5 +1,5 @@
 dpi = 120           # dpi for visualisation
-savedpi = 1000       # dpi for saving (only relevant for non-vector images)
+savedpi = 300       # dpi for saving (only relevant for non-vector images)
 wunit = 3.5         # single width unit (inch)
 hunit = 2.8        # single height unit (inch)
 fontsize = 11       # font size for title and axis labels

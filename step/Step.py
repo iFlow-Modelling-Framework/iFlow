@@ -350,6 +350,8 @@ class Step:
             else:
                 plt.gca().set_axis_bgcolor([.75, .75, .75])
             cb = plt.colorbar()
+            plt.xlim(np.min(axis1_dim), np.max(axis1_dim))
+            plt.ylim(np.min(axis2_dim), np.max(axis2_dim))
 
             ## Title and axis labels
             if numberOfSubplots > 1:
