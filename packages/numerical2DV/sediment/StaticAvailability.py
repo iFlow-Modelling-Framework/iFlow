@@ -36,6 +36,9 @@ class StaticAvailability:
         c0 = self.input.v('hatc0', 'a', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))
         c1_a0 = self.input.v('hatc1', 'a', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))
         c1_a0x = self.input.v('hatc1', 'ax', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))
+        if isinstance(c1_a0x, bool):
+            c1_a0x = np.zeros((jmax+1, kmax+1, fmax+1))
+
 
         d = {}
 

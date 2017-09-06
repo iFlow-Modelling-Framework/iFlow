@@ -67,7 +67,7 @@ class ReferenceLevel:
         jmax = self.input.v('grid', 'maxIndex', 'x')
 
         # Construct reference level by stepping from x=0 towards x=L
-        R = np.zeros(jmax+1)
+        R = self.input.v('R', range(0, jmax+1))
         x = ny.dimensionalAxis(self.input.slice('grid'), 'x')[:,0,0]
         dx = x[1:]-x[0:-1]
         for j in range(0, jmax):

@@ -2,12 +2,13 @@ import numpy as np
 import nifty as ny
 from shearstress import shearstress
 
-def erosion(ws, Av, tau_order, data, method='Chernetsky', submodule=None):
+def erosion(ws, tau_order, data, method='Chernetsky', submodule=None, friction='Roughness'):
+    jmax = data.v('grid', 'maxIndex', 'x')
     kmax = data.v('grid', 'maxIndex', 'z')
     fmax = data.v('grid', 'maxIndex', 'f')
     rho0 = data.v('RHO0')
 
-    taub_abs = shearstress(Av, tau_order, data, submodule=submodule)
+    taub_abs = shearstress(tau_order, data, submodule=submodule, friction=friction)
     ## 2. erosion
     finf = data.v('finf')
     if method == 'Partheniades':

@@ -29,6 +29,9 @@ class SedDynamicSecond:
         ftot = 2*fmax+1
         self.submodulesToRun = self.input.v('submodules')
         method = self.input.v('erosion_formulation')
+        frictionpar = self.input.v('friction')      # friction parameter used for the erosion, by default the total roughness
+        if frictionpar == None:
+            frictionpar = 'Roughness'
 
         ################################################################################################################
         # Left hand side
@@ -58,7 +61,7 @@ class SedDynamicSecond:
 
         # erosion
         if self.input.v('u1', 'river') is not None:
-            E = erosion(ws, Av, 2, self.input, method, submodule=('river',)*3)
+            E = erosion(ws, 2, self.input, method, submodule=('river',)*3, friction=frictionpar)
             Fbed[:, :, fmax:, 0] = -E
 
             ################################################################################################################

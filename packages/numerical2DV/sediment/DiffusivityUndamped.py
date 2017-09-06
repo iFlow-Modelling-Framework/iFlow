@@ -26,6 +26,7 @@ class DiffusivityUndamped:
         Kv = Av/self.input.v('sigma_rho', range(0, jmax+1), range(0, kmax+1), [0])
 
         d['Kv'] = Kv
+        d['skin_friction'] = self.input.v('Roughness', range(0, jmax+1), [0], range(0, fmax+1))
         return d
 
 

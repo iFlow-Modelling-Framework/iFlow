@@ -31,6 +31,9 @@ class SedDynamicFirst:
         OMEGA = self.input.v('OMEGA')
         self.submodulesToRun = ny.toList(self.input.v('submodules'))
         method = self.input.v('erosion_formulation')
+        frictionpar = self.input.v('friction')      # friction parameter used for the erosion, by default the total roughness
+        if frictionpar == None:
+            frictionpar = 'Roughness'
 
         ################################################################################################################
         # Left hand side
@@ -59,7 +62,11 @@ class SedDynamicFirst:
         nRHS = len(self.submodulesToRun)
         if 'erosion' in self.submodulesToRun:
             keysu1 = self.input.getKeysOf('u1')
-            self.submodulesToRun.remove('erosion')
+            try:
+                keysu1.remove('mixing')     # flow due to 'mixing' should not be included in the erosion term
+            except:
+                pass
+            self.submodulesToRun.remove('erosion')  #move to the end of the list
             self.submodulesToRun.append('erosion')
             nRHS = nRHS - 1 + len(self.input.getKeysOf('u1'))
 
@@ -76,7 +83,7 @@ class SedDynamicFirst:
             # E = erosion(ws, Av, 1, self.input, method)                        # 24-04-2017 Obsolete
             # Fbed[:, :, fmax:, self.submodulesToRun.index('erosion')] = -E     # 24-04-2017 Obsolete
             for submod in keysu1:
-                E = erosion(ws, Av, 1, self.input, method, submodule=(None, submod))
+                E = erosion(ws, 1, self.input, method, submodule=(None, submod), friction=frictionpar)
                 Fbed[:, :, fmax:, len(self.submodulesToRun)-1 + keysu1.index(submod)] = -E
 
         # 2. Advection
@@ -100,13 +107,12 @@ class SedDynamicFirst:
             Fsurf[:, 0, fmax:, self.submodulesToRun.index('settling')] = -ny.complexAmplitudeProduct(ksiz[:,0,:], zeta0, 1)
 
             # adjustment to erosion
-            E = erosion(ws1, Av, 0, self.input, method)
+            E = erosion(ws1, 0, self.input, method, friction=frictionpar)
             Fbed[:, :, fmax:, self.submodulesToRun.index('settling')] = -E
 
         # 4. First-order eddy diffusivity
         if 'mixing' in self.submodulesToRun:
             # surface, bed and internal terms
-            Av1 = self.input.v('Av1', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))
             Kv1 = self.input.v('Kv1', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))
             psi = ny.complexAmplitudeProduct(Kv1, cz0, 2)
             psiz = ny.derivative(psi, 'z', self.input.slice('grid'))
@@ -116,7 +122,7 @@ class SedDynamicFirst:
             Fbed[:, 0, fmax:, self.submodulesToRun.index('mixing')] = -psi[:, -1, :]
 
             # adjustment to erosion
-            E = erosion(ws, Av1, 0, self.input, method)
+            E = erosion(ws, 1, self.input, method, submodule=(None, 'mixing'), friction=frictionpar)
             Fbed[:, :, fmax:, self.submodulesToRun.index('mixing')] = -E
 
         # 5. No-flux surface correction
@@ -160,6 +166,5 @@ class SedDynamicFirst:
 
         return d
 
-    
     
     
