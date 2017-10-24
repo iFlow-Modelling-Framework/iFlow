@@ -42,7 +42,7 @@ from ..hydro.ReferenceLevel import ReferenceLevel
 class TurbulenceKepFitted_core:
     # Variables
     logger = logging.getLogger(__name__)
-    TOLLERANCE = 1e-4       # relative change allowed for converged result
+    TOLLERANCE = 1e-3       # relative change allowed for converged result
     RELAX = 0.7             # Relaxation factor. 1: no relaxation, 0: equal to previous iteration
 
     # Methods
@@ -96,6 +96,8 @@ class TurbulenceKepFitted_core:
             if self.input.v('grid') == None:
                 grid = self._makegrid()
                 self.input.merge(grid)
+            else:
+                self.input.data['grid']['low']['z'] = R # add R to grid to be used in next iteration
 
         ################################################################################################################
         # 1. make the absolute velocity components
@@ -330,7 +332,7 @@ class TurbulenceKepFitted_core:
         jmax = self.input.v('grid', 'maxIndex', 'x')
         fmax = self.input.v('grid', 'maxIndex', 'f')
         if order < 1:
-            Avmin = self.Avmin * (self.input.v('grid', 'low', 'z', range(0, jmax+1)) - self.input.v('grid', 'high', 'z', range(0, jmax+1)))
+            Avmin = self.Avmin
 
         #   Make a new data container with the roughness parameter with the depth-scaling param n incorporated
         data = self.input.slice('grid')
@@ -440,19 +442,19 @@ class TurbulenceKepFitted_core:
             Av0 = self.positivity_correction('Av', Av0, order, False)
             sf0 = self.positivity_correction('Roughness', sf0, order, False)
 
-            sf0t = ny.invfft(np.concatenate((sf0, np.zeros((jmax+1, 100))),1),1)
-            Av0t = ny.invfft(np.concatenate((Av0, np.zeros((jmax+1, 100))),1),1)
+            sf0t = ny.invfft2(sf0, 1, 90)
+            Av0t = ny.invfft2(Av0, 1, 90)
             ind = 0
             while (sf0t<0).any() and ind < 50:
                 sf0 = self.positivity_correction('Roughness', sf0, order, False)
-                sf0t = ny.invfft(np.concatenate((sf0, np.zeros((jmax+1, 100))),1),1)
+                sf0t = ny.invfft2(sf0, 1, 90)
                 ind += 1
             if ind == 50:
                 raise KnownError('sf not sufficiently corrected for positivity')
             ind = 0
             while (Av0t<0).any() and ind < 50:
                 Av0 = self.positivity_correction('Av', Av0, order, False)
-                Av0t = ny.invfft(np.concatenate((Av0, np.zeros((jmax+1, 100))),1),1)
+                Av0t = ny.invfft2(Av0, 1, 90)
                 ind += 1
             if ind == 50:
                 raise KnownError('Av not sufficiently corrected for positivity')
@@ -511,7 +513,7 @@ class TurbulenceKepFitted_core:
             Av += value_currentorder
 
         # make a time series with 100 time steps
-        Avt = ny.invfft(np.concatenate((Av, np.zeros(Av.shape[:-1]+(100,))), -1), -1) - Av[:, :, [0]]
+        Avt = ny.invfft2(Av, len(Av.shape)-1, 90) - Av[:, :, [0]]
 
         # correct by reducing time varying components
         if not np.min(np.real(np.minimum(1, abs(Av[:, :, 0])/(-np.min(Avt, axis=-1)+10**-10))))==1.:
