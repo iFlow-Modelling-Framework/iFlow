@@ -105,14 +105,16 @@ class RegularGridInterpolator:
             else:                               # dimension beyond axes; take data on original grid
                 grid = range(0, v)
                 axis.append(grid)
-                if dataContainer.v('grid', 'low', dim) is not None:
-                    lo.append(0.)
-                else:
-                    lo.append(axis[-1][0])
-                if dataContainer.v('grid', 'high', dim) is not None:
-                    hi.append(1.)
-                else:
-                    hi.append(axis[-1][-1])
+                # if dataContainer.v('grid', 'low', dim) is not None:           # 23-10-2017: Seems to be a bug, dimension beyond axes can never be contained in the grid. Also 'dim' is not up to date
+                #     lo.append(0.)
+                # else:
+                #     lo.append(axis[-1][0])
+                # if dataContainer.v('grid', 'high', dim) is not None:
+                #     hi.append(1.)
+                # else:
+                #     hi.append(axis[-1][-1])
+                lo.append(axis[-1][0])
+                hi.append(axis[-1][-1])
                 samplePoints.append(toList(axis[-1])) # add all points to the sample points
 
         #   2c. rewrite sample point to all permutations

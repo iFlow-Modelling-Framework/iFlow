@@ -13,7 +13,7 @@ from src.util.diagnostics.KnownError import KnownError
 
 class iFlow: 
     # Variables      
-    __version = '2.4'
+    __version = '2.4.3'
 
     # Methods
     def __init__(self):

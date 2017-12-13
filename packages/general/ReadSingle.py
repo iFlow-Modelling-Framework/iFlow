@@ -7,6 +7,7 @@ Authors: Y.M. Dijkstra
 import nifty as ny
 import os
 from src.util.diagnostics import KnownError
+import src.config_menu as cfm
 
 
 class ReadSingle:
@@ -18,7 +19,7 @@ class ReadSingle:
         return
 
     def run(self):
-        cwdpath = self.input.v('CWD') or ''  # path to working directory
+        cwdpath = cfm.CWD
         folder = os.path.join(cwdpath, self.input.v('folder'))
 
         file = self.input.v('file')

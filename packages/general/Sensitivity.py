@@ -27,22 +27,8 @@ class Sensitivity:
             if self.input.v(var) is None:
                 message = ("Not all required variables are given. Missing '%s' in module '%s'" % (var, self.__module__))
                 raise KnownError(message)
-        return
 
-    def stopping_criterion(self, iteration):
-        self.iteration = iteration+self.skippedfiles
-        stop = False
-
-        # stop if iteration number exceeds number of prescribed variables
-        if self.iteration >= np.product(self.numLoops):
-            stop = True
-        return stop
-
-    def run_init(self):
-        """
-        """
-        # 1. Interpret values of variables; set values in self.values
-        self.iteration=0
+        # load values to loop over from input
         self.values = {}
         for var in self.variables:
             # check if values are given directly or in a separate substructure
@@ -72,6 +58,22 @@ class Sensitivity:
                     self.values[var].append({})
                     for key in varkeys:
                         self.values[var][i][key]=values[key][i]
+        return
+
+    def stopping_criterion(self, iteration):
+        self.iteration = iteration+self.skippedfiles
+        stop = False
+
+        # stop if iteration number exceeds number of prescribed variables
+        if self.iteration >= np.product(self.numLoops):
+            stop = True
+        return stop
+
+    def run_init(self):
+        """
+        """
+        # 1. Interpret values of variables; set values in self.values
+        self.iteration=0
 
         # Setup loop based on loopstyle
         if self.input.v('loopstyle') == 'permutations':
@@ -79,9 +81,9 @@ class Sensitivity:
         elif self.input.v('loopstyle') == 'simultaneous':
             self.numLoops = [len(self.values[key]) for key in self.variables]
             # verify that number of values is the same in all variables
-            for l in self.numLoops:
+            for i, l in enumerate(self.numLoops):
                     if l != self.numLoops[0]:
-                        raise KnownError('Problem in input of module %s for loopstyle "simultaneous". Number of values in "%s" is unequal to number of values in "%s" ' % (self.__module__, var, self.variables[0]))
+                        raise KnownError('Problem in input of module %s for loopstyle "simultaneous". Number of values in "%s" is unequal to number of values in "%s" ' % (self.__module__, self.variables[i], self.variables[0]))
             self.numLoops = self.numLoops[0]
         else:
             raise KnownError('loopstyle "%s" in input of module %s unknown ' % (str(self.values.v('loopstyle')), self.__module__))

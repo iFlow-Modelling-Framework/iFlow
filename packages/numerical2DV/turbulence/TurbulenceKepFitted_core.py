@@ -42,8 +42,8 @@ from ..hydro.ReferenceLevel import ReferenceLevel
 class TurbulenceKepFitted_core:
     # Variables
     logger = logging.getLogger(__name__)
-    TOLLERANCE = 1e-3       # relative change allowed for converged result
-    RELAX = 0.7             # Relaxation factor. 1: no relaxation, 0: equal to previous iteration
+    TOLLERANCE = 1e-5       # relative change allowed for converged result
+    RELAX = 0.5             # Relaxation factor. 1: no relaxation, 0: equal to previous iteration
 
     # Methods
     def __init__(self, input):
@@ -73,6 +73,7 @@ class TurbulenceKepFitted_core:
         """
         # Init - read input variables
         d = {}
+
         if init:
             self.roughnessParameter = self.input.v('roughnessParameter')
             self.n = self.input.v('n')
@@ -85,19 +86,21 @@ class TurbulenceKepFitted_core:
         ################################################################################################################
         # 0. Reference level (initial)
         ################################################################################################################
-        R = None
-        if self.referenceLevel == 'True' and init and order < 1:
-            # make reference level (only initial)
-            self.RL = ReferenceLevel(self.input)
-            R = self.RL.run_init()['R']
-            self.input.merge({'R': R})
 
+        if self.referenceLevel == 'True' and init and order < 1:
             # make initial grid
             if self.input.v('grid') == None:
                 grid = self._makegrid()
                 self.input.merge(grid)
-            else:
-                self.input.data['grid']['low']['z'] = R # add R to grid to be used in next iteration
+
+            # make reference level (only initial)
+            self.RL = ReferenceLevel(self.input)
+            R = self.RL.run_init()['R']
+            jmax = self.input.v('grid', 'maxIndex', 'x')
+            if np.linalg.norm(self.input.v('R', range(0, jmax+1)), np.inf)>0:      # instead take from DC R if it exists already. In all cases generate and init RL above.
+                R = self.input.v('R', range(0, jmax+1))
+            self.input.merge({'R': R})
+            self.input.data['grid']['low']['z'] = R # add R to grid to be used in next iteration
 
         ################################################################################################################
         # 1. make the absolute velocity components
@@ -105,20 +108,8 @@ class TurbulenceKepFitted_core:
         jmax = self.input.v('grid', 'maxIndex', 'x')
         kmax = self.input.v('grid', 'maxIndex', 'z')
         fmax = self.input.v('grid', 'maxIndex', 'f')
-        if init:            # initial run
-            if order == 0 or order is None:
-                # if order==0 (scaling) or None (truncation): start with unity subtidal absolute value
-                uabs = np.zeros((jmax+1, 1, fmax+1))
-                uabs[:, :, 0] = 1.
-                depth = self.input.v('grid', 'low', 'z', range(0, jmax+1), [0], range(0, fmax+1)) - self.input.v('grid', 'high', 'z', range(0, jmax+1), [0], range(0, fmax+1))
-                uabsH = uabs*depth
-            else:
-                # if order > 1: start from zero
-                uabs = np.zeros((jmax+1, 1, fmax+1))
-                uabsH = np.zeros((jmax+1, 1, fmax+1))
-        else:
-            # absolute depth-averaged velocity
-            uabs, uabsH = self.uRelax(order)
+
+        uabs, uabsH = self.uRelax(order, init)
 
         ################################################################################################################
         # 2. make the functions for the eddy viscosity and roughness parameter
@@ -137,7 +128,6 @@ class TurbulenceKepFitted_core:
             Av_dc.addData('Av', Av)
             Avprev = self.input.v(Avstr, range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))
             self.difference = np.max(np.abs(Avprev - Av_dc.v('Av', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1)))/np.abs(Avprev+10**-4))
-
         ################################################################################################################
         # 4. Reference level (non-initial)
         ################################################################################################################
@@ -147,17 +137,19 @@ class TurbulenceKepFitted_core:
             R = self.RL.run()['R']
 
             self.difference = max(self.difference, np.linalg.norm(R-oldR, np.inf)/10.) # divide error in R by 10 to satisfy a weaker tollerance
+        else:
+            R = self.input.v('R')
 
         return Av, roughness, BottomBC, R
 
-    def uRelax(self, order):
+    def uRelax(self, order, init):
         """Compute the absolute velocity and absolute velocity times the depth at 'order',
         i.e. |u|^<order>, (|u|(H+R+zeta))^<order>.
         Then make a relaxation of these signals using the the previous iteration and relaxtion factor set as class var.
 
         Implements two methods:
-            order == None: truncation method
-            else: scaling method
+            order == None: truncation method. Else: scaling method
+            init (bool): initial iteration?
         """
         # Init
         jmax = self.input.v('grid', 'maxIndex', 'x')  # maximum index of x grid (jmax+1 grid points incl. 0)
@@ -170,13 +162,13 @@ class TurbulenceKepFitted_core:
         ################################################################################################################
         c = ny.polyApproximation(np.abs, 8)  # chebyshev coefficients for abs
 
-        # Truncation method
+        ## Truncation method
         if order == None:
             ##   1a. Gather velocity and zeta components
             zeta = 0
             u = 0
             comp = 0
-            while self.input.v('zeta'+str(comp)) and comp <= self.truncationorder:
+            while self.input.v('zeta'+str(comp)) and self.input.v('u'+str(comp)) and comp <= self.truncationorder:
                 zeta += self.input.v('zeta'+str(comp), range(0, jmax + 1), [0], range(0, fmax + 1))
                 u += self.input.v('u'+str(comp), range(0, jmax + 1), range(0, kmax + 1), range(0, fmax + 1))
                 for submod in self.ignoreSubmodule:     # remove submodules to be ignored
@@ -186,6 +178,11 @@ class TurbulenceKepFitted_core:
                     except:
                         pass
                 comp += 1
+            # if no data for u and zeta is in de DC, then take an initial estimate
+            if comp == 0:
+                u = np.zeros((jmax+1, kmax+1, fmax+1))
+                u[:, :, 0] = 1.
+                zeta = np.zeros((jmax+1, 1, fmax+1))
 
             usurf = u[:, [0], :]
             u = ny.integrate(u, 'z', kmax, 0, self.input.slice('grid'))
@@ -220,25 +217,35 @@ class TurbulenceKepFitted_core:
             uabsH = uabs[0] + ny.complexAmplitudeProduct(uabs[1], zeta, 2)
             uabs = uabs[0]/depth + ny.complexAmplitudeProduct(uabs[1]-uabs[0]/depth, zeta, 2)
 
-        # Scaling method
+        ## Scaling method
         else:
             ##   1a. Gather velocity and zeta components
             zeta = []
             u = []
             usurf = []
             for comp in range(0, order+1):
-                zetatemp = self.input.v('zeta'+str(comp), range(0, jmax + 1), [0], range(0, fmax + 1))
-                utemp = self.input.v('u'+str(comp), range(0, jmax + 1), range(0, kmax + 1), range(0, fmax + 1))
-                for submod in self.ignoreSubmodule:     # remove submodules to be ignored
-                    try:
-                        zetatemp -= self.input.v('zeta'+str(comp), submod, range(0, jmax + 1), [0], range(0, fmax + 1))
-                        utemp -= self.input.v('u'+str(comp), submod, range(0, jmax + 1), range(0, kmax + 1), range(0, fmax + 1))
-                    except:
-                        pass
+                if self.input.v('zeta'+str(comp)) and self.input.v('u'+str(comp)):
+                    zetatemp = self.input.v('zeta'+str(comp), range(0, jmax + 1), [0], range(0, fmax + 1))
+                    utemp = self.input.v('u'+str(comp), range(0, jmax + 1), range(0, kmax + 1), range(0, fmax + 1))
+                    for submod in self.ignoreSubmodule:     # remove submodules to be ignored
+                        try:
+                            zetatemp -= self.input.v('zeta'+str(comp), submod, range(0, jmax + 1), [0], range(0, fmax + 1))
+                            utemp -= self.input.v('u'+str(comp), submod, range(0, jmax + 1), range(0, kmax + 1), range(0, fmax + 1))
+                        except:
+                            pass
+                # if no u and zeta in DC, then ..
+                elif comp == 0:     # .. add velocity 1 to subtidal leading order
+                    zetatemp = np.zeros((jmax+1, 1, fmax+1))
+                    utemp = np.zeros((jmax+1, kmax+1, fmax+1))
+                    utemp[:, :, 0] = 1.
+                else:               # .. add nothing at higher orders
+                    zetatemp = np.zeros((jmax+1, 1, fmax+1))
+                    utemp = np.zeros((jmax+1, kmax+1, fmax+1))
 
                 zeta.append(zetatemp)
                 usurf.append(utemp[:, [0], :])
                 u.append(ny.integrate(utemp, 'z', kmax, 0, self.input.slice('grid')) / depth)
+
                 ##   1b. Divide velocity by a maximum amplitude
                 uamp = []
                 uamp.append((np.sum(np.abs(sum(u)), axis=-1)+10**-3).reshape((jmax+1, 1, 1)))
@@ -274,13 +281,10 @@ class TurbulenceKepFitted_core:
         # 2. Relaxtion
         ################################################################################################################
         ##   2a. Relaxation on uabs
-        if hasattr(self, 'u_prev_iter'):
+        if hasattr(self, 'u_prev_iter') and self.u_prev_iter.shape == uabs.shape:
             u_prev_iter = self.u_prev_iter
-        elif order==0:
-            u_prev_iter = np.zeros(uabs.shape, dtype=complex)
-            u_prev_iter[:, :, 0] = np.max(uabs[:,:,0]) # initially take the maximum velocity, so that the system has too much damping
         else:
-            u_prev_iter = np.zeros(uabs.shape, dtype=complex) # for higher orders take a zero velocity initially
+            u_prev_iter = uabs      # take current uabs if no previous is available
 
         u_prev_iter2 = u_prev_iter - (uabs)
         u0 = np.max((uabs, np.min((u_prev_iter2 * (1 - self.RELAX), u_prev_iter2 * (1. + self.RELAX)), axis=0) + (uabs)), axis=0)
@@ -288,13 +292,10 @@ class TurbulenceKepFitted_core:
         self.u_prev_iter = u0  # save velocity at bed for next iteration
 
         ##    2b. Relaxation on uabs*depth
-        if hasattr(self, 'uH_prev_iter'):
+        if hasattr(self, 'uH_prev_iter') and self.uH_prev_iter.shape == uabsH.shape:
             u_prev_iter = self.uH_prev_iter
-        elif order==0:
-            u_prev_iter = np.zeros(uabs.shape, dtype=complex)
-            u_prev_iter[:, :, 0] = np.max(uabs[:, :, 0])*depth[:, :, 0] # initially take the maximum velocity, so that the system has too much damping
         else:
-            u_prev_iter = np.zeros(uabs.shape, dtype=complex) # for higher orders take a zero velocity initially
+            u_prev_iter = uabsH     # take current uabsH if no previous is available
 
         u_prev_iter2 = u_prev_iter - (uabsH)
         uH0 = np.max((uabsH, np.min((u_prev_iter2 * (1 - self.RELAX), u_prev_iter2 * (1. + self.RELAX)), axis=0) + (uabsH)), axis=0)

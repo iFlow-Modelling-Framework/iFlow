@@ -204,7 +204,12 @@ class StaticAvailability:
         # print np.max(abs((dc.v('F', range(0, jmax+1))-F0[:, 0, 0])/(F0[:, 0, 0]+10**-10)))
 
         integral = -ny.integrate(T_til/(F_til-10**-6), 'x', 0, range(0, jmax+1), self.input.slice('grid'))
+        if self.input.v('Qsed') is None:
+            G = 0
+        else:
+            G = self.input.v('Qsed')/B[-1, 0, 0]
 
+        P = ny.integrate(G/(F_til-10**-6)*np.exp(-integral), 'x', 0, range(0, jmax+1), self.input.slice('grid'))
         ################################################################################################################
         # Boundary condition 1
         ################################################################################################################
@@ -212,8 +217,8 @@ class StaticAvailability:
             astar = self.input.v('astar')
             k = astar * ny.integrate(B[:, 0, 0], 'x', 0, jmax, self.input.slice('grid'))/ny.integrate(B[:, 0, 0]*np.exp(integral), 'x', 0, jmax, self.input.slice('grid'))
 
-            f0 = k*np.exp(integral)
-            f0x = -T_til/F_til*f0
+            f0 = (k-P)*np.exp(integral)
+            f0x = (-T_til*f0-G)/(F_til-10**-6)
 
         ################################################################################################################
         # Boundary condition 2
@@ -222,8 +227,8 @@ class StaticAvailability:
             csea = self.input.v('csea')
             c000 = np.real(c0_int[0,0,0])
             k = csea/c000*(self.input.v('grid', 'low', 'z', 0)-self.input.v('grid', 'high', 'z', 0))
-            f0 = k*np.exp(integral)
-            f0x = -T_til/F_til*f0
+            f0 = (k-P)*np.exp(integral)
+            f0x = (-T_til*f0-G)/(F_til-10**-6)
 
         else:
             from src.util.diagnostics.KnownError import KnownError

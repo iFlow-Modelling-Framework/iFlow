@@ -126,7 +126,7 @@ submodules	erosion
 
 module      StaticAvailability
 packagePath sediment/
-input       zeta0 u0 u1 hatc0 hatc1 hatc2 B grid Kh sedbc @sedbc
+input       zeta0 u0 u1 hatc0 hatc1 hatc2 B grid Kh sedbc @sedbc #(optional Qsed)
 output      a c0 c1 c2 F T
 
 module          DiffusivityUndamped

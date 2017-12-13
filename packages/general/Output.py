@@ -6,6 +6,7 @@ Date: 12-11-15
 Authors: Y.M. Dijkstra, R.L. Brouwer
 """
 import os
+import src.config_menu as cfm
 import cPickle as pickle
 import logging
 import numbers
@@ -82,6 +83,10 @@ class Output:
         saveData.merge(self.input.slice('grid'))
         saveData.merge(self.input.slice(self.outputgridName))
 
+        # add reference level to outputgrid
+        if self.input.v('R') is not None:
+            self.input.merge({self.outputgridName:{'low':{'z':self.input.v('R', x=self.input.v(self.outputgridName, 'axis', 'x'))}}})     # add reference level to outputgrid
+
         # make a deepcopy of the data to be saved
         # NB. very memory inefficient, but needed not to overwrite existing data
         saveData = deepcopy(saveData)
@@ -106,7 +111,7 @@ class Output:
         ################################################################################################################
         # Make the output directory if it doesnt exist
         ################################################################################################################
-        cwdpath = data.v('CWD') or ''       # path to working directory
+        cwdpath = cfm.CWD       # path to working directory
         self.path = os.path.join(cwdpath, self.input.v('path'))
         if not self.path[-1]=='/':
             self.path += '/'

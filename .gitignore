@@ -1,6 +1,5 @@
 $ cat .gitignore
-src/config.py
+src/config_menu.py
 .*
 !.gitignore
 **/*.pyc
-depreciation_list.txt

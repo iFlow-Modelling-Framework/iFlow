@@ -150,7 +150,16 @@ class Step:
             axisData[dataAxisNo] = axisData[dataAxisNo]*conv_data
             axisData[gridAxisNo] = axisData[gridAxisNo]*conv_grid
 
-            plt.plot(*axisData)
+            if sublevel and subplots is None:
+                lab = combi[-1]
+                try:
+                    lab = cf.names[lab]
+                except:
+                    pass
+                plt.plot(*axisData, label=lab)
+                plt.legend(fontsize=8)
+            else:
+                plt.plot(*axisData)
 
             ## Title and axis labels
             if numberOfSubplots > 1:
@@ -207,8 +216,8 @@ class Step:
                 else:
                     plt.ylabel('|'+yname+'|'+' ('+yunit+')')
 
-        if axis[0] == 'x':
-            plt.xlim(np.min(axisData[gridAxisNo]), np.max(axisData[gridAxisNo]))
+            if axis[0] == 'x':
+                plt.xlim(np.min(axisData[gridAxisNo]), np.max(axisData[gridAxisNo]))
 
         if kwargs.get('suptitle'):
             plt.suptitle(kwargs.get('suptitle'))
@@ -424,6 +433,7 @@ class Step:
         display = kwargs.get('display') or 5 # display number of mechanisms (sorted in descending order) or specific mechanisms
         scale = kwargs.get('scale') or False # scale the transport contributions to the maximum: True/False
         concentration = kwargs.get('concentration') or False
+        legend = kwargs.get('legend') or False
 
         ################################################################################################################
         # Construct list of mechanisms to display and calculate these mechanisms
@@ -439,8 +449,12 @@ class Step:
 
         # get availability and its derivative w.r.t. x
         x = self.input.v('grid', 'axis', 'x')
-        a = self.input.v('a').reshape(len(x),)
-        a_x = -self.input.v('T') * a / self.input.v('F')
+        if self.input.v('f') is not None:
+            a = self.input.v('f', x=x).reshape(len(x),)
+            a_x = self.input.d('f', x=x, dim='x').reshape(len(x),)
+        else:
+            a = self.input.v('a').reshape(len(x),)
+            a_x = -self.input.v('T') * a / self.input.v('F')
         # construct list with values to plot
         loopvalues = [[]]
         if sublevel:
@@ -505,21 +519,30 @@ class Step:
             ln = []
             ln += sp.plot(xdim, loopvalues[0][0][0], label='adv. transport')
             if concentration:
+                conv = cf.conversion.get('c') or 1.
                 c = np.real(np.mean(self.input.v('c0')[:, :, 0] + self.input.v('c1')[:, :, 0] +
-                                    self.input.v('c2')[:, :, 0], axis=1))
+                                    self.input.v('c2')[:, :, 0], axis=1))*conv
                 if scale:
                     c = c / c.max()
                     ln += sp.plot(xdim, c, '--', color='grey', label=r'$\langle\bar{c}\rangle$')
                     labels = [l.get_label() for l in ln]
-                    plt.legend(ln, labels, bbox_to_anchor=(1.02, 0), loc=3, borderaxespad=0., fontsize=cf.fontsize2,
-                               labelspacing=0.1, handlelength=0.1, handletextpad=0.4)
+                    if legend is 'out':
+                        plt.legend(ln, labels, bbox_to_anchor=(1.02, 0), loc=3, borderaxespad=0., fontsize=cf.fontsize2,
+                                   labelspacing=0.1, handlelength=0.1, handletextpad=0.4)
+                    elif legend is 'in':
+                        plt.legend(ln, labels, loc='upper left', borderaxespad=0.2, fontsize=7,
+                                   labelspacing=0.1, handlelength=0.1, handletextpad=0.4, frameon=False)
                     plt.title('Advective Transport')
                 else:
                     sp2 = sp.twinx()
                     ln += sp2.plot(xdim, c, '--', color='grey', label=r'$\langle\bar{c}\rangle$')
                     labels = [l.get_label() for l in ln]
-                    plt.legend(ln, labels, bbox_to_anchor=(1.3, 0), loc=3, borderaxespad=0., fontsize=cf.fontsize2,
-                               labelspacing=0.1, handlelength=0.1, handletextpad=0.4)
+                    if legend is 'out':
+                        plt.legend(ln, labels, bbox_to_anchor=(1.3, 0), loc=3, borderaxespad=0., fontsize=cf.fontsize2,
+                                   labelspacing=0.1, handlelength=0.1, handletextpad=0.4)
+                    elif legend is 'in':
+                        plt.legend(ln, labels, loc='upper left', borderaxespad=0.2, fontsize=7,
+                                   labelspacing=0.1, handlelength=0.1, handletextpad=0.4, frameon=False)
                     plt.title('Advective Transport', y=1.09)
             else:
                 plt.title('Advective Transport')
@@ -536,7 +559,10 @@ class Step:
                 if concentration:
                     if scale:
                         sp.set_ylabel(r'$\mathcal{T}$ / $\mathcal{T}_{max}$, $c$ / $c_{max}$ (-)')
-                        sp.set_ylim([-1.1, 1.1])
+                        if legend is 'in':
+                            sp.set_ylim([-1.1, 1.1])
+                        else:
+                            sp.set_ylim([-1.1, 1.1])
                     else:
                         yunitc = cf.units['c']
                         sp.set_ylabel(r'$\mathcal{T}$ (' + yunitT + ')')
@@ -544,7 +570,10 @@ class Step:
                 else:
                     if scale:
                         sp.set_ylabel(r'$\mathcal{T}$ / $\mathcal{T}_{max}$ (' + yunitT + ')')
-                        sp.set_ylim([-1.1, 1.1])
+                        if legend is 'in':
+                            sp.set_ylim([-1.1, 1.1])
+                        else:
+                            sp.set_ylim([-1.1, 1.1])
                     else:
                         sp.set_ylabel(r'$\mathcal{T}$ (' + yunitT + ')')
             except KeyError:
@@ -570,14 +599,19 @@ class Step:
                     else:
                         ln += sp.plot(xdim, value[0], label=label)
                 if concentration and subplot_number == 0:
+                    conv = cf.conversion.get('c') or 1.
                     c = np.real(np.mean(self.input.v('c0')[:, :, 0] + self.input.v('c1')[:, :, 0] +
-                                        self.input.v('c2')[:, :, 0], axis=1))
+                                        self.input.v('c2')[:, :, 0], axis=1)) * conv
                     if scale:
                         c = c / c.max()
                         ln += sp.plot(xdim, c, '--', color='grey', label=r'$\langle\bar{c}\rangle$')
                         labels = [l.get_label() for l in ln]
-                        plt.legend(ln, labels, bbox_to_anchor=(1.02, 0), loc=3, borderaxespad=0., fontsize=cf.fontsize2,
-                                   labelspacing=0.1, handlelength=0.1, handletextpad=0.4)
+                        if legend is 'out':
+                            plt.legend(ln, labels, bbox_to_anchor=(1.02, 0), loc=3, borderaxespad=0., fontsize=cf.fontsize2,
+                                       labelspacing=0.1, handlelength=0.1, handletextpad=0.4)
+                        elif legend is 'in':
+                            plt.legend(ln, labels, loc='upper left', borderaxespad=0.2, fontsize=7,
+                                       labelspacing=0.1, handlelength=0.1, handletextpad=0.4, frameon=False)
                         if subplot_number == 0:
                             plt.title('Advective Transport')
                         else:
@@ -591,10 +625,14 @@ class Step:
                         sp2 = sp.twinx()
                         ln += sp2.plot(xdim, c, '--', color='grey', label=r'$\langle\bar{c}\rangle$')
                         labels = [l.get_label() for l in ln]
-                        plt.legend(ln, labels, bbox_to_anchor=(1.3, 0), loc=3, borderaxespad=0., fontsize=cf.fontsize2,
-                                   labelspacing=0.1, handlelength=0.1, handletextpad=0.4)
+                        if legend is 'out':
+                            plt.legend(ln, labels, bbox_to_anchor=(1.3, 0), loc=3, borderaxespad=0., fontsize=cf.fontsize2,
+                                       labelspacing=0.1, handlelength=0.1, handletextpad=0.4)
+                        elif legend is 'in':
+                            plt.legend(ln, labels, loc='upper left', borderaxespad=0.2, fontsize=7,
+                                       labelspacing=0.1, handlelength=0.1, handletextpad=0.4, frameon=False)
                         if subplot_number == 0:
-                            plt.title('Advective Transport', y=1.09)
+                            plt.title(r'Advective Transport ', y=1.09)
                         else:
                             title = keyList[subplot_number-1]
                             try:
@@ -603,8 +641,12 @@ class Step:
                                 pass
                             plt.title(title, y=1.09)
                 else:
-                    plt.legend(bbox_to_anchor=(1.02, 0), loc=3, borderaxespad=0., fontsize=cf.fontsize2,
+                    if legend is 'out':
+                        plt.legend(bbox_to_anchor=(1.02, 0), loc=3, borderaxespad=0., fontsize=cf.fontsize2,
                                labelspacing=0.1, handlelength=0.1, handletextpad=0.4)
+                    elif legend is 'in':
+                        plt.legend(ln, labels, loc='upper left', borderaxespad=0.2, fontsize=7,
+                                   labelspacing=0.1, handlelength=0.1, handletextpad=0.4, frameon=False)
                     if subplot_number == 0:
                         plt.title('Advective Transport')
                     else:
@@ -633,7 +675,10 @@ class Step:
                                 sp.set_ylabel(r'$\mathcal{T}$ / $\mathcal{T}_{max}$, $c$ / $c_{max}$ (-)')
                             else:
                                 sp.set_ylabel(r'$\mathcal{T}$ / $\mathcal{T}_{max}$ (-)')
-                            sp.set_ylim([-1.1, 1.1])
+                            if legend is 'in':
+                                sp.set_ylim([-1.1, 1.1])
+                            else:
+                                sp.set_ylim([-1.1, 1.1])
                         else:
                             yunitc = cf.units['c']
                             sp.set_ylabel(r'$\mathcal{T}$ (' + yunitT + ')')
@@ -641,7 +686,10 @@ class Step:
                     else:
                         if scale:
                             sp.set_ylabel(r'$\mathcal{T}$ / $\mathcal{T}_{max}$ (' + yunitT + ')')
-                            sp.set_ylim([-1.1, 1.1])
+                            if legend is 'in':
+                                sp.set_ylim([-1.1, 1.1])
+                            else:
+                                sp.set_ylim([-1.1, 1.1])
                         else:
                             sp.set_ylabel(r'$\mathcal{T}$ (' + yunitT + ')')
                 except KeyError:

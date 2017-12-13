@@ -9,7 +9,7 @@ import nifty as ny
 import os
 from src.DataContainer import DataContainer
 import logging
-
+import src.config_menu as cfm
 
 class ReadMultiple:
     # Variables
@@ -23,7 +23,7 @@ class ReadMultiple:
     def run(self):
         self.logger.info('Reading files')
         ## set folder(s)
-        cwdpath = self.input.v('CWD') or ''  # path to working directory
+        cwdpath = cfm.CWD  # path to working directory
         folders = ny.toList(self.input.v('folder'))
         folders = [os.path.join(cwdpath, i) for i in folders]
 

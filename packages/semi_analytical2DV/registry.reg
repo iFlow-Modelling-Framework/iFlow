@@ -6,7 +6,7 @@
 module          HydroLead
 packagePath		hydro/
 input 			A0 phase0 Q0 BottomBC grid Av Roughness OMEGA G TOLERANCEBVP
-output			u0 zeta0
+output			u0 zeta0 w0
 submodules		tide river
 river	input
 		output
@@ -18,7 +18,7 @@ tide	input
 module          HydroFirst
 packagePath		hydro/
 input 			A1 phase1 Q1 BottomBC grid Av Roughness OMEGA G BETA TOLERANCEBVP
-output			u1 zeta1
+output			u1 zeta1 w1
 submodules		tide river baroc stokes nostress adv
 tide	    input
 		    output

@@ -4,28 +4,29 @@ import step as st
 import matplotlib.pyplot as plt
 
 def shearstress(tau_order, data, submodule=None, friction='Roughness'):
-    return shearstressCheb(tau_order, data, submodule=submodule, friction=friction)
+    # return shearstressCheb(tau_order, data, submodule=submodule, friction=friction)
+    return shearstressGS(tau_order, data, submodule=submodule, friction=friction)
 
-def comparestresses(tau_order, data, submodule=None, friction='Roughness'):
-    taub_abs = shearstressGS(tau_order, data, submodule, friction=friction)
-    taub = shearstressCheb(tau_order, data, submodule, friction=friction)
-    taub_exact = shearstress_exact(tau_order, data, submodule, friction=friction)
-
-    st.configure()
-    plt.figure(1,figsize=(1,3))
-    for n in range(0, 3):
-        plt.subplot(1, 3, n+1)
-        plt.plot(np.real((taub[:-1, 0, n]-taub_exact[:-1, 0, n])/(taub_exact[:-1, 0, n]+10**-10)), label='Cheb')
-        plt.plot(np.real((taub_abs[:-1, 0, n]-taub_exact[:-1, 0, n])/(taub_exact[:-1, 0, n]+10**-10)), label='GS')
-        plt.legend()
-    plt.figure(2,figsize=(1,3))
-    for n in range(0, 3):
-        plt.subplot(1, 3, n+1)
-        plt.plot(np.imag((taub[:-1, 0, n]-taub_exact[:-1, 0, n])/(taub_exact[:-1, 0, n]+10**-10)), label='Cheb')
-        plt.plot(np.imag((taub_abs[:-1, 0, n]-taub_exact[:-1, 0, n])/(taub_exact[:-1, 0, n]+10**-10)), label='GS')
-        plt.legend()
-
-    st.show()
+# def comparestresses(tau_order, data, submodule=None, friction='Roughness'):
+#     taub_abs = shearstressGS(tau_order, data, submodule, friction=friction)
+#     taub = shearstressCheb(tau_order, data, submodule, friction=friction)
+#     taub_exact = shearstress_exact(tau_order, data, submodule, friction=friction)
+#
+#     st.configure()
+#     plt.figure(1,figsize=(1,3))
+#     for n in range(0, 3):
+#         plt.subplot(1, 3, n+1)
+#         plt.plot(np.real((taub[:-1, 0, n]-taub_exact[:-1, 0, n])/(taub_exact[:-1, 0, n]+10**-10)), label='Cheb')
+#         plt.plot(np.real((taub_abs[:-1, 0, n]-taub_exact[:-1, 0, n])/(taub_exact[:-1, 0, n]+10**-10)), label='GS')
+#         plt.legend()
+#     plt.figure(2,figsize=(1,3))
+#     for n in range(0, 3):
+#         plt.subplot(1, 3, n+1)
+#         plt.plot(np.imag((taub[:-1, 0, n]-taub_exact[:-1, 0, n])/(taub_exact[:-1, 0, n]+10**-10)), label='Cheb')
+#         plt.plot(np.imag((taub_abs[:-1, 0, n]-taub_exact[:-1, 0, n])/(taub_exact[:-1, 0, n]+10**-10)), label='GS')
+#         plt.legend()
+#
+#     st.show()
 
 def shearstressGS(tau_order, data, submodule=None, friction='Roughness'):     # Shear stress following the formulation of Schramkowski
     jmax = data.v('grid', 'maxIndex', 'x')

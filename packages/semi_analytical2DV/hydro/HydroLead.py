@@ -98,9 +98,9 @@ class HydroLead:
         Av = np.array([self.input.v('Av', x=x/self.L, z=0, f=0),
                        self.input.d('Av', x=x/self.L, z=0, f=0, dim='x'),
                        self.input.d('Av', x=x/self.L, z=0, f=0, dim='xx')])
-        sf = np.array([self.input.v('Roughness', x=x/self.L, f=0),
-                       self.input.d('Roughness', x=x/self.L, f=0, dim='x'),
-                       self.input.d('Roughness', x=x/self.L, f=0, dim='xx')])
+        sf = np.array([self.input.v('Roughness', x=x/self.L, z=0, f=0),
+                       self.input.d('Roughness', x=x/self.L, z=0, f=0, dim='x'),
+                       self.input.d('Roughness', x=x/self.L, z=0, f=0, dim='xx')])
         sf = sf[:, 0]
         # Define trigonometric values for ease of reference
         sinhrh = np.sinh(r[0] * H[0])

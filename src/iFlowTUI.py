@@ -8,7 +8,6 @@ Authors: Y.M. Dijkstra, R.L. Brouwer
 import logging
 from Program import Program
 from src.util.diagnostics import LogConfigurator
-import config
 import time
 from nifty.Timer import Timer
 import os
@@ -70,6 +69,17 @@ class iFlowTUI:
         Returns:
             path to input file
         """
+        # import the self.config_menu file or create
+        try:
+            import config_menu
+        except:
+            with open('src/config_menu.py', 'w') as file:
+                file.write('LASTINPUTFILES = []\n')
+                file.write('CWD = ""')
+            import config_menu
+        self.config_menu = config_menu
+
+        # get last files and cwd
         lastfiles = self.__getRecentFiles()
         cwdpath = self.__getCWD()
 
@@ -142,7 +152,7 @@ class iFlowTUI:
             list containing 0 to 5 input file paths
         """
         try:
-            lastfiles = config.LASTINPUTFILES
+            lastfiles = self.config_menu.LASTINPUTFILES
         except:
             lastfiles =[]
         return lastfiles
@@ -153,9 +163,10 @@ class iFlowTUI:
         Returns:
             string path to cwd
         """
+        # Check if the config menu file exists
         try:
-            reload(config)
-            cwdpath = config.CWD
+            reload(self.config_menu)
+            cwdpath = self.config_menu.CWD
         except:
             cwdpath = ''
         return cwdpath
@@ -172,7 +183,7 @@ class iFlowTUI:
         # Update the list of last input files or make one
         lastfiles = []
         try:
-            lastfiles = config.LASTINPUTFILES
+            lastfiles = self.config_menu.LASTINPUTFILES
             lastfiles.remove(filePath)
         except AttributeError:      #LASTINPUTFILES not found, make it
             lastfiles = []
@@ -186,7 +197,7 @@ class iFlowTUI:
 
         # make a new config file
         import fileinput
-        for i, line in enumerate(fileinput.input("src/config.py", inplace=True)):
+        for i, line in enumerate(fileinput.input("src/config_menu.py", inplace=True)):
             if i==0:
                 print 'LASTINPUTFILES = %s' % str(lastfiles)
             if not 'LASTINPUTFILES' in line:
@@ -213,7 +224,7 @@ class iFlowTUI:
 
         # 2. make a new config file
         import fileinput
-        for i, line in enumerate(fileinput.input("src/config.py", inplace=True)):
+        for i, line in enumerate(fileinput.input("src/config_menu.py", inplace=True)):
             if i==0:
                 print 'CWD = %s' % "'"+str(cwdPath)+"'"
             if not 'CWD' == line.strip()[:3]:

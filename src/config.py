@@ -1,5 +1,10 @@
-LASTINPUTFILES = ['input/Bo/Taw1.txt', 'input/toyproblem.txt', 'input/hs/ems_2005.txt', 'input/plotBaseModel.txt', 'input/testset/ems_2005_HS.txt']
-CWD = 'D:/Work/PhD/Projects/6. Ecology/iFlow_ecology'
+## Configuration file
+# Use this file to define any model constants.
+# All variables defined here will be overruled if there is a variable with the same name in the input file or as
+# output of a module
+#
+# Author: Y.M. Dijkstra
+
 DERMETHOD = 'FORWARD'
 SECONDDERMETHOD = 'CENTRAL'
 INTMETHOD = 'TRAPEZOIDAL'
@@ -19,8 +24,8 @@ MOLVIC = 10**(-6)               # Molecular viscosity (m^2/s)
 SIGMASAL = 0.7                  # Prandtl-Schmidt number for salinity
 RHO0 = 1000.                    # Reference density
 RHOS = 2650.                    # Density of ocean
-BETAC = 1.-RHO0/RHOS             # Density conversion for sediment
+BETAC = 1.-RHO0/RHOS            # Density conversion for sediment
 DS = 2.e-5                      # Sediment grain size
 R = 0                           # Reference level
 TOLERANCEBVP = 1.e-6            # Tolerance of the bvp_solver, i.e. accuracy of the water level solution
-sigma_rho = 1
+sigma_rho = 1                   # Prandtl-Schmidt number

@@ -65,19 +65,28 @@ class ReferenceLevel:
 
         # Init
         jmax = self.input.v('grid', 'maxIndex', 'x')
+        kmax = self.input.v('grid', 'maxIndex', 'z')
+
+        self.G = self.input.v('G')
+        self.bottomBC = self.input.v('BottomBC')
+
+        self.z = np.linspace(0, 1, np.minimum(kmax, 100))
+        self.xaxis = self.input.v('grid', 'axis', 'x')
+        self.Av = np.real(self.input.v('Av', x=self.xaxis, z=self.z, f=0))
+        self.H = self.input.v('H', x=self.xaxis)
+        self.sf = np.real(self.input.v('Roughness', x=self.xaxis, z=0, f=0))
+        B = self.input.v('B', x=self.xaxis)
 
         # Construct reference level by stepping from x=0 towards x=L
-        R = self.input.v('R', range(0, jmax+1))
+        R = np.zeros((jmax+1))
         x = ny.dimensionalAxis(self.input.slice('grid'), 'x')[:,0,0]
         dx = x[1:]-x[0:-1]
+        R[0] = 0.
         for j in range(0, jmax):
             f = self.uSolver(j, R[j])
-            B = self.input.v('B', j)
-            intfac = B*f
+            intfac = B[j]*f
             Rx = -self.Q/intfac
-
             R[j+1] = R[j]+Rx*dx[j]
-            self.input.data['grid']['low']['z'] = R # add R to grid to be used in next iteration
 
         # Compute convergence
         self.difference = np.linalg.norm(R - self.input.v('R', range(0, jmax+1)), np.inf)
@@ -87,23 +96,24 @@ class ReferenceLevel:
         return d
 
     def uSolver(self, j, R):
-        kmax = self.input.v('grid', 'maxIndex', 'z')
-        G = self.input.v('G')
-        Av = np.real(self.input.v('Av', j, range(0,kmax+1), 0))
-        bottomBC = self.input.v('BottomBC')
-        H = self.input.v('H', j)
-        z = self.input.v('grid', 'axis', 'z')[0,:]
-        z = z*(-H-R)+R
+        z = self.z*(-self.H[j]-R)+R
 
-        rescale = (R+H)/(self.input.v('grid', 'low', 'z', 0) - self.input.v('grid', 'high', 'z', 0))
-        f = ny.integrate(((R-z)/Av).reshape((1,len(z))), 'z', kmax, range(0, kmax+1),self.input.slice('grid'), INTMETHOD='INTERPOLSIMPSON')
-        f = f*rescale
-        if bottomBC == 'PartialSlip':
-            sf = np.real(self.input.v('Roughness', j, 0, 0))
-            f += ((R+H)/sf)
-        f = -G*rescale*ny.integrate(f,'z',kmax,0,self.input.slice('grid'), INTMETHOD='INTERPOLSIMPSON')[0,0]
+        dz = (z[0]-z[1])
+        f = self.quickInt(((R-z)/self.Av[j, :])[::-1], dz, cumulative=True)[::-1]
 
+        if self.bottomBC == 'PartialSlip':
+            f += ((R+self.H[j])/self.sf[j])
+        f = -self.G*self.quickInt(f, dz)
         return f
+
+    def quickInt(self, u, dz, cumulative=False):
+        """Quick integral over a 1D function assuming a uniform grid with grid points on the boundary"""
+        u[1:] = .5*u[0:-1]+.5*u[1:]
+        u[0] = 0
+        if cumulative:
+            return np.cumsum(u)*dz
+        else:
+            return np.sum(u)*dz
 
 class initialRef(FunctionBase):
     def __init__(self, dimNames, data):

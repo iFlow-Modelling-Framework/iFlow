@@ -58,7 +58,7 @@ names = {
     'mixing': 'Mixing',
     'tide': 'Tide',
     'river': 'River',
-    'nostress': 'No-stress',
+    'nostress': 'Vel.-depth asym.',
     'densitydrift': 'Density-induced return flow',
     'R': 'R',
     'T': 'Total transport',
