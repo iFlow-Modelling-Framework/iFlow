@@ -19,6 +19,12 @@ input           @output.requirements path filename  # optional 'iteratesWith'
 output          outputDirectory
 outputModule		True
 
+# alternative ouput module, produces .mat file for use in other programs
+module          OutputMat
+input           @output.requirements path filename  # optional 'iteratesWith'
+output          outputDirectory
+outputModule	True
+
 # module to load single output files using cPickle. Directly loads all variables saved in the file
 module          ReadSingle
 input           folder file variables
