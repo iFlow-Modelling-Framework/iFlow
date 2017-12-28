@@ -432,8 +432,9 @@ class TurbulenceKepFitted_core:
 
             #   background eddy viscosity
             if order < 1:       # i.e. None or 0
-                Av0[:, 0] = np.maximum(Av0[:,0], Avmin)
-                sf0[:, 0] = np.maximum(sf0[:,0], self.Avmin*2)       # minimum sf = 2*Avmin/H (relation from case 1a)
+                Av0[:, 0] = np.maximum(Av0[:,0], self.Avmin)
+                depth = self.input.v('grid', 'low', 'z', x=0) - self.input.v('grid', 'high', 'z', x=0)
+                sf0[:, 0] = np.maximum(sf0[:,0], self.Avmin*2/depth)       # minimum sf = 2*Avmin/H (relation from case 1a)
 
             #   remove time dependence if required
             Av0[:, 1:] = self.timedependence*Av0[:, 1:]
