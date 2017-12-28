@@ -135,6 +135,7 @@ class TurbulenceKepFitted_core:
             self.input.merge({'Av': Av, 'Roughness': roughness})
             oldR = self.input.v('R', range(0, jmax+1))
             R = self.RL.run()['R']
+            self.input.data['grid']['low']['z'] = R         # add R to grid to be used in next iteration
 
             self.difference = max(self.difference, np.linalg.norm(R-oldR, np.inf)/10.) # divide error in R by 10 to satisfy a weaker tollerance
         else:
