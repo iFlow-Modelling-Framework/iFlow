@@ -48,3 +48,10 @@ iterative       True
 module                  ManualCalibrationPlot
 input                   calibration_parameter axis experimentdata measurementset @measurementset
 visualisationModule     True
+
+module      Calibration
+packagePath
+inputInit   calibrationParameter changeFactor measurementset @calibrationParameter @measurementset
+input       zeta0
+output      @calibrationParameter
+iterative   True
