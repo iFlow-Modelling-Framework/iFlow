@@ -158,6 +158,13 @@ class TurbulenceKepFitted_core:
         fmax = self.input.v('grid', 'maxIndex', 'f')  # maximum index of f grid (fmax+1 grid points incl. 0)
         depth = self.input.v('grid', 'low', 'z', range(0, jmax+1), [0], [0]) - self.input.v('grid', 'high', 'z', range(0, jmax+1), [0], [0])
 
+        # test if present u is grid-conform (may not be if the previous runs were on a different resolution)
+        utest = self.input.v('u0', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))
+        no_u = False
+        if isinstance(utest, bool):
+            no_u = True
+
+
         ################################################################################################################
         # 1. make the absolute velocity
         ################################################################################################################
@@ -169,7 +176,7 @@ class TurbulenceKepFitted_core:
             zeta = 0
             u = 0
             comp = 0
-            while self.input.v('zeta'+str(comp)) and self.input.v('u'+str(comp)) and comp <= self.truncationorder:
+            while self.input.v('zeta'+str(comp)) and self.input.v('u'+str(comp)) and comp <= self.truncationorder and not no_u:
                 zeta += self.input.v('zeta'+str(comp), range(0, jmax + 1), [0], range(0, fmax + 1))
                 u += self.input.v('u'+str(comp), range(0, jmax + 1), range(0, kmax + 1), range(0, fmax + 1))
                 for submod in self.ignoreSubmodule:     # remove submodules to be ignored
@@ -225,7 +232,7 @@ class TurbulenceKepFitted_core:
             u = []
             usurf = []
             for comp in range(0, order+1):
-                if self.input.v('zeta'+str(comp)) and self.input.v('u'+str(comp)):
+                if self.input.v('zeta'+str(comp)) and self.input.v('u'+str(comp)) and not no_u:
                     zetatemp = self.input.v('zeta'+str(comp), range(0, jmax + 1), [0], range(0, fmax + 1))
                     utemp = self.input.v('u'+str(comp), range(0, jmax + 1), range(0, kmax + 1), range(0, fmax + 1))
                     for submod in self.ignoreSubmodule:     # remove submodules to be ignored
