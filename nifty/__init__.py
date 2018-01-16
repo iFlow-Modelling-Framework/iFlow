@@ -32,6 +32,7 @@ from secondDerivative import secondDerivative
 from splitModuleName import splitModuleName
 from toMatrix import toMatrix
 from scalemax import scalemax
+from invfft2 import invfft2
 
 # loads all file names in this package that are python files and that do not start with _
 #__all__ = [os.path.basename(f)[:-3] for f in os.listdir(os.path.dirname(__file__)) if f.endswith('.py') and not f.startswith('_')]
