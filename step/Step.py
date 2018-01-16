@@ -322,6 +322,8 @@ class Step:
                     value = kwargs['operation'](value)
                 else:
                     value = -kwargs['operation'](value) * 180 / np.pi
+            else:
+                value = np.real(value)
 
             conv = cf.conversion.get(axis1) or 1.   # convert size of axis depending on conversion factor in config
             axis1_dim = axis1_dim*conv
@@ -397,14 +399,28 @@ class Step:
             except:
                 value_name = value_label
                 value_unit = ''
-            if kwargs.get('operation')==np.abs or kwargs.get('operation')==abs:
-                plt.suptitle('|'+value_name+'|'+' ('+value_unit+')')
-            elif kwargs.get('operation')==np.angle:
-                plt.suptitle('Phase('+value_name+')'+' ('+cf.units['phase']+')')
-            elif kwargs.get('operation')==np.real:
-                plt.suptitle('Re('+value_name+')'+' ('+value_unit+')')
-            elif kwargs.get('operation')==np.imag:
-                plt.suptitle('Im('+value_name+')'+' ('+value_unit+')')
+            if numberOfSubplots > 1:
+                if kwargs.get('operation')==np.abs or kwargs.get('operation')==abs:
+                    plt.suptitle('|'+value_name+'|'+' ('+value_unit+')')
+                elif kwargs.get('operation')==np.angle:
+                    plt.suptitle('Phase('+value_name+')'+' ('+cf.units['phase']+')')
+                elif kwargs.get('operation')==np.real:
+                    plt.suptitle('Re('+value_name+')'+' ('+value_unit+')')
+                elif kwargs.get('operation')==np.imag:
+                    plt.suptitle('Im('+value_name+')'+' ('+value_unit+')')
+                else:
+                    plt.suptitle(value_name+' ('+value_unit+')')
+            else:
+                if kwargs.get('operation')==np.abs or kwargs.get('operation')==abs:
+                    plt.title('|'+value_name+'|'+' ('+value_unit+')')
+                elif kwargs.get('operation')==np.angle:
+                    plt.title('Phase('+value_name+')'+' ('+cf.units['phase']+')')
+                elif kwargs.get('operation')==np.real:
+                    plt.title('Re('+value_name+')'+' ('+value_unit+')')
+                elif kwargs.get('operation')==np.imag:
+                    plt.title('Im('+value_name+')'+' ('+value_unit+')')
+                else:
+                    plt.title(value_name+' ('+value_unit+')')
         plt.draw()
         return
 

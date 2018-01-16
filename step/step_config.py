@@ -39,6 +39,7 @@ names = {
     'c1': '$c^1$',
     'c2': '$c^2$',
     'c3': '$c^3$',
+    'csubt': 'Subtidal sediment\nconcentration',
     'Av': '$A_v^0$',
     'Av1': '$A_v^1$',
     'Av2': '$A_v^2$',
@@ -149,7 +150,8 @@ units = {
     'c': 'mg/l',
     'H': 'm',
     '-H': 'm',
-    'B': 'm'}
+    'B': 'm',
+    'csubt': '$kg/m^3$'}
 
 conversion = {
     'x': 1/1000.,
