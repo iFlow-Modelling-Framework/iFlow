@@ -5,7 +5,7 @@
 #
 # Author: Y.M. Dijkstra
 
-DERMETHOD = 'FORWARD'
+DERMETHOD = 'CENTRAL'   #'FORWARD'
 SECONDDERMETHOD = 'CENTRAL'
 INTMETHOD = 'TRAPEZOIDAL'
 MAXITERATIONS = 1000000          # maximum number of iterations in a single loop of modules
