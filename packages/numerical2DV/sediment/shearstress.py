@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 def shearstress(tau_order, data, submodule=None, friction='Roughness'):
     # return shearstressCheb(tau_order, data, submodule=submodule, friction=friction)
     return shearstressGS(tau_order, data, submodule=submodule, friction=friction)
+    # return shearstress_truncated(tau_order, data, submodule=submodule, friction=friction)
 
 # def comparestresses(tau_order, data, submodule=None, friction='Roughness'):
 #     taub_abs = shearstressGS(tau_order, data, submodule, friction=friction)
@@ -186,6 +187,42 @@ def shearstressCheb(tau_order, data, submodule=None, friction='Roughness'):     
     taub_abs = taub_abs*tau_amp*rho0
 
     return taub_abs[:, :, :fmax+1]
+
+def shearstress_truncated(tau_order, data, submodule=None, friction='Roughness'):     # Shear stress derived using time series (truncated, only for standard forcing conditions)
+    jmax = data.v('grid', 'maxIndex', 'x')
+    kmax = data.v('grid', 'maxIndex', 'z')
+    fmax = data.v('grid', 'maxIndex', 'f')
+    rho0 = data.v('RHO0')
+    sf = data.v(friction, range(0, jmax+1), 0, 0)
+
+    if submodule is None:
+        submodule = (None, )*(tau_order+1)
+
+    ## 1. bed shear stress
+    # the bed shear stress is extended over fmax+1 frequency components to prevent inaccuracies in truncation
+    ulist = []
+    for i in range(0, 2):
+        if submodule[i] is None:
+            u = data.v('u'+str(i), range(0, jmax+1), [kmax], range(0, fmax+1))
+        else:
+            u = data.v('u'+str(i), submodule[i], range(0, jmax+1), [kmax], range(0, fmax+1))
+        if u is None:
+            u = np.zeros((jmax+1, 1, fmax+1), dtype=complex)
+
+        ulist.append(u)
+    u = sum(ulist)
+    utim = ny.invfft2(u, 2, 90)
+    utim = np.abs(utim)
+    uabs = ny.fft(utim, 2)[:, :, :fmax+1]
+    taub_abs = rho0*sf.reshape((jmax+1, 1, 1))*uabs
+    if tau_order == 0:
+        taub_abs[:, :, 1] =0
+    elif tau_order == 1:
+        taub_abs[:, :, 0] =0
+        taub_abs[:, :, 2] =0
+    else:
+        taub_abs[:, :, 1:] =0
+    return taub_abs
 
 def umultiply(pow, N, u):
         """ Compute the sum of all possible combinations yielding the power 'pow' of signal 'u' with a total order 'N'
