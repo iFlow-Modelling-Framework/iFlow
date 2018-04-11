@@ -13,6 +13,7 @@ from Module import Module
 from src.util.diagnostics import KnownError
 from nifty import toList
 from config import MAXITERATIONS
+import copy
 
 
 class ModuleList:
@@ -85,7 +86,7 @@ class ModuleList:
         inputInitMods = self.__loadInputRequirements(init=True)
         inputMods = self.__loadInputRequirements()
 
-        #   Make lists
+        #   Initialise lists
         unplacedList = [i for i in self.moduleList if i.runModule]  # list with modules not placed in the call stack
         self.callStack = ([], [], [])    # sublists with 0: modules in call stack, 1: iteration number, 2: 'start' if this is the place to start an iteration (i.e. run stopping criterion)
         outputList = []  # output of all modules in the call stack
@@ -98,10 +99,15 @@ class ModuleList:
         iterationReqList = [[]]
         iterationNo = 0
 
-        ## rate iterative modules on interdependency: 2 not dependent on any other iterative module; 3, 4, .. dependent on one or more iterative modules - try to place interdependent modules last for optimal runtimes
+        ## rate iterative modules on interdependency using level. This replaces True/False in iterativelist -> not only denote if a module is iterative, but also how much interdependency it has
+        #     0 (or False): not iterative
+        #     1 (or True): not used any longer; was used before
+        #     2 not dependent on any other iterative module
+        #     3, 4, .. dependent on one or more iterative modules - try to place interdependent modules as late as possible for optimal runtimes
         unratedIterative = [i for i in unplacedList if i.isIterative()]        # list of iterative modules
-        level = len(unratedIterative)                                     # highest level awarded to iterative module
+        level = len(unratedIterative)                                     # determine maximum level
         iterativeDependence = {}                                          # initialise list of interdependencies
+
         # determine all modules that are required for a closing loop of this iterative module, i.e. all modules required for input and inputInit and their inputs
         for mod in unratedIterative:
             inp = list(set(inputInitMods[mod.getName()]+inputMods[mod.getName()]))
@@ -116,17 +122,18 @@ class ModuleList:
                 pass
             iterativeDependence[mod.getName()] = inp
 
-        #
+        # check for each iterative module if it is dependent on others and assign levels
+        iterativeDependence_tmp = copy.copy(iterativeDependence)        # make a temporary list, because we will remove elements
         while level > 1:
             tmp = []        # temporary list of modules assigned this loop
             for j, mod in enumerate(unplacedList):
                 if iterativeList[j] == True:
-                    if not any([mod in inp for inp in iterativeDependence.values()]):
+                    if not any([mod in inp for inp in iterativeDependence_tmp.values()]):
                         iterativeList[j] = level
                         tmp.append(mod.getName())
-            [iterativeDependence.pop(i) for i in tmp]
+            [iterativeDependence_tmp.pop(i) for i in tmp]
             level -= 1
-        del iterativeDependence
+        # del iterativeDependence
 
         # 5. place modules in call stack
         while unplacedList:
@@ -154,6 +161,7 @@ class ModuleList:
                         # start a new iteration loop
                         iterationNo += 1
                         iterationReqList.append([])
+                        iterationReqList[iterationNo] = [j for j in iterativeDependence[mod.getName()] if j not in self.callStack[0]]  # update and append list of modules required for this iteration loop
 
                     self.callStack[0].append(mod)                                           # place in call stack
                     self.callStack[1].append(iterationNo)                                   # iteration loop this module is in; 0 means no iteration
@@ -162,7 +170,7 @@ class ModuleList:
                     iterativeList.pop(i)                                                    # " "
 
                     outputList = list(set(outputList + mod.getOutputVariables()))             # add its output to the list of calculated output variables
-                    iterationReqList[iterationNo] = list(set(iterationReqList[iterationNo]+ [j for j in inputMods[mod.getName()] if j not in self.callStack[0]]))  # update and append list of modules required for this iteration loop
+                    # iterationReqList[iterationNo] = list(set(iterationReqList[iterationNo]+ [j for j in inputMods[mod.getName()] if j not in self.callStack[0]]))  # update and append list of modules required for this iteration loop
                     for k in range(1, iterationNo+1):
                         iterationReqList[k] = [j for j in iterationReqList[k] if j not in self.callStack[0]]  # update list of variables required for all iteration loops
                     break   # break loop if a module is placed
