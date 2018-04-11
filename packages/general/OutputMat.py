@@ -167,7 +167,7 @@ class OutputMat:
             value = saveData.v(*keys)
 
             #   a. Numerical function
-            if isinstance(value, types.MethodType) and isinstance(value.__self__, ny.functionTemplates.NumericalFunctionBase):
+            if isinstance(value, types.MethodType) and isinstance(value.__self__, ny.functionTemplates.NumericalFunctionBase) and not keys[0] in ['grid', 'outputgrid']:
                 data = value.__self__       # save reference to instance
                 nfgrid = data.dataContainer.slice('grid')
                 if keys[0] in dontConvert:      # if in dontconvert, propagate that all underlying elements are not converted
@@ -175,10 +175,10 @@ class OutputMat:
                 else:                           # else, add the output grid to the nf
                     dontConvert_nf = []
                     data.dataContainer.merge(outputgrid.data)
-                self._convertData(data.dataContainer, nfgrid, outputgrid, [], dontConvert_nf, convertGrid = True) # recursively convert the data inside the numerical function
+                newdata = self._convertData(data.dataContainer, nfgrid, outputgrid, [], dontConvert_nf, convertGrid = True) # recursively convert the data inside the numerical function
 
                 # Only keep value: throw away all other
-                data = data.value()
+                data = newdata['value']
 
             #   b. Other function + saveAnalytical
             # elif isinstance(value, types.MethodType) and isinstance(value.__self__, ny.functionTemplates.FunctionBase) and keys[0] in saveAnalytical:
@@ -218,9 +218,9 @@ class OutputMat:
             # merge into saveData
             saveDataNew[subkeys_merge[j]] = data
 
-        if convertGrid and saveData.v('grid') and 'grid' not in dontConvert:                      # if we are in a numerical function, the grid should be converted to the output grid
-            saveData.addData('grid', saveData.data[self.outputgridName])  # rename the outputgrid to grid and replace the original grid in saveData
-            saveData.data.pop(self.outputgridName)
+        # if convertGrid and saveData.v('grid') and 'grid' not in dontConvert:                      # if we are in a numerical function, the grid should be converted to the output grid
+        #     saveData.addData('grid', saveData.data[self.outputgridName])  # rename the outputgrid to grid and replace the original grid in saveData
+        #     saveData.data.pop(self.outputgridName)
 
         return saveDataNew
 

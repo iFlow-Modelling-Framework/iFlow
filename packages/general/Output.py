@@ -164,7 +164,7 @@ class Output:
             value = saveData.v(*keys)
 
             #   a. Numerical function
-            if isinstance(value, types.MethodType) and isinstance(value.__self__, ny.functionTemplates.NumericalFunctionBase):
+            if isinstance(value, types.MethodType) and isinstance(value.__self__, ny.functionTemplates.NumericalFunctionBase) and not keys[0] in ['grid', 'outputgrid']:
                 data = value.__self__       # save reference to instance
                 nfgrid = data.dataContainer.slice('grid')
                 if keys[0] in dontConvert:      # if in dontconvert, propagate that all underlying elements are not converted
