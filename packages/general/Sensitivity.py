@@ -11,6 +11,8 @@ from src.util.diagnostics import KnownError
 from nifty import toList
 import numbers
 import os
+from itertools import product
+
 
 class Sensitivity:
     # Variables
@@ -39,6 +41,7 @@ class Sensitivity:
                 values = self.input.v(var)
                 values = self.interpretValues(values)
                 self.values[var] = values
+
             # case 2: values in sub-dict
             else:
                 # load values per key
@@ -72,22 +75,38 @@ class Sensitivity:
     def run_init(self):
         """
         """
-        # 1. Interpret values of variables; set values in self.values
-        self.iteration=0
-
-        # Setup loop based on loopstyle
-        if self.input.v('loopstyle') == 'permutations':
-            self.numLoops =  [len(self.values[key]) for key in self.variables]
-        elif self.input.v('loopstyle') == 'simultaneous':
-            self.numLoops = [len(self.values[key]) for key in self.variables]
-            # verify that number of values is the same in all variables
-            for i, l in enumerate(self.numLoops):
-                    if l != self.numLoops[0]:
-                        raise KnownError('Problem in input of module %s for loopstyle "simultaneous". Number of values in "%s" is unequal to number of values in "%s" ' % (self.__module__, self.variables[i], self.variables[0]))
-            self.numLoops = self.numLoops[0]
+        ## Setup loop based on self.loopstyle
+        self.loopstyle = toList(self.input.v('loopstyle'))
+        
+        #   change self.loopstyle if 'permutations' or 'simultaneous' + check if self.loopstyle has the correct format
+        if len(self.loopstyle)==1 and self.loopstyle[0] == 'permutations':                             # all possible combinations
+            self.loopstyle = range(0, len(self.variables))
+        elif len(self.loopstyle)==1 and self.loopstyle[0] == 'simultaneous':                           # everything simultaneous
+            self.loopstyle = [0]*len(self.variables)
+        elif len(self.loopstyle) == len(self.variables):
+            pass
         else:
-            raise KnownError('loopstyle "%s" in input of module %s unknown ' % (str(self.values.v('loopstyle')), self.__module__))
+            raise KnownError('self.loopstyle "%s" in input of module %s unknown ' % (str(self.loopstyle), self.__module__))
 
+        # make list of unique elements of self.loopstyle
+        self.ls_list = [i for i in sorted(list(set(toList(self.loopstyle))))]
+
+        # verify that number of values is the same in covarying variables
+        num_items = []
+        for ls in self.ls_list:
+            num_items.append(len(self.values[self.variables[self.loopstyle.index(ls)]]))
+            for i, var in enumerate(self.variables):
+                if ls == self.loopstyle[i] and len(self.values[var]) != num_items[-1]:
+                    if self.input.v('loopstyle') == 'simultaneous':
+                        raise KnownError('Problem in input of module %s for loopstyle "simultaneous". Number of values in "%s" is unequal to number of values in "%s" ' % (self.__module__, self.variables[i], self.variables[0]))
+                    else:
+                        raise KnownError('Problem in input of module %s for loopstyle "%s". Number of values in "%s" is unequal to number of values in "%s" ' % (self.__module__, ls, self.variables[i], self.variables[self.loopstyle.index(ls)]))
+
+        # determine number of loops per element in permutation
+        self.numLoops = num_items
+
+        # run first iteration
+        self.iteration = 0
         d = self.run()
         return d
 
@@ -97,15 +116,12 @@ class Sensitivity:
         while not validfile:
             # set variables
             iterationindex = np.unravel_index(self.iteration, self.numLoops)
+
             newvals = {}
             #   In case of simultaneous variations or single parameter
-            if len(iterationindex)==1:
-                for key in self.variables:
-                    newvals[key] = self.values[key][iterationindex[0]]
-            #   In case of permutative variation of multiple parameters
-            else:
-                for i, key in enumerate(self.variables):
-                    newvals[key] = self.values[key][iterationindex[i]]
+            for i, key in enumerate(self.variables):
+                ind = self.ls_list.index(self.loopstyle[i])
+                newvals[key] = self.values[key][iterationindex[ind]]
 
             # load to dictionary
             for key in self.variables:
