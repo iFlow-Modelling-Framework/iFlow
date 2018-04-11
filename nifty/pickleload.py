@@ -12,13 +12,16 @@ import src.DataContainer
 
 def pickleload(filepath, variables):
     d = {}
+    if filepath[-2:] != '.p':
+        filepath = filepath+'.p'
+
     try:
-        with open(filepath+'.p','rb') as fp:
+        with open(filepath,'rb') as fp:
             alldata = pickle.load(fp)
     except IOError as e:
-        raise KnownError('Could not find file %s.p' % (filepath), e)
+        raise KnownError('Could not find file %s' % (filepath), e)
     except pickle.UnpicklingError as e:
-        raise KnownError('File %s.p is not a valid Pickle file and cannot be loaded.' % (filepath), e)
+        raise KnownError('File %s is not a valid Pickle file and cannot be loaded.' % (filepath), e)
 
     # Check if requested variables are available and load them to dict d
     if variables is None:

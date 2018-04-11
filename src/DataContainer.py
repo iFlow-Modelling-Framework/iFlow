@@ -466,6 +466,9 @@ class DataContainer:
                     value = copy(dc.v('key', *args, **kwargs))
                 else:
                     value = value + dc.v('key', *args, **kwargs) #YMD 20-12-2016: old version 'value+= dc.v(...)' introduced errors when summing complex numbers to a real value
+            else:               # YMD 24-01-2018: break if there are non-numerical values in the array: cannot sum values
+                value = None
+                break
         if value is None:
             value = dictionary
         return value, done

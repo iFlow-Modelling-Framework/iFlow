@@ -44,6 +44,7 @@ Authors: Y.M. Dijkstra
 """
 from FunctionBase import FunctionBase
 from src.DataContainer import DataContainer
+from src.util.diagnostics import KnownError
 
 
 class NumericalFunctionBase(FunctionBase):
@@ -57,26 +58,69 @@ class NumericalFunctionBase(FunctionBase):
         return
 
     def function(self, **kwargs):
+        if len([i for i in kwargs.keys() if i in self.dataContainer.v('grid', 'dimensions')]) == 0:
+            return self.__setReturnReference(kwargs.get('operation'))
+
+        # evaluate function
+        try:
+            returnval = self.__evaluateFunction(**kwargs)
+        except FunctionEvaluationError:
+            returnval = self.__setReturnReference(kwargs.get('operation'))
+        return returnval
+
+    def __evaluateFunction(self, **kwargs):
         """Overrides the function method of FunctionBase, but is very similar.
         The difference is only that FunctionBase transfers kwargs to args before calling the actual functions
         Here we keep the kwargs as the actual functions also use this.
         """
-        returnval = self.function
-
         requestSize = sum([dim in kwargs for dim in self.dimNames])  # count the number of dimensions in kwargs (this makes sure that other parameters or irrelevant dimensions are ignored)
-        if requestSize >= len(self.dimNames):
-            if kwargs.get('operation'):
-                if kwargs.get('operation') == 'd':
-                    returnval = self.derivative(**kwargs)
-                ### Depreciated v2.2 [dep01]
-                elif kwargs.get('operation') == 'dd':
-                    returnval = self.secondDerivative(**kwargs)
-                ### End
-                elif kwargs.get('operation') == 'n':
-                    returnval = self.returnNegative(**kwargs)
-            else:
-                returnval = self.value(**kwargs)
 
+        operation = kwargs.get('operation')
+        try:
+            kwargs.pop('operation')
+        except:
+            pass
+        # direct to actual function
+        if operation is None:
+            returnval = self.value(**kwargs)
+        elif operation == 'd':
+            returnval = self.derivative(**kwargs)
+        elif operation == 'n':
+            returnval = -self.value(**kwargs)
+        elif operation == 'dn':
+            returnval = -self.derivative(**kwargs)
+        else:
+            raise FunctionEvaluationError
+        return returnval
+
+    def __setReturnReference(self, operation=None):
+        '''No difference with FunctionBase, but required here to refer to its own functions
+        '''
+        if not operation:
+            returnval = self.function
+        elif operation == 'n':
+            returnval = self.negfunction
+        elif operation == 'd':
+            returnval = self.derfunction
+        elif operation == 'dn':
+            returnval = self.dnfunction
+        else:
+            raise KnownError('Function called with unknown operation. (This error indicates an incorrectly defined function)')
+        return returnval
+
+    def negfunction(self, **kwargs):
+        """No difference with FunctionBase, but required here to refer to its own functions
+        """
+        # reset operations
+        if kwargs.get('operation') == 'n':      # if the negative of a negfunction is called, return to function.
+            kwargs.pop('operation')
+        elif kwargs.get('operation') == 'd':
+            kwargs['operation'] = 'dn'
+        else:
+            kwargs['operation'] = 'n'
+
+        # evaluate
+        returnval = self.function(**kwargs)
         return returnval
 
     def addGrid(self, gridData, gridName='grid'):
@@ -122,7 +166,7 @@ class NumericalFunctionBase(FunctionBase):
         """Similar to .value(). Returns the derivative uploaded to the numerical function or makes a call
         to a numerical derivation method if no derivative is uploaded.
         """
-        kwargs.pop('operation')
+        # kwargs.pop('operation')       # obsolete
         dim = kwargs.get('dim')
         v = self.dataContainer.v('derivative', dim, **kwargs)       # try if analytical derivative is available
         if v is None:
@@ -134,10 +178,14 @@ class NumericalFunctionBase(FunctionBase):
         """See .derivative(). This method does the same for the second derivative
         Depreciated 2.2 [dep01]
         """
-        kwargs.pop('operation')
+        # kwargs.pop('operation')       # obsolete
         dim = kwargs.get('dim')
         v = self.dataContainer.v('secondDerivative', dim, **kwargs)
         if v is None:
             v = self.dataContainer.dd('value', **kwargs)
         return v
-    ### End ###
+
+class FunctionEvaluationError(Exception):
+    def __init__(self, *args):
+        return
+
