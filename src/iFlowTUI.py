@@ -7,7 +7,7 @@ Authors: Y.M. Dijkstra, R.L. Brouwer
 """
 import logging
 from Program import Program
-from src.util.diagnostics import LogConfigurator
+from src.util.diagnostics.NoInputFileException import NoInputFileException
 import time
 from nifty.Timer import Timer
 import os
@@ -27,10 +27,6 @@ class iFlowTUI:
         Parameters:
             version - version number
         """
-        # make console logger
-        logConf = LogConfigurator(__package__) #n
-        logConf.makeConsoleLog()
-
         # display menu and ask for input file path
         filePath = None
         cwdpath = ''
@@ -40,14 +36,14 @@ class iFlowTUI:
         # merge working directory and file path
         totalPath = os.path.join(cwdpath, filePath)
 
-        # make file logger using the input filepath
-        logConf.makeDiagFile(totalPath)
-
         # call program selector
         program = Program(cwdpath, totalPath)
         timer = Timer()
         timer.tic()
-        program.run()
+        try:
+            program.run()
+        except NoInputFileException as e:
+            print e.message
         timer.toc()
         self.logger.info(timer.string('\n'
                                       'iFlow run time'))
