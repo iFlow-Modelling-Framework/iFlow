@@ -99,45 +99,13 @@ class ModuleList:
         iterationReqList = [[]]
         iterationNo = 0
 
-        ## rate iterative modules on interdependency using level. This replaces True/False in iterativelist -> not only denote if a module is iterative, but also how much interdependency it has
-        #     0 (or False): not iterative
-        #     1 (or True): not used any longer; was used before
-        #     2 not dependent on any other iterative module
-        #     3, 4, .. dependent on one or more iterative modules - try to place interdependent modules as late as possible for optimal runtimes
-        unratedIterative = [i for i in unplacedList if i.isIterative()]        # list of iterative modules
-        level = len(unratedIterative)                                     # determine maximum level
-        iterativeDependence = {}                                          # initialise list of interdependencies
 
-        # determine all modules that are required for a closing loop of this iterative module, i.e. all modules required for input and inputInit and their inputs
-        for mod in unratedIterative:
-            inp = list(set(inputInitMods[mod]+inputMods[mod]))
-            # dif = len(inp)            # 03-08-2018 remove, seems redundant and interferes when using a triple loop with one loop enclosing two separate loops
-            # while dif:
-            #     lenold = len(inp)
-            #     inp = list(set(inp + [qq for q in inp for qq in inputInitMods[q]] + [qq  for q in inp for qq in inputMods[q]]))
-            #     dif = len(inp)-lenold
-            try:
-                inp.remove(mod)     # remove self if in list
-            except:
-                pass
-            iterativeDependence[mod] = inp
-
-        # check for each iterative module if it is dependent on others and assign levels
-        iterativeDependence_tmp = copy.copy(iterativeDependence)        # make a temporary list, because we will remove elements
-        while level > 1:
-            tmp = []        # temporary list of modules assigned this loop
-            for j, mod in enumerate(unplacedList):
-                if iterativeList[j] == True:
-                    if not any([mod in inp for inp in iterativeDependence_tmp.values()]):
-                        iterativeList[j] = level
-                        tmp.append(mod)
-            [iterativeDependence_tmp.pop(i) for i in tmp]
-            level -= 1
-        # del iterativeDependence
 
         # 5. place modules in call stack
         while unplacedList:
             listSizeBefore = len(unplacedList)
+
+            iterativeDependence, iterativeList = self.__iterativeDependence(unplacedList, inputInitMods, inputMods, iterativeList)  # set importance per iterative loop # 06-08-2018: in separate module to evaluate everytime the callstack is updated; helps dealing with situation of two independent loops inside another loop
 
             # a. sort modules depending
             if iterationNo == 0:
@@ -435,6 +403,45 @@ class ModuleList:
         for module in (self.moduleList):
             self.moduleList = module.updateIteratorRegistry(self.moduleList)
         return
+
+    def __iterativeDependence(self, unplacedList, inputInitMods, inputMods, iterativeList):
+        ## rate iterative modules on interdependency using level. This replaces True/False in iterativelist -> not only denote if a module is iterative, but also how much interdependency it has
+        #     0 (or False): not iterative
+        #     1 (or True): not used any longer; was used before
+        #     2 not dependent on any other iterative module
+        #     3, 4, .. dependent on one or more iterative modules - try to place interdependent modules as late as possible for optimal runtimes
+        unratedIterative = [i for i in unplacedList if i.isIterative()]  # list of iterative modules
+        level = len(unratedIterative)  # determine maximum level
+        iterativeDependence = {}  # initialise list of interdependencies
+
+        # determine all modules that are required for a closing loop of this iterative module, i.e. all modules required for input and inputInit and their inputs
+        for mod in unratedIterative:
+            inp = [i for i in list(set(inputInitMods[mod] + inputMods[mod])) if i in unplacedList]
+            dif = len(inp)
+            while dif:
+                lenold = len(inp)
+                inp = [i for i in (list(set(inp + [qq for q in inp for qq in inputInitMods[q]] + [qq  for q in inp for qq in inputMods[q]]))) if i in unplacedList]
+                dif = len(inp)-lenold
+
+            try:
+                inp.remove(mod)  # remove self if in list
+            except:
+                pass
+            iterativeDependence[mod] = inp
+
+        # check for each iterative module if it is dependent on others and assign levels
+        iterativeDependence_tmp = copy.copy(iterativeDependence)  # make a temporary list, because we will remove elements
+        while level > 1:
+            tmp = []  # temporary list of modules assigned this loop
+            for j, mod in enumerate(unplacedList):
+                if iterativeList[j] == True:
+                    # if not any([mod in inp for inp in iterativeDependence_tmp.values()]):
+                    if not any([mod in inp for inp in iterativeDependence_tmp.values()]):
+                        iterativeList[j] = level
+                        tmp.append(mod)
+            [iterativeDependence_tmp.pop(i) for i in tmp]
+            level -= 1
+        return iterativeDependence, iterativeList
 
     def debugger(self, d):
         dtmp = {}
