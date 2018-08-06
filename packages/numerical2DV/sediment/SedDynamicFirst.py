@@ -96,19 +96,19 @@ class SedDynamicFirst:
             F[:, :, fmax:, self.submodulesToRun.index('sedadv_ax')] = -ny.complexAmplitudeProduct(u0, c0, 2)
 
         # 3. First-order fall velocity
-        if 'settling' in self.submodulesToRun:
+        if 'fallvel' in self.submodulesToRun:
             # surface and internal terms
             ws1 = self.input.v('ws1', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1))
             ksi = ny.complexAmplitudeProduct(ws1, c0, 2)
             ksiz = ny.derivative(ksi, 'z', self.input.slice('grid'))
             zeta0 = self.input.v('zeta0', range(0, jmax+1), 0, range(0, fmax+1))
 
-            F[:, :, fmax:, self.submodulesToRun.index('settling')] = ksiz
-            Fsurf[:, 0, fmax:, self.submodulesToRun.index('settling')] = -ny.complexAmplitudeProduct(ksiz[:,0,:], zeta0, 1)
+            F[:, :, fmax:, self.submodulesToRun.index('fallvel')] = ksiz
+            Fsurf[:, 0, fmax:, self.submodulesToRun.index('fallvel')] = -ny.complexAmplitudeProduct(ksiz[:,0,:], zeta0, 1)
 
             # adjustment to erosion
             E = erosion(ws1, 0, self.input, method, friction=frictionpar)
-            Fbed[:, :, fmax:, self.submodulesToRun.index('settling')] = -E
+            Fbed[:, :, fmax:, self.submodulesToRun.index('fallvel')] = -E
 
         # 4. First-order eddy diffusivity
         if 'mixing' in self.submodulesToRun:

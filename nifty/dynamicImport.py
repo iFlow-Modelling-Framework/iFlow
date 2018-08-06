@@ -36,10 +36,13 @@ def dynamicImport(path, name):
         # find and load package and subpackages
         i = 0
         while i < len(workpath)-1:
-            if i == 0:
-                modpack = imp.find_module(workpath[i], localpath)
-            else:
-                modpack = imp.find_module(workpath[i], [modpack[1]])
+            try:
+                if i == 0:
+                    modpack = imp.find_module(workpath[i], localpath)
+                else:
+                    modpack = imp.find_module(workpath[i], [modpack[1]])
+            except ImportError as e:
+                raise KnownError('Error while loading module ' + '.'.join(workpath)+'.\nPlease check if '+str(workpath[-1]+' exists in package '+'.'.join(workpath[:-1]))+'.\nError given is: '+e.message)
             imp.load_module('.'.join(workpath[:i+1]), *modpack)
             i += 1
         # find and load the module

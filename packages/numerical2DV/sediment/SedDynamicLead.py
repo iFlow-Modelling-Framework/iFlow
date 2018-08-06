@@ -8,7 +8,7 @@ import logging
 import numpy as np
 import nifty as ny
 from cFunction import cFunction
-from cFunctionUncoupled import cFunctionUncoupled
+# from cFunctionUncoupled import cFunctionUncoupled
 from erosion import erosion
 
 

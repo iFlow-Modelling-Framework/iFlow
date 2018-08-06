@@ -29,7 +29,7 @@ def shearstress(tau_order, data, submodule=None, friction='Roughness'):
 #
 #     st.show()
 
-def shearstressGS(tau_order, data, submodule=None, friction='Roughness'):     # Shear stress following the formulation of Schramkowski
+def shearstressGS(tau_order, data, submodule=None, friction='Roughness'):     # Shear stress following the formulation of Schramkowski; only subtidal sf and subtidal second order friction
     jmax = data.v('grid', 'maxIndex', 'x')
     kmax = data.v('grid', 'maxIndex', 'z')
     fmax = data.v('grid', 'maxIndex', 'f')
@@ -66,8 +66,13 @@ def shearstressGS(tau_order, data, submodule=None, friction='Roughness'):     # 
             ulist[1] = np.concatenate((ulist[1], np.zeros((jmax+1, 1, 4-fmax-1))), 2)
         taub_abs = rho0*sf.reshape((jmax+1, 1, 1))*ny.complexAmplitudeProduct(ulist[1], signu, 2)
     elif tau_order ==2:
-        uabs = np.abs(ulist[1][:, 0, 0])        # only for subtidal flows
-        taub_abs[:, 0, 0] = rho0*sf*uabs
+        utid = ny.invfft2(ulist[0], 2, 90)
+        ucomb = ny.invfft2(ulist[0]+ulist[1], 2, 90)
+        uabs_tid = np.mean(np.abs(utid), axis=2)
+        uabs_tot = np.mean(np.abs(ucomb), axis=2)
+        uabs_eps = (uabs_tot - uabs_tid).reshape((jmax+1))
+
+        taub_abs[:, 0, 0] = rho0*sf*uabs_eps
 
     return taub_abs[:, :, :fmax+1]
 

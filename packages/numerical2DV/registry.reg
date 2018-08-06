@@ -72,7 +72,7 @@ stokes			input		u0 zeta0 u1 zeta1
                 output
 nostress		input		u0 zeta0 u1 zeta1
                 output
-adv				input		u0 u1 w0 w1surf
+adv				input		u0 u1 w0
                 output
 densitydrift	input		u0 zeta0 u1 zeta1 s+{0,@{maxOrder}-1}
                 output
@@ -131,7 +131,7 @@ output      a c0 c1 c2 F T
 
 module          DiffusivityUndamped
 packagePath     sediment/
-input           sigma_rho Av
+input           sigma_rho Av grid
 output          Kv skin_friction
 
 ########################################################################################################################
@@ -142,14 +142,14 @@ module      KEFittedLead
 packagePath	turbulence/
 inputInit	if{grid,@{referenceLevel}==0} if{Q0,@{referenceLevel}==1} if{Q1,@{referenceLevel}==1} G B H profile roughnessParameter @roughnessParameter n Avmin  lambda referenceLevel ignoreSubmodule
 input       grid u0
-output		Av Roughness BottomBC
+output		Av Roughness BottomBC if{grid,@{referenceLevel}==1}
 iterative	True
 
 module      KEFittedTruncated
 packagePath	turbulence/
 inputInit	if{grid,@{referenceLevel}==0} if{Q0,@{referenceLevel}==1} if{Q1,@{referenceLevel}==1} G B H profile roughnessParameter @roughnessParameter n Avmin  lambda referenceLevel ignoreSubmodule truncationOrder
 input       grid u+{0,@{truncationOrder}+1} zeta+{0,@{truncationOrder}+1}
-output		Av Roughness BottomBC
+output		Av Roughness BottomBC if{grid,@{referenceLevel}==1}
 iterative	True
 
 module      KEFittedFirst

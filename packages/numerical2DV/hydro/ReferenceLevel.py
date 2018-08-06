@@ -88,6 +88,9 @@ class ReferenceLevel:
             Rx = -self.Q/intfac
             R[j+1] = R[j]+Rx*dx[j]
 
+        # if self.input.v('zeta1', range(0, jmax+1), 0, 0) is not None:
+        #     R = R+self.input.v('zeta1', range(0, jmax+1), 0, 0)-self.input.v('zeta1','river', range(0, jmax+1), 0, 0)
+
         # Compute convergence
         self.difference = np.linalg.norm(R - self.input.v('R', range(0, jmax+1)), np.inf)
 

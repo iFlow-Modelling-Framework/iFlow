@@ -61,7 +61,7 @@ class SedDynamicSecond:
 
         # erosion
         if self.input.v('u1', 'river') is not None:
-            E = erosion(ws, 2, self.input, method, submodule=('river',)*3, friction=frictionpar)
+            E = erosion(ws, 2, self.input, method, submodule=(None,'river',None), friction=frictionpar)
             Fbed[:, :, fmax:, 0] = -E
 
             ################################################################################################################
