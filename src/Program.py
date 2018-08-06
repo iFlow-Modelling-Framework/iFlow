@@ -15,6 +15,9 @@ from ModuleList import ModuleList
 from nifty import toList
 from Reader import Reader
 from src.util import importModulePackages
+from src.util.diagnostics import LogConfigurator
+from src.util.diagnostics.NoInputFileException import NoInputFileException
+import os.path
 import matplotlib as mpl
 mpl.use('TkAgg')
 import src.config as cf
@@ -44,7 +47,8 @@ class Program:
         Main steps: read input, build call stack, call modules according to call stack.
         """
 
-        # read input, build call stack and retrieve data required
+        # read input, make logger, build call stack and retrieve data required
+        self.__makeLogger(self.inputFilePath)
         self.__readInput()
         self.__buildCallStack()
 
@@ -57,6 +61,23 @@ class Program:
             for i in self.moduleList.moduleList:
                 i.timer.disp(i.getName()+': ')
         return
+
+    def __makeLogger(self, inputpath):
+        # make console logger
+        logConf = LogConfigurator(__package__)
+        logConf.makeConsoleLog()
+
+        # Make the path to the diag file
+        path = self.inputFilePath.split('\\')
+        path[-1] = '/'.join(path[-1].split('/')[:-1])
+        path = '\\'.join(path)
+
+        # check if the path exists
+        if not os.path.exists(path):
+            raise NoInputFileException('ERROR: Could not find path to input file %s.\nPlease check if you have selected the correct working directory and path to the input file.' % (path))
+
+        # make file logger using the input filepath
+        logConf.makeDiagFile(inputpath)
 
     def __runCallStack(self):
         """Run all calculation modules in the call stack.

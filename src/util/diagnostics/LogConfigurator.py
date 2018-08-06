@@ -35,7 +35,8 @@ class LogConfigurator:
         console.setLevel(logging.INFO)
         consoleFormat   = DiagFormatter('console')
         console.setFormatter(consoleFormat)
-        self.logger.addHandler(console)
+        if not any([isinstance(i, logging.StreamHandler) for i in self.logger.handlers]):       # add a streamHandler logger if one does not exist
+            self.logger.addHandler(console)
         return
 
     def makeDiagFile(self, filepath):

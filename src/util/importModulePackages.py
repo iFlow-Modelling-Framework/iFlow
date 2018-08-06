@@ -34,6 +34,7 @@ def importModulePackages(cwd, imports):
         slash1 = '\\'
         slash2 = '/'
 
+    loggingpath = []
     # 1. import packages in 'packages' folder
     #   list packages
     modlist = []
@@ -45,8 +46,7 @@ def importModulePackages(cwd, imports):
     localpath.append(packages.__path__[0])
     for modname in modlist:
         localpath.append(packages.__path__[0] + slash2 + modname)
-        logConf = LogConfigurator(modname)                                  # logger
-        logConf.makeConsoleLog()
+        loggingpath.append(packages.__path__[0] + slash2 + modname)
 
     # 2. add working directory
     modlist = []
@@ -55,12 +55,11 @@ def importModulePackages(cwd, imports):
         if ispkg:
             modlist.append(modname)
 
-    #  add to path and set logging system
+    #  add to path
     localpath.append(cwd)
     for modname in modlist:
         localpath.append(cwd + slash2 + modname)
-        logConf = LogConfigurator(modname)                 # logger
-        logConf.makeConsoleLog()
+        loggingpath.append(cwd + slash2 + modname)
 
     # 3. add data from 'import' in input file
     for DC in imports:
@@ -75,8 +74,14 @@ def importModulePackages(cwd, imports):
         # add parent and child paths
         localpath.append(os.path.abspath(slash2.join(path[:-1])))
         localpath.append(os.path.abspath(slash2.join(path)))
+        loggingpath.append(os.path.abspath(slash2.join(path)))
 
+    # add handlers to loggers in all paths
+    for pth in loggingpath:
+        p = pth.split('/')
+        p = p[-1].split('\\')
+        p = p[-1]
         # make logger
-        # logConf = LogConfigurator(path[-1])                                 # logger
-        # logConf.makeConsoleLog()
+        logConf = LogConfigurator(p)                                 # logger
+        logConf.makeConsoleLog()
     return
