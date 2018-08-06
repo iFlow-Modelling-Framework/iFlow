@@ -110,17 +110,17 @@ class ModuleList:
 
         # determine all modules that are required for a closing loop of this iterative module, i.e. all modules required for input and inputInit and their inputs
         for mod in unratedIterative:
-            inp = list(set(inputInitMods[mod.getName()]+inputMods[mod.getName()]))
-            dif = len(inp)
-            while dif:
-                lenold = len(inp)
-                inp = list(set(inp + [qq for q in inp for qq in inputInitMods[q.getName()]] + [qq  for q in inp for qq in inputMods[q.getName()]]))
-                dif = len(inp)-lenold
+            inp = list(set(inputInitMods[mod]+inputMods[mod]))
+            # dif = len(inp)            # 03-08-2018 remove, seems redundant and interferes when using a triple loop with one loop enclosing two separate loops
+            # while dif:
+            #     lenold = len(inp)
+            #     inp = list(set(inp + [qq for q in inp for qq in inputInitMods[q]] + [qq  for q in inp for qq in inputMods[q]]))
+            #     dif = len(inp)-lenold
             try:
                 inp.remove(mod)     # remove self if in list
             except:
                 pass
-            iterativeDependence[mod.getName()] = inp
+            iterativeDependence[mod] = inp
 
         # check for each iterative module if it is dependent on others and assign levels
         iterativeDependence_tmp = copy.copy(iterativeDependence)        # make a temporary list, because we will remove elements
@@ -130,7 +130,7 @@ class ModuleList:
                 if iterativeList[j] == True:
                     if not any([mod in inp for inp in iterativeDependence_tmp.values()]):
                         iterativeList[j] = level
-                        tmp.append(mod.getName())
+                        tmp.append(mod)
             [iterativeDependence_tmp.pop(i) for i in tmp]
             level -= 1
         # del iterativeDependence
@@ -156,12 +156,12 @@ class ModuleList:
 
             # b. place modules that can be placed according to their input requirements
             for i, mod in enumerate(unplacedList):
-                if not [j for j in inputInitMods[mod.getName()] if j not in self.callStack[0]]:       # if a module does not require initial input that is not already in outList
+                if not [j for j in inputInitMods[mod] if j not in self.callStack[0]]:       # if a module does not require initial input that is not already in outList
                     if iterativeList[i]:
                         # start a new iteration loop
                         iterationNo += 1
                         iterationReqList.append([])
-                        iterationReqList[iterationNo] = [j for j in iterativeDependence[mod.getName()] if j not in self.callStack[0]]  # update and append list of modules required for this iteration loop
+                        iterationReqList[iterationNo] = [j for j in iterativeDependence[mod] if j not in self.callStack[0]]  # update and append list of modules required for this iteration loop
 
                     self.callStack[0].append(mod)                                           # place in call stack
                     self.callStack[1].append(iterationNo)                                   # iteration loop this module is in; 0 means no iteration
@@ -378,7 +378,7 @@ class ModuleList:
         for mod in [i for i in self.moduleList if i.runModule]:
             inputReq = mod.getInputRequirements(init=init)
             # Add module to list of input requirements if it provides data for 'mod'
-            d[mod.getName()] = [inmod for inmod in self.moduleList if ([i for i in inputReq if i in inmod.getOutputVariables()] and inmod!=mod)]
+            d[mod] = [inmod for inmod in self.moduleList if ([i for i in inputReq if i in inmod.getOutputVariables()] and inmod!=mod)]
         return d
 
     def __updateSubmodulesToRun(self):
@@ -435,3 +435,12 @@ class ModuleList:
         for module in (self.moduleList):
             self.moduleList = module.updateIteratorRegistry(self.moduleList)
         return
+
+    def debugger(self, d):
+        dtmp = {}
+        for k in d.keys():
+            kname = k.getName()
+            if kname in dtmp.keys():
+                kname = kname+'_2'
+            dtmp[kname] = [i.getName() for i in d[k]]
+        return dtmp
