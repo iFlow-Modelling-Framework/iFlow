@@ -54,14 +54,18 @@ def shearstressGS(tau_order, data, submodule=None, friction='Roughness'):     # 
 
     taub_abs = np.zeros((jmax+1, 1, fmax+1), dtype=complex)
     if tau_order == 0:
-        uabs0 = ny.absoluteU(ulist[0][:, 0, 1]+10**-6, 0)
-        uabs2 = ny.absoluteU(ulist[0][:, 0, 1]+10**-6, 2)+np.conj(ny.absoluteU(ulist[0][:, 0, 1]+10**-6, -2))
+        # uabs0 = ny.absoluteU(ulist[0][:, 0, 1]+10**-6, 0)
+        # uabs2 = ny.absoluteU(ulist[0][:, 0, 1]+10**-6, 2)+np.conj(ny.absoluteU(ulist[0][:, 0, 1]+10**-6, -2))
+        uabs0 = ny.absoluteU(ulist[0][:, 0, 1], 0)
+        uabs2 = ny.absoluteU(ulist[0][:, 0, 1], 2) + np.conj(ny.absoluteU(ulist[0][:, 0, 1], -2))
         taub_abs[:, 0, 0] = rho0*sf*uabs0
         taub_abs[:, 0, 2] = rho0*sf*uabs2
     elif tau_order ==1:
         signu = np.zeros((jmax+1, 1, np.maximum(fmax+1, 4)), dtype=complex)
-        signu[:, 0, 1] = ny.signU(ulist[0][:, 0, 1]+10**-6, 1) + np.conj(ny.signU(ulist[0][:, 0, 1]+10**-6, -1))
-        signu[:, 0, 3] = ny.signU(ulist[0][:, 0, 1]+10**-6, 3) + np.conj(ny.signU(ulist[0][:, 0, 1]+10**-6, -3))
+        # signu[:, 0, 1] = ny.signU(ulist[0][:, 0, 1]+10**-6, 1) + np.conj(ny.signU(ulist[0][:, 0, 1]+10**-6, -1))
+        # signu[:, 0, 3] = ny.signU(ulist[0][:, 0, 1]+10**-6, 3) + np.conj(ny.signU(ulist[0][:, 0, 1]+10**-6, -3))
+        signu[:, 0, 1] = ny.signU(ulist[0][:, 0, 1], 1) + np.conj(ny.signU(ulist[0][:, 0, 1], -1))
+        signu[:, 0, 3] = ny.signU(ulist[0][:, 0, 1], 3) + np.conj(ny.signU(ulist[0][:, 0, 1], -3))
         if fmax+1 < 4:
             ulist[1] = np.concatenate((ulist[1], np.zeros((jmax+1, 1, 4-fmax-1))), 2)
         taub_abs = rho0*sf.reshape((jmax+1, 1, 1))*ny.complexAmplitudeProduct(ulist[1], signu, 2)
