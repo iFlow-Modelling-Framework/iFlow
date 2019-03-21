@@ -1,30 +1,32 @@
 # Registry
 # 
 
-
+########################################################################################################################
+# Subpackage hydro
+########################################################################################################################
 ## Module HydroLead: semi-analytical2DV perturbation model - leading order ##
 module          HydroLead
 packagePath		hydro/
-input 			A0 phase0 Q0 BottomBC grid Av Roughness OMEGA G TOLERANCEBVP
+input 			BottomBC grid Av Roughness OMEGA G
 output			u0 zeta0 w0
 submodules		tide river
-river	input
+river	input   A0 phase0
 		output
 
-tide	input
-		output		w0
+tide	input   Q0
+		output
 
 ## Module HydroFirst: semi-analytical2DV perturbation model - first order ##
 module          HydroFirst
 packagePath		hydro/
-input 			A1 phase1 Q1 BottomBC grid Av Roughness OMEGA G BETA TOLERANCEBVP
-output			u1 zeta1 w1
+input 			BottomBC grid Av Roughness OMEGA G
+output			u1 zeta1        # NB. does not compute w1 - use numerical modules if w1 is needed
 submodules		tide river baroc stokes nostress adv
-tide	    input
+tide	    input   A1  phase1
 		    output
-river	    input
+river	    input   Q1
 		    output
-baroc	    input	s0
+baroc	    input	s0 BETA
 		    output
 stokes	    input   u0 zeta0
 		    output
@@ -33,18 +35,29 @@ nostress	input	u0 zeta0
 adv		    input	u0
 		    output
 
-## Module SedDynamic: semi-analytical2DV perturbation model ##
-module		SedDynamic
-packagePath	sediment/
-input		grid zeta0 u0 u1 Av Roughness astar ws0 Kh OMEGA G RHO0 RHOS DS Kv
-output		c0 c1 c2 hatc0 hatc1 hatc2 a F T
-submodules  erosion noflux sedadv mixing
-erosion	    input
-		    output
-noflux	    input
-		    output
-sedadv	    input
-		    output
-mixing	    input   Kv1amp Kv1phase
-		    output
+########################################################################################################################
+# Subpackage sediment
+########################################################################################################################
+module      SedimentCapacity
+packagePath sediment/
+input       grid G OMEGA RHOS RHO0 DS finf erosion_formulation Av Roughness Kv ws0
+output      hatc0 hatc1 hatc2
+submodules	sedadv mixing erosion noflux
+sedadv  	    input		u0 w0 hatc0
+                output
+mixing			input		Kv1 hatc0
+                output
+erosion			input		u0 u1
+                output
+noflux			input		zeta0 hatc0
+                output
 
+module		EquilibriumAvailability
+packagePath sediment/
+input       grid hatc0 hatc1 hatc2 u0 zeta0 u1 Kh B sedbc @sedbc         #optional: Qsed sedsource
+output		c0 c1 c2 a f F T
+
+module		DynamicAvailability
+packagePath sediment/
+input       grid hatc0 hatc1 hatc2 u0 zeta0 u1 Kh B astar Mhat csea p tol DS RHOS Roughness Av H R L ws0 t dt Q finit concept
+output		St Flux Tt Ft ft c0bar alpha2

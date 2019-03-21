@@ -1,7 +1,10 @@
 """
-cFunction
+Solve sediment equation: c_t - (ws(x,z,f)*c + Kv(x,z,f)*c_z)_z = F(x,z,f)
+with boundary conditions Kv(x,-H,f)*c_z = Fbed(x,-H,f)
+                         ws(x,0,f)c + Kv(x,0,f)*c_z = Fsurf(x,0,f)
 
-Date: 19-12-2016
+Date: 09-01-19
+Notes: 9-1-19: updated to include uncoupled solver to speed up computations in some cases
 Authors: Y.M. Dijkstra
 """
 import numpy as np
@@ -27,11 +30,33 @@ def cFunction(ws, Kv, F, Fsurf, Fbed, data, hasMatrix = False):
 
     # Init Ctd
     nRHS = F.shape[-1]
-    cMatrix = np.empty([jmax+1, 2*ftot+2*bandwidth+1, ftot*(kmax+1)], dtype=complex)
-    cCoef = np.zeros([jmax+1, kmax+1, ftot, nRHS], dtype=complex)
+    cMatrix = np.empty([jmax + 1, 2 * ftot + 2 * bandwidth + 1, ftot * (kmax + 1)], dtype=complex)
+    cCoef = np.zeros([jmax + 1, kmax + 1, ftot, nRHS], dtype=complex)
+    cCoef_d = np.zeros([jmax + 1, kmax + 1, ftot, nRHS], dtype=complex)
 
     ####################################################################################################################
-    # build, save and solve the matrices in every water column
+    # If bandwidth=0, revert to a simpler solution method
+    ####################################################################################################################
+    if bandwidth == 0 or (hasMatrix and Kv.shape[1]==3):
+        from cFunctionUncoupled import cFunctionUncoupled
+        for n in range(0, fmax+1):
+            if np.all(F[:, :, fmax+n, :]==0) and np.all(F[:, :, fmax-n, :]==0) and np.all(Fsurf[:, :, fmax+n, :]==0) and np.all(Fsurf[:, :, fmax-n, :]==0) and np.all(Fbed[:, :, fmax+n, :]==0) and np.all(Fbed[:, :, fmax-n, :]==0):
+                cCoef_d[:, :, fmax+n, :] = 0
+                cMatrix_d = None
+            else:
+                # F2 = np.zeros(F.shape[:2]+F.shape[-1], dtype=F.dtype)
+                # Fsurf2 = np.zeros(Fsurf.shape[:2]+Fsurf.shape[-1], dtype=Fsurf.dtype)
+                # Fbed2 = np.zeros(Fbed.shape[:2]+Fbed.shape[-1], dtype=Fbed.dtype)
+
+                F2 = F[:, :, fmax+n, :] + bool(n)*np.conj(F[:, :, fmax-n, :])
+                Fsurf2 = Fsurf[:, :, fmax+n, :] + bool(n)*np.conj(Fsurf[:, :, fmax-n, :])
+                Fbed2 = Fbed[:, :, fmax+n, :] + bool(n)*np.conj(Fbed[:, :, fmax-n, :])
+                cCoef_d[:, :, [fmax+n], :], cMatrix_d = cFunctionUncoupled(ws, Kv, F2, Fsurf2, Fbed2, data, n, hasMatrix=hasMatrix)
+        return cCoef_d, cMatrix_d
+
+    ####################################################################################################################
+    # Else, continue computation
+    #   Build, save and solve the matrices in every water column
     ####################################################################################################################
     for j in range(0, jmax+1):
         z = ny.dimensionalAxis(data.slice('grid'), 'z')[j, :, 0]

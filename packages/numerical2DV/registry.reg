@@ -96,43 +96,21 @@ submodules	advection diffusion nostress
 ########################################################################################################################
 # Subpackage sediment
 ########################################################################################################################
-module      SedDynamicLead
+module      SedimentCapacity
 packagePath sediment/
-input       grid G OMEGA RHOS RHO0 DS u0 finf erosion_formulation Av Roughness Kv ws0
-output      hatc0
-submodules	erosion
-
-module      SedDynamicFirst
-packagePath sediment/
-input       grid G OMEGA RHOS RHO0 DS u0 finf erosion_formulation Av Roughness Kv ws0
-output      hatc1
+input       grid G OMEGA RHOS RHO0 DS finf erosion_formulation Av Roughness Kv ws0
+output      hatc0 hatc1 hatc2
 submodules	sedadv fallvel mixing erosion noflux
-sedadv  	    input		w0 hatc0
+sedadv  	    input		u0 w0 hatc0
                 output
 fallvel			input		ws1 hatc0
                 output
-mixing			input		Av1 hatc0
+mixing			input		Kv1 hatc0
                 output
-erosion			input		u1
+erosion			input		u0 u1
                 output
 noflux			input		zeta0 hatc0
                 output
-
-module      SedDynamicSecond
-packagePath sediment/
-input       grid G OMEGA RHOS RHO0 DS ws0 u1 finf erosion_formulation Av Roughness Kv
-output      hatc2
-submodules	erosion
-
-module      StaticAvailability
-packagePath sediment/
-input       zeta0 u0 u1 hatc0 hatc1 hatc2 B grid Kh sedbc @sedbc #(optional Qsed)
-output      a c0 c1 c2 F T
-
-module          DiffusivityUndamped
-packagePath     sediment/
-input           sigma_rho Av grid
-output          Kv skin_friction
 
 ########################################################################################################################
 # Subpackage turbulence
@@ -147,8 +125,8 @@ iterative	True
 
 module      KEFittedTruncated
 packagePath	turbulence/
-inputInit	if{grid,@{referenceLevel}==0} if{Q0,@{referenceLevel}==1} if{Q1,@{referenceLevel}==1} G B H profile roughnessParameter @roughnessParameter n Avmin  lambda referenceLevel ignoreSubmodule truncationOrder
-input       grid u+{0,@{truncationOrder}+1} zeta+{0,@{truncationOrder}+1}
+inputInit	truncationOrder if{grid,@{referenceLevel}==0} if{Q0,@{referenceLevel}==1} if{Q1,@{referenceLevel}==1} G B H profile roughnessParameter @roughnessParameter n Avmin  lambda referenceLevel ignoreSubmodule
+input       truncationOrder grid u+{0,@{truncationOrder}+1} zeta+{0,@{truncationOrder}+1}
 output		Av Roughness BottomBC if{grid,@{referenceLevel}==1}
 iterative	True
 
@@ -165,3 +143,9 @@ inputInit	grid H profile roughnessParameter @roughnessParameter n lambda ignoreS
 input       grid order maxOrder u+{0,@{maxOrder}+1} zeta+{0,@{maxOrder}+1}
 output		Av+{2,@{maxOrder}+1} Roughness+{2,@{maxOrder}+1}
 iterative	True
+
+module          DiffusivityUndamped
+packagePath     turbulence/
+input           sigma_rho Av grid
+output          Kv skin_friction
+
