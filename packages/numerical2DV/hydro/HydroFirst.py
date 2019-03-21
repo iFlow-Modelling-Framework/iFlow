@@ -105,14 +105,12 @@ class HydroFirst:
             F[:,:,:,submodulesVelocityForcing.index('mixing')] = ksiz
             Fsurf[:, :, :, submodulesVelocityForcing.index('mixing')] = -ksi[:,[0],Ellipsis]
 
-            ## Removed 14-7-2017 YMD: Roughness1*u0 and Av1*u0z should be equal, so this term cancels
-            # if self.input.v('BottomBC') in ['PartialSlip']:
-            #     Fbed[:, :, :, submodulesVelocityForcing.index('mixing')] = -ksi[:,[kmax],Ellipsis]
-            #     roughness1 = self.input.v('Roughness1', range(0, jmax+1), [0], range(0, fmax+1))
-            #     if roughness1 is not None:
-            #         ksi = ny.complexAmplitudeProduct(u0[:, [-1], :], roughness1, 2)
-            #         ksi = np.concatenate((np.zeros([jmax+1, 1, fmax]), ksi), 2)
-            #         Fbed[:, :, :, submodulesVelocityForcing.index('mixing')] = ksi
+            Fbed[:, :, :, submodulesVelocityForcing.index('mixing')] = -ksi[:,[kmax],Ellipsis]
+            roughness1 = self.input.v('Roughness1', range(0, jmax+1), [0], range(0, fmax+1))
+            if roughness1 is not None:
+                ksi = ny.complexAmplitudeProduct(u0[:, [-1], :], roughness1, 2)
+                ksi = np.concatenate((np.zeros([jmax+1, 1, fmax]), ksi), 2)
+                Fbed[:, :, :, submodulesVelocityForcing.index('mixing')] = ksi
 
         ## Solve equation
         uCoef, uFirst[:, :, :, submodulesVelocityConversion], uzCoef, uzFirst[:, :, :, submodulesVelocityConversion], _ = uFunctionMomentumConservative(A, F, Fsurf, Fbed, self.input, hasMatrix=velocityMatrix)
