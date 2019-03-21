@@ -55,3 +55,11 @@ inputInit   calibrationParameter changeFactor measurementset @calibrationParamet
 input       zeta0
 output      @calibrationParameter
 iterative   True
+
+module          Iterator
+packagePath
+inputInit
+input
+output          converged
+iteratorModule  True
+iterative       True

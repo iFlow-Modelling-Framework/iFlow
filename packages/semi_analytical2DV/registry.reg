@@ -61,3 +61,10 @@ module		DynamicAvailability
 packagePath sediment/
 input       grid hatc0 hatc1 hatc2 u0 zeta0 u1 Kh B astar Mhat csea p tol DS RHOS Roughness Av H R L ws0 t dt Q finit concept
 output		St Flux Tt Ft ft c0bar alpha2
+
+module      HinderedSettling_bed
+packagePath sediment/
+inputInit   ws00 mhs cgel wsmin
+input       grid ws00 mhs cgel wsmin c0 ws0
+output      ws0
+iterative   True
