@@ -68,3 +68,7 @@ inputInit   ws00 mhs cgel wsmin
 input       grid ws00 mhs cgel wsmin c0 ws0
 output      ws0
 iterative   True
+
+module          SedimentSource
+input           QC_c QC_exp Q1 grid B x_sedsource type_sedsource Q_sedsource
+output          Qsed sedsource
