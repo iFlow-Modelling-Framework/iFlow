@@ -1,0 +1,86 @@
+# Input file
+#
+# Date: 13-10-2017
+# Authors: Y.M. Dijkstra, R.L. Brouwer
+
+
+## Geometry ############################################################################################################
+module  analytical2DV.Geometry2DV
+L       160000
+B0      type    functions.ExpRationalFunc
+ 	    C1      -0.02742e-3 1.8973
+ 	    C2      4.9788e-11 -9.213e-6 1
+H0      type    functions.PolynomialLinear
+        C       3.48264760e-19  -1.11134741e-13   1.13786853e-08  -4.58544102e-04   1.56681223e+01
+        XL      1.33728131e+05
+
+## Method ##############################################################################################################
+module	    numerical2DV.RegularGrid
+xgrid		equidistant     100
+zgrid	    equidistant     50
+fgrid		integer         2
+
+xoutputgrid    equidistant     100
+zoutputgrid    equidistant     50
+foutputgrid    integer         2
+
+## Hydrodynamics #######################################################################################################
+module      semi_analytical2DV.HydroLead semi_analytical2DV.HydroFirst numerical2DV.KEFittedLead
+submodules  river baroc tide nostress stokes adv
+A0			0 1.77 0
+A1			0 0 0.14
+phase0		0 0 0
+phase1		0 0 -1.3
+Q0			0
+Q1          36
+
+# Alternative Turbulence model  (declaration provided above) ###########################################################
+roughnessParameter  z0*
+profile             uniform
+n                   0.
+z0*                 0.0013
+Avmin               1e-4
+lambda              0.
+ignoreSubmodule
+referenceLevel      False
+truncationOrder     1
+
+module      numerical2DV.DiffusivityUndamped
+sigma_rho   1.
+
+## Salinity - summer conditions ########################################################################################
+module      analytical2DV.SaltHyperbolicTangent
+ssea        30.3296
+xc          60.6140e3
+xl          27.1020e3
+
+## Sediment ############################################################################################################
+module      semi_analytical2DV.SedDynamic
+submodules  sedadv erosion noflux
+astar       1.e-5
+ws0         2.e-3
+Kh          100
+
+## Plot ################################################################################################################
+module                  plotting.Plot_measurements
+measurementset          Scheldt_measurements
+
+## Measurements ########################################################################################################
+module          measurements.Scheldt
+
+## Calibration #########################################################################################################
+module                  general.Calibration
+measurementset          Scheldt_measurements
+calibrationParameter    z0*
+z0*                    	0.001
+changeFactor            1.2
+#ignorePhase             False
+
+## Output ##############################################################################################################
+#module          general.Output
+path	        output/Scheldt
+filename        Scheldt
+iteratesWith    general.Sensitivity
+
+requirements    zeta0 u0 zeta1 u1 T F c0 c1 c2 a H B
+

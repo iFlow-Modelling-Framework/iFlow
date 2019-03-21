@@ -1,0 +1,85 @@
+# Input file
+#
+# Date: 13-10-2017
+# Authors: Y.M. Dijkstra, R.L. Brouwer
+
+
+## Geometry ############################################################################################################
+module  analytical2DV.Geometry2DV
+L       64.e3                                       # Length
+B0 	    type    functions.Polynomial                # Width
+ 	    C       -2.05001187e-20   3.26623360e-15  -1.77496965e-10   3.82812572e-06 -4.18442587e-02   7.62139923e+02
+H0      type    functions.PolynomialLinear          # Depth
+        XL      50332
+        C       8.09495397e-19  -6.92278797e-14   2.34165496e-09 -1.86980848e-04   1.05000000e+01
+
+## Grid ################################################################################################################
+module	    	numerical2DV.RegularGrid            # Computation grid
+xgrid	    	equidistant     100                 # cells in x-direction
+zgrid	    	equidistant     50                  # cells in z-direction
+fgrid	    	integer         2                   # frequency components
+
+xoutputgrid    equidistant     100                  # Grid for saving output
+zoutputgrid    equidistant     50
+foutputgrid    integer         2
+
+
+## Hydrodynamics #######################################################################################################
+module      semi_analytical2DV.HydroLead semi_analytical2DV.HydroFirst
+submodules  tide river adv stokes nostress
+A0		    0 1.39 0                                # Tidal amplitude at x=0 leading order
+A1		    0 0 0.22                                # Tidal amplitude at x=0 first order
+phase0		0 0 0                                   # Tidal phase at x=0 leading order
+phase1		0 0 -173                                # Tidal phase at x=0 first order
+Q0		    0                                       # River discharge leading order (only numerical model)
+Q1          65                                      # River discharge first order
+
+## Turbulence ##########################################################################################################
+module		analytical2DV.TurbulenceUniform
+Av0amp      0.019                                   # Eddy viscosity amplitude (constant uniform)
+Av0phase	0.
+sf0		    0.04                                    # Partial slip roughness parameter
+m		    0.                                      # Av = Av0amp (H/H0)^m
+n		    0.                                      # sf = sf0 (H/H0)^n
+
+module      numerical2DV.DiffusivityUndamped
+sigma_rho   1.                                      # Prandt-Schmidt number
+
+## Salinity ############################################################################################################
+#module      	analytical2DV.SaltHyperbolicTangent
+#ssea        	30                                  # Salinity parameters s = ssea/2*(1-tanh((x-xc)/xl))
+#xc          	-1.e3
+#xl          	11.88e3
+
+## Sediment ############################################################################################################
+module      	semi_analytical2DV.SedDynamic
+submodules      erosion noflux sedadv
+astar       	1.e-5                               # Measure for total sediment availability in the system
+ws0          	1.e-3                              # settling velocity
+Kh          	100                                 # Horizontal eddy diffusivity
+
+EITHER 1. do a sensitivity test
+## Sensitivity #########################################################################################################
+#module      general.Sensitivity
+#variables   Q1 ws0
+#Q1          np.linspace(20, 80, 8)
+#ws0         10**np.linspace(-4, -2, 8)
+#loopstyle   a b
+
+OR 2. plot the grid
+## Plotting ############################################################################################################
+#module      	plotting.PlotGrid
+
+OR 3. plot the results
+## Plotting ############################################################################################################
+module          plotting.Plot
+
+## Output ##############################################################################################################
+module      	general.Output
+path	       	output/Ems
+filename        Ems_ws@{'ws0'}_Q@{'Q1'}
+iteratesWith    general.Sensitivity
+
+requirements    zeta0 zeta1 u0 u1 T F a c0 c1 c2
+
+

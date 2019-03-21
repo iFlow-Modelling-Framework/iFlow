@@ -1,0 +1,7 @@
+# Registry for package measurements
+#
+# date: 	30-05-2016
+# authors: 	Y.M.Dijkstra
+
+module          Scheldt
+output			Scheldt_measurements

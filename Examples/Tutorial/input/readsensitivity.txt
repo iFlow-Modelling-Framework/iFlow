@@ -1,0 +1,13 @@
+# Input file
+#
+# Date: 13-10-2017
+# Authors: Y.M. Dijkstra, R.L. Brouwer
+
+module          general.ReadMultiple
+folder          output/Ems          # path with folder to output. Either relative path with respect to working dir. or absolute path
+files           all                 # load all files in this folder. Alternatively the names of the files can be listed (separated by a space)
+variables       all                 # variables to load. Alternatively list variables names (separated by a space)
+
+## Plotting ##
+module      	plotting.ws_Q_plot
+

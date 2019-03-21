@@ -1,0 +1,59 @@
+# Base model for the Yangtze
+# This file may be used and adapted. Please refer to the article mentioned below when using information from this input file.
+#
+# Appears in: Dijkstra et al (2017) GMD, 10:2691-2713
+# iFlow version: 2.4.4
+# Date: 31-10-2016
+# Author: Y.M. Dijkstra
+
+## Geometry ##
+module  analytical2DV.Geometry2DV
+L       1500000
+H0 	    type    functions.Constant
+ 	    C0      10
+B0      type    functions.ExpRationalFunc
+        C1		3.79449832e-05   1.00191672e+01
+        C2      8.78909546e-11   2.47118354e-05 3.16349651e+00
+
+## Grid ##
+module	    numerical2DV.RegularGrid
+xgrid		equidistant     100
+zgrid	    equidistant     50
+fgrid		integer         2
+
+xoutputgrid    equidistant     100
+zoutputgrid    equidistant     50
+foutputgrid    integer         2
+
+## Hydrodynamics ##
+module      numerical2DV.HydroLead numerical2DV.HydroFirst numerical2DV.KEFittedLead numerical2DV.HydroHigher numerical2DV.HigherOrderIterator
+submodules  river tide adv nostress stokes
+A0			0 1.09 0 0
+A1			0 0 0.22 0
+phase0		0 0 0  0
+phase1		0 0 -44 0
+Q0			15000
+Q1          0
+maxOrder    1
+maxContributions    0
+variables           zeta u
+
+## Turbulence ##
+roughnessParameter  z0*
+profile             uniform
+n                   0
+z0*                 0.0001
+sf0                 0.004
+ignoreSubmodule
+referenceLevel      False
+Avmin               1.e-6
+lambda              0
+truncationOrder     1
+
+## Output ##
+module          general.Output
+path	        output
+filename        Yangtze
+
+requirements    zeta0 zeta1 Av Roughness u0 u1 H B L
+

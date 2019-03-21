@@ -1,0 +1,28 @@
+# Registry for package plotting
+#
+# date: 	18-02-2016
+# authors: 	R.L. Brouwer
+
+########################################################################################################################
+# General
+########################################################################################################################
+## Module Plot ##
+module                  Plot
+input                   zeta0 zeta1 T c0 F
+visualisationModule     True
+
+module                  Plot_measurements
+input                   zeta0 zeta1 T c0 F grid u0 u1 measurementset
+visualisationModule     True
+
+module                  Plot_base_model
+input                   zeta0 zeta1 T c0 F measurementset @measurementset
+visualisationModule     True
+
+module                  PlotGrid
+input                   H B L grid
+visualisationModule     True
+
+module                  ws_Q_plot
+input                   experimentdata
+visualisationModule     True

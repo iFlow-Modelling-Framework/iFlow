@@ -9,7 +9,10 @@ Additional to an explanation of the model functionality, we present two case stu
  *From paper abstract Dijkstra et al (2017)*
 
 # Read more and getting started
-This respository includes extensive manuals for iFlow. For a *getting started tutorial*, please download the files from the [iFlowTutorial repository](https://github.com/YoeriDijkstra/iFlowTutorial). 
+Several options are provided to learn to work with iFlow: 
+* A getting started tutorial - see folder 'Examples/Tutorial'
+* Example input files linked to (scientific) publications or other applications of the model - see folder 'Examples'
+* Extensive manuals for iFlow containing an in-depth description of the core of iFlow and the modules included - see folder 'Manuals'. 
 
 Our paper "The iFlow Modelling Framework v2.4. A modular idealized process-based model for flow and transport in estuaries" is published and freely available via [this link](https://doi.org/10.5194/gmd-10-2691-2017).
 
