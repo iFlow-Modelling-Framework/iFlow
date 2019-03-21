@@ -497,8 +497,8 @@ class HydroHigher:
                         wstr = 'w'+str(order1)
                         w = self.input.v(wstr, range(0, jmax+1), [0], range(0, fmax+1))
                     else:
-                        Bu = self.input.v('B', range(0, jmax+1), [0], range(0, fmax+1))*self.surf_u_der[:, :, :, order1, i-1]
-                        w = ny.derivative(Bu, 'x', self.input.slice('grid'))/self.input.v('B', range(0, jmax+1), [0], range(0, fmax+1))
+                        Bu = self.input.v('B', range(0, jmax+1)).reshape((jmax+1, 1, 1))*self.surf_u_der[:, :, :, order1, i-1]
+                        w = ny.derivative(Bu, 'x', self.input.slice('grid'))/self.input.v('B', range(0, jmax+1)).reshape((jmax+1, 1, 1))
                     uz = self.surf_u_der[:, :, :, order2, der-i+1]
                     forcing += scipy.misc.comb(der, i)*ny.complexAmplitudeProduct(w, uz, 2)
 
