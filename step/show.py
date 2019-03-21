@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import step_config as cf
 
 
-def show(block=True, fname=None, hspace=0.6, wspace=0.4):
+def show(block=True, fname=None, hspace=0.6, wspace=0.4):   #, facecolor=(0.9765, 0.953, 0.9176)):
     """Replaces matplotlib.pyplot show().
     Corrects figure size, backgroundcolor and tightlayout
 
@@ -37,7 +37,20 @@ def show(block=True, fname=None, hspace=0.6, wspace=0.4):
             except:
                 pass
 
+        if cf.forcefontsize:
+            for ax in fig.axes:
+                for item in [ax.title, ax.xaxis.label, ax.yaxis.label]:
+                    item.set_fontsize(cf.fontsize)
+
+                # for item in ax.get_xticklabels()+ax.get_yticklabels():
+                #     item.set_fontsize(cf.fontsize2)
+                for item in ax.get_yticklabels():
+                    item.set_fontsize(cf.fontsize2)
+
+            # ax.set_facecolor((0.9765, 0.953, 0.9176))
+
         # colors
+        # fig.set_facecolor(facecolor)
         fig.set_facecolor('w')
         fig.set_edgecolor('k')
 

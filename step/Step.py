@@ -157,7 +157,7 @@ class Step:
                 except:
                     pass
                 plt.plot(*axisData, label=lab)
-                plt.legend(fontsize=8)
+                plt.legend(fontsize=cf.fontsize2)
             else:
                 plt.plot(*axisData)
 
@@ -171,7 +171,7 @@ class Step:
                     title = cf.names[title]
                 except:
                     pass
-                plt.title(title)
+                plt.title(title, fontsize=cf.fontsize)
 
             # axis labels. Try to get from config file, else take plain name
             try:
@@ -187,45 +187,47 @@ class Step:
                 yname = axis[1]
                 yunit = ''
 
-            plt.xlabel(xname+' ('+xunit+')')
-            plt.ylabel(yname+' ('+yunit+')')
+            plt.xlabel(xname+' ('+xunit+')', fontsize=cf.fontsize)
+            plt.ylabel(yname+' ('+yunit+')', fontsize=cf.fontsize)
+            plt.xticks(fontsize=cf.fontsize2)
+            plt.yticks(fontsize=cf.fontsize2)
 
             if kwargs.get('operation')==np.abs:
                 if dataAxisNo==0:
-                    plt.xlabel('|'+xname+'|'+' ('+xunit+')')
+                    plt.xlabel('|'+xname+'|'+' ('+xunit+')', fontsize=cf.fontsize)
                 else:
-                    plt.ylabel('|'+yname+'|'+' ('+yunit+')')
+                    plt.ylabel('|'+yname+'|'+' ('+yunit+')', fontsize=cf.fontsize)
             elif kwargs.get('operation')==np.angle:
                 if dataAxisNo==0:
-                    plt.xlabel('Phase('+xname+')'+' ('+cf.units['phase']+')')
+                    plt.xlabel('Phase('+xname+')'+' ('+cf.units['phase']+')', fontsize=cf.fontsize)
                 else:
-                    plt.ylabel('Phase('+yname+')'+' ('+cf.units['phase']+')')
+                    plt.ylabel('Phase('+yname+')'+' ('+cf.units['phase']+')', fontsize=cf.fontsize)
             elif kwargs.get('operation')==np.real:
                 if dataAxisNo==0:
-                    plt.xlabel('Re('+xname+')'+' ('+xunit+')')
+                    plt.xlabel('Re('+xname+')'+' ('+xunit+')', fontsize=cf.fontsize)
                 else:
-                    plt.ylabel('Re('+yname+')'+' ('+yunit+')')
+                    plt.ylabel('Re('+yname+')'+' ('+yunit+')', fontsize=cf.fontsize)
             elif kwargs.get('operation')==np.imag:
                 if dataAxisNo==0:
-                    plt.xlabel('Im('+xname+')'+' ('+xunit+')')
+                    plt.xlabel('Im('+xname+')'+' ('+xunit+')', fontsize=cf.fontsize)
                 else:
-                    plt.ylabel('Im('+yname+')'+' ('+yunit+')')
+                    plt.ylabel('Im('+yname+')'+' ('+yunit+')', fontsize=cf.fontsize)
             if kwargs.get('operation')==np.abs:
                 if dataAxisNo==0:
-                    plt.xlabel('|'+xname+'|'+' ('+xunit+')')
+                    plt.xlabel('|'+xname+'|'+' ('+xunit+')', fontsize=cf.fontsize)
                 else:
-                    plt.ylabel('|'+yname+'|'+' ('+yunit+')')
+                    plt.ylabel('|'+yname+'|'+' ('+yunit+')', fontsize=cf.fontsize)
 
             if axis[0] == 'x':
                 plt.xlim(np.min(axisData[gridAxisNo]), np.max(axisData[gridAxisNo]))
 
         if kwargs.get('suptitle'):
-            plt.suptitle(kwargs.get('suptitle'))
+            plt.suptitle(kwargs.get('suptitle'), fontsize=cf.fontsize)
         else:
             try:
-                plt.suptitle(cf.names[axis[dataAxisNo]]+' over '+axis[gridAxisNo])
+                plt.suptitle(cf.names[axis[dataAxisNo]]+' over '+axis[gridAxisNo], fontsize=cf.fontsize)
             except KeyError:
-                plt.suptitle(axis[dataAxisNo]+' over '+axis[gridAxisNo])
+                plt.suptitle(axis[dataAxisNo]+' over '+axis[gridAxisNo], fontsize=cf.fontsize)
         plt.draw()
 
         return
@@ -374,7 +376,7 @@ class Step:
                     title = cf.names[title]
                 except:
                     pass
-                plt.title(title)
+                plt.title(title, fontsize=cf.fontsize)
 
             # axis labels. Try to get from config file, else take plain name
             try:
@@ -390,8 +392,10 @@ class Step:
                 yname = axis2
                 yunit = ''
 
-            plt.xlabel(xname+' ('+xunit+')')
-            plt.ylabel(yname+' ('+yunit+')')
+            plt.xlabel(xname+' ('+xunit+')', fontsize=cf.fontsize)
+            plt.ylabel(yname+' ('+yunit+')', fontsize=cf.fontsize)
+            plt.xticks(fontsize=cf.fontsize2)
+            plt.yticks(fontsize=cf.fontsize2)
 
             try:
                 value_name = cf.names[value_label]
@@ -401,26 +405,26 @@ class Step:
                 value_unit = ''
             if numberOfSubplots > 1:
                 if kwargs.get('operation')==np.abs or kwargs.get('operation')==abs:
-                    plt.suptitle('|'+value_name+'|'+' ('+value_unit+')')
+                    plt.suptitle('|'+value_name+'|'+' ('+value_unit+')', fontsize=cf.fontsize)
                 elif kwargs.get('operation')==np.angle:
-                    plt.suptitle('Phase('+value_name+')'+' ('+cf.units['phase']+')')
+                    plt.suptitle('Phase('+value_name+')'+' ('+cf.units['phase']+')', fontsize=cf.fontsize)
                 elif kwargs.get('operation')==np.real:
-                    plt.suptitle('Re('+value_name+')'+' ('+value_unit+')')
+                    plt.suptitle('Re('+value_name+')'+' ('+value_unit+')', fontsize=cf.fontsize)
                 elif kwargs.get('operation')==np.imag:
-                    plt.suptitle('Im('+value_name+')'+' ('+value_unit+')')
+                    plt.suptitle('Im('+value_name+')'+' ('+value_unit+')', fontsize=cf.fontsize)
                 else:
-                    plt.suptitle(value_name+' ('+value_unit+')')
+                    plt.suptitle(value_name+' ('+value_unit+')', fontsize=cf.fontsize)
             else:
                 if kwargs.get('operation')==np.abs or kwargs.get('operation')==abs:
-                    plt.title('|'+value_name+'|'+' ('+value_unit+')')
+                    plt.title('|'+value_name+'|'+' ('+value_unit+')', fontsize=cf.fontsize)
                 elif kwargs.get('operation')==np.angle:
-                    plt.title('Phase('+value_name+')'+' ('+cf.units['phase']+')')
+                    plt.title('Phase('+value_name+')'+' ('+cf.units['phase']+')', fontsize=cf.fontsize)
                 elif kwargs.get('operation')==np.real:
-                    plt.title('Re('+value_name+')'+' ('+value_unit+')')
+                    plt.title('Re('+value_name+')'+' ('+value_unit+')', fontsize=cf.fontsize)
                 elif kwargs.get('operation')==np.imag:
-                    plt.title('Im('+value_name+')'+' ('+value_unit+')')
+                    plt.title('Im('+value_name+')'+' ('+value_unit+')', fontsize=cf.fontsize)
                 else:
-                    plt.title(value_name+' ('+value_unit+')')
+                    plt.title(value_name+' ('+value_unit+')', fontsize=cf.fontsize)
         plt.draw()
         return
 
@@ -449,7 +453,9 @@ class Step:
         display = kwargs.get('display') or 5 # display number of mechanisms (sorted in descending order) or specific mechanisms
         scale = kwargs.get('scale') or False # scale the transport contributions to the maximum: True/False
         concentration = kwargs.get('concentration') or False
-        legend = kwargs.get('legend') or False
+        legend = kwargs.get('legend')
+        if legend !='in':
+            legend = 'out'
 
         ################################################################################################################
         # Construct list of mechanisms to display and calculate these mechanisms
@@ -546,7 +552,7 @@ class Step:
                         plt.legend(ln, labels, bbox_to_anchor=(1.02, 0), loc=3, borderaxespad=0., fontsize=cf.fontsize2,
                                    labelspacing=0.1, handlelength=0.1, handletextpad=0.4)
                     elif legend is 'in':
-                        plt.legend(ln, labels, loc='upper left', borderaxespad=0.2, fontsize=7,
+                        plt.legend(ln, labels, loc='upper left', borderaxespad=0.2, fontsize=cf.fontsize2,
                                    labelspacing=0.1, handlelength=0.1, handletextpad=0.4, frameon=False)
                     plt.title('Advective Transport')
                 else:
@@ -557,7 +563,7 @@ class Step:
                         plt.legend(ln, labels, bbox_to_anchor=(1.3, 0), loc=3, borderaxespad=0., fontsize=cf.fontsize2,
                                    labelspacing=0.1, handlelength=0.1, handletextpad=0.4)
                     elif legend is 'in':
-                        plt.legend(ln, labels, loc='upper left', borderaxespad=0.2, fontsize=7,
+                        plt.legend(ln, labels, loc='upper left', borderaxespad=0.2, fontsize=cf.fontsize2,
                                    labelspacing=0.1, handlelength=0.1, handletextpad=0.4, frameon=False)
                     plt.title('Advective Transport', y=1.09)
             else:
@@ -569,33 +575,33 @@ class Step:
             except KeyError:
                 xname = 'x'
                 xunit = ''
-            plt.xlabel(xname + ' (' + xunit + ')')
+            plt.xlabel(xname + ' (' + xunit + ')', fontsize = cf.fontsize)
             try:
                 yunitT = cf.units['T']
                 if concentration:
                     if scale:
-                        sp.set_ylabel(r'$\mathcal{T}$ / $\mathcal{T}_{max}$, $c$ / $c_{max}$ (-)')
+                        sp.set_ylabel(r'$\mathcal{T}$ / $\mathcal{T}_{max}$, $c$ / $c_{max}$ (-)', fontsize = cf.fontsize)
                         if legend is 'in':
                             sp.set_ylim([-1.1, 1.1])
                         else:
                             sp.set_ylim([-1.1, 1.1])
                     else:
                         yunitc = cf.units['c']
-                        sp.set_ylabel(r'$\mathcal{T}$ (' + yunitT + ')')
-                        sp2.set_ylabel(r'$c$ (' + yunitc + ')')
+                        sp.set_ylabel(r'$\mathcal{T}$ (' + yunitT + ')', fontsize = cf.fontsize)
+                        sp2.set_ylabel(r'$c$ (' + yunitc + ')', fontsize = cf.fontsize)
                 else:
                     if scale:
-                        sp.set_ylabel(r'$\mathcal{T}$ / $\mathcal{T}_{max}$ (' + yunitT + ')')
+                        sp.set_ylabel(r'$\mathcal{T}$ / $\mathcal{T}_{max}$ (' + yunitT + ')', fontsize = cf.fontsize)
                         if legend is 'in':
                             sp.set_ylim([-1.1, 1.1])
                         else:
                             sp.set_ylim([-1.1, 1.1])
                     else:
-                        sp.set_ylabel(r'$\mathcal{T}$ (' + yunitT + ')')
+                        sp.set_ylabel(r'$\mathcal{T}$ (' + yunitT + ')', fontsize = cf.fontsize)
             except KeyError:
                 yname = [r'$\mathcal{T}$']
                 yunit = ''
-                plt.ylabel(yname + ' (' + yunit + ')')
+                plt.ylabel(yname + ' (' + yunit + ')', fontsize = cf.fontsize)
         else:
             for subplot_number, subplot_values in enumerate(loopvalues):
                 pos = np.unravel_index(subplot_number, subplotShape)
@@ -626,7 +632,7 @@ class Step:
                             plt.legend(ln, labels, bbox_to_anchor=(1.02, 0), loc=3, borderaxespad=0., fontsize=cf.fontsize2,
                                        labelspacing=0.1, handlelength=0.1, handletextpad=0.4)
                         elif legend is 'in':
-                            plt.legend(ln, labels, loc='upper left', borderaxespad=0.2, fontsize=7,
+                            plt.legend(ln, labels, loc='upper left', borderaxespad=0.2, fontsize=cf.fontsize2,
                                        labelspacing=0.1, handlelength=0.1, handletextpad=0.4, frameon=False)
                         if subplot_number == 0:
                             plt.title('Advective Transport')
@@ -636,7 +642,7 @@ class Step:
                                 title = cf.names[title]
                             except:
                                 pass
-                            plt.title(title)
+                            plt.title(title, fontsize=cf.fontsize)
                     else:
                         sp2 = sp.twinx()
                         ln += sp2.plot(xdim, c, '--', color='grey', label=r'$\langle\bar{c}\rangle$')
@@ -645,26 +651,26 @@ class Step:
                             plt.legend(ln, labels, bbox_to_anchor=(1.3, 0), loc=3, borderaxespad=0., fontsize=cf.fontsize2,
                                        labelspacing=0.1, handlelength=0.1, handletextpad=0.4)
                         elif legend is 'in':
-                            plt.legend(ln, labels, loc='upper left', borderaxespad=0.2, fontsize=7,
+                            plt.legend(ln, labels, loc='upper left', borderaxespad=0.2, fontsize=cf.fontsize2,
                                        labelspacing=0.1, handlelength=0.1, handletextpad=0.4, frameon=False)
                         if subplot_number == 0:
-                            plt.title(r'Advective Transport ', y=1.09)
+                            plt.title(r'Advective Transport ', y=1.09, fontsize=cf.fontsize)
                         else:
                             title = keyList[subplot_number-1]
                             try:
                                 title = cf.names[title]
                             except:
                                 pass
-                            plt.title(title, y=1.09)
+                            plt.title(title, y=1.09, fontsize=cf.fontsize)
                 else:
                     if legend is 'out':
                         plt.legend(bbox_to_anchor=(1.02, 0), loc=3, borderaxespad=0., fontsize=cf.fontsize2,
                                labelspacing=0.1, handlelength=0.1, handletextpad=0.4)
                     elif legend is 'in':
-                        plt.legend(ln, labels, loc='upper left', borderaxespad=0.2, fontsize=7,
+                        plt.legend(ln, labels, loc='upper left', borderaxespad=0.2, fontsize=cf.fontsize2,
                                    labelspacing=0.1, handlelength=0.1, handletextpad=0.4, frameon=False)
                     if subplot_number == 0:
-                        plt.title('Advective Transport')
+                        plt.title('Advective Transport', fontsize=cf.fontsize)
                     else:
                         title = keyList[subplot_number-1]
                         try:
@@ -672,9 +678,9 @@ class Step:
                         except:
                             pass
                         if concentration and subplot_number > 0:
-                            plt.title(title, y=1.09)
+                            plt.title(title, y=1.09, fontsize=cf.fontsize)
                         else:
-                            plt.title(title)
+                            plt.title(title, fontsize=cf.fontsize)
                 # axis labels and limits. Try to get from config file, else take plain name
                 try:
                     xname = cf.names['x']
@@ -682,36 +688,36 @@ class Step:
                 except KeyError:
                     xname = 'x'
                     xunit = ''
-                plt.xlabel(xname + ' (' + xunit + ')')
+                plt.xlabel(xname + ' (' + xunit + ')', fontsize=cf.fontsize)
                 try:
                     yunitT = cf.units['T']
                     if concentration:
                         if scale:
                             if subplot_number == 0:
-                                sp.set_ylabel(r'$\mathcal{T}$ / $\mathcal{T}_{max}$, $c$ / $c_{max}$ (-)')
+                                sp.set_ylabel(r'$\mathcal{T}$ / $\mathcal{T}_{max}$, $c$ / $c_{max}$ (-)', fontsize=cf.fontsize)
                             else:
-                                sp.set_ylabel(r'$\mathcal{T}$ / $\mathcal{T}_{max}$ (-)')
+                                sp.set_ylabel(r'$\mathcal{T}$ / $\mathcal{T}_{max}$ (-)', fontsize=cf.fontsize)
                             if legend is 'in':
                                 sp.set_ylim([-1.1, 1.1])
                             else:
                                 sp.set_ylim([-1.1, 1.1])
                         else:
                             yunitc = cf.units['c']
-                            sp.set_ylabel(r'$\mathcal{T}$ (' + yunitT + ')')
-                            sp2.set_ylabel(r'$c$ (' + yunitc + ')')
+                            sp.set_ylabel(r'$\mathcal{T}$ (' + yunitT + ')', fontsize=cf.fontsize)
+                            sp2.set_ylabel(r'$c$ (' + yunitc + ')', fontsize=cf.fontsize)
                     else:
                         if scale:
-                            sp.set_ylabel(r'$\mathcal{T}$ / $\mathcal{T}_{max}$ (' + yunitT + ')')
+                            sp.set_ylabel(r'$\mathcal{T}$ / $\mathcal{T}_{max}$ (' + yunitT + ')', fontsize=cf.fontsize)
                             if legend is 'in':
                                 sp.set_ylim([-1.1, 1.1])
                             else:
                                 sp.set_ylim([-1.1, 1.1])
                         else:
-                            sp.set_ylabel(r'$\mathcal{T}$ (' + yunitT + ')')
+                            sp.set_ylabel(r'$\mathcal{T}$ (' + yunitT + ')', fontsize=cf.fontsize)
                 except KeyError:
                     yname = [r'$\mathcal{T}$']
                     yunit = ''
-                    plt.label(yname + ' (' + yunit + ')')
+                    plt.label(yname + ' (' + yunit + ')', fontsize=cf.fontsize)
         plt.xlim(0, max(xdim))
         plt.draw()
         return

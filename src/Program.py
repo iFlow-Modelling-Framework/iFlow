@@ -8,6 +8,15 @@ the requested modules and running these modules.
 Date: 02-11-15
 Authors: Y.M. Dijkstra, R.L. Brouwer
 """
+# load matplotlib backend suited to the STeP plotting routine. Check if backend can be loaded to prevent matplotlib's lengthy warning message.
+import sys
+import matplotlib as mpl
+if 'matplotlib.pyplot' not in sys.modules and 'matplotlib.pylab' not in sys.modules:
+    from matplotlib import use
+    use('TkAgg')
+elif mpl.get_backend != 'TkAgg':
+    print 'Warning: iFlow could not load its preferred backend. iFlow\'s own plotting routines may not behave as expected. Probably your IDE (e.g. Spyder) loads its own backend. Please consider disabling the backend of your IDE.'
+
 import logging
 from DataContainer import DataContainer
 from RegistryChecker import RegistryChecker
@@ -18,8 +27,6 @@ from src.util import importModulePackages
 from src.util.diagnostics import LogConfigurator
 from src.util.diagnostics.NoInputFileException import NoInputFileException
 import os.path
-import matplotlib as mpl
-mpl.use('TkAgg')
 import src.config as cf
 
 
@@ -40,6 +47,8 @@ class Program:
         self.moduleList = ModuleList()
 
         self.__prepModuleResult = DataContainer()
+        import step as st
+        st.configure()
         return
     
     def run(self):

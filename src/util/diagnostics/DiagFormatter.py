@@ -7,6 +7,7 @@ Authors: Y.M. Dijkstra
 """
 import logging
 
+
 class DiagFormatter(logging.Formatter):
 
     infoFile = '%(message)s (in %(name)s)'
@@ -21,6 +22,7 @@ class DiagFormatter(logging.Formatter):
 
     def __init__(self,medium):
         self.medium = medium
+        logging.Formatter.__init__(self)
         return
 
     def format(self, record):
