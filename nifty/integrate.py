@@ -58,13 +58,13 @@ def integrate(u, dimNo, low, high, grid, *args, **kwargs):
 
         if incr == -1:
             uInt = np.zeros(Ju.shape, dtype=u.dtype)
-            uInt[[slice(None)]*dimNo+[slice(1, None)]+[Ellipsis]] = np.cumsum(Ju, axis=dimNo)[[slice(None)]*dimNo+[slice(None, -1)]+[Ellipsis]]
+            uInt[(slice(None),)*dimNo+(slice(1, None),)+(Ellipsis,)] = np.cumsum(Ju, axis=dimNo)[(slice(None),)*dimNo+(slice(None, -1),)+(Ellipsis,)]
             high = high - min(high)
-            uInt = (-uInt + uInt[[slice(None)]*dimNo+[[-1]]+[Ellipsis]])[[slice(None)]*dimNo+[high]+[Ellipsis]]
+            uInt = (-uInt + uInt[(slice(None), )*dimNo+([-1], )+(Ellipsis,)])[(slice(None),)*dimNo+(high,)+(Ellipsis,)]
         else:
             uInt = np.cumsum(Ju, axis=dimNo)
             high = high - low
-            uInt = uInt[[slice(None)]*dimNo+[high]+[Ellipsis]]
+            uInt = uInt[(slice(None),)*dimNo+(high,)+(Ellipsis,)]
 
     elif INTMETHOD == 'SIMPSON':
         # make z the same shape as u
@@ -89,8 +89,8 @@ def integrate(u, dimNo, low, high, grid, *args, **kwargs):
         for i, hi in enumerate(high+incr):
             if hi < 0:
                 hi = None
-            slices = [slice(None)]*dimNo+[slice(low, hi, incr)]+[Ellipsis]
-            uInt[[slice(None)]*dimNo+[i]+[Ellipsis]] = scipy.integrate.simps(u[slices], axis[slices], axis=dimNo)
+            slices = (slice(None),)*dimNo+(slice(low, hi, incr),)+(Ellipsis,)
+            uInt[(slice(None),)*dimNo+(i,)+(Ellipsis,)] = scipy.integrate.simps(u[slices], axis[slices], axis=dimNo)
     else:
         raise KnownError("Numerical integration scheme '%s' is not implemented" %(INTMETHOD))
     return uInt

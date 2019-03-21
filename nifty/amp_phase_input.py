@@ -27,6 +27,6 @@ def amp_phase_input(amp, phase, shape):
     amp = amp.reshape((1,)*(nodim-1)+(len(amp),))
 
     u = np.zeros(shape, dtype=complex)
-    u[[slice(None)]*(nodim-1)+[slice(None, amp.shape[-1])]] = amp
-    u[[slice(None)]*(nodim-1)+[slice(None, phase.shape[-1])]] = u[[slice(None)]*(nodim-1)+[slice(None, phase.shape[-1])]]*np.exp(-1j*phase/180.*np.pi)
+    u[(slice(None),)*(nodim-1)+(slice(None, amp.shape[-1]),)] = amp
+    u[(slice(None),)*(nodim-1)+(slice(None, phase.shape[-1]),)] = u[(slice(None),)*(nodim-1)+(slice(None, phase.shape[-1]),)]*np.exp(-1j*phase/180.*np.pi)
     return u

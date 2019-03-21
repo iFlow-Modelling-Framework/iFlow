@@ -626,7 +626,7 @@ class DataContainer:
         if not kwargs.get('copy') == 'all':
             for i, item in enumerate(copy):
                 if item == 0 and shape[i] > 1 and value.shape[i] == 1:
-                    extensionMatrix[[slice(None)]*i + [slice(1, None)]+[Ellipsis]] = 0
+                    extensionMatrix[(slice(None),)*i + (slice(1, None),)+(Ellipsis,)] = 0
 
         value = value*extensionMatrix
         value = value.reshape(shapeTruncated)

@@ -46,19 +46,19 @@ def complexAmplitudeProduct(u, v, dim, includeNegative=False):
 
     for i in range(0, u.shape[dim]):
         # a-part
-        sliceUV = [slice(None)]*dim + [i] + [Ellipsis]
+        sliceUV = (slice(None),)*dim + (i,) + (Ellipsis,)
 
         slice1 = slice(None, i+1)
         slice2 = slice(i, None, -1)
-        uv[sliceUV] = 0.5*np.sum(u[[slice(None)]*dim + [slice1]+[Ellipsis]]*v[[slice(None)]*dim + [slice2]+[Ellipsis]], axis=dim)
+        uv[sliceUV] = 0.5*np.sum(u[(slice(None),)*dim + (slice1,)+(Ellipsis,)]*v[(slice(None),)*dim + (slice2,)+(Ellipsis,)], axis=dim)
 
         # b-part
         end = -i or None
         multiplier = 0.25+0.25*bool(i)
         slice1 = slice(i, None)
         slice2 = slice(None, end)
-        uv[sliceUV] += multiplier*np.sum(u[[slice(None)]*dim + [slice1]+[Ellipsis]]*vcon[[slice(None)]*dim + [slice2]+[Ellipsis]], axis=dim)
-        uv[sliceUV] += multiplier*np.sum(v[[slice(None)]*dim + [slice1]+[Ellipsis]]*ucon[[slice(None)]*dim + [slice2]+[Ellipsis]], axis=dim)
+        uv[sliceUV] += multiplier*np.sum(u[(slice(None),)*dim + (slice1,)+(Ellipsis,)]*vcon[(slice(None),)*dim + (slice2,)+(Ellipsis,)], axis=dim)
+        uv[sliceUV] += multiplier*np.sum(v[(slice(None),)*dim + (slice1,)+(Ellipsis,)]*ucon[(slice(None),)*dim + (slice2,)+(Ellipsis,)], axis=dim)
     return uv
 
 def complexAmplitudeProductNegative(u, v, dim):
@@ -87,7 +87,7 @@ def complexAmplitudeProductNegative(u, v, dim):
 
     for i in range(0, u.shape[dim]):
         # a-part
-        sliceUV = [slice(None)]*dim + [i] + [Ellipsis]
+        sliceUV = (slice(None),)*dim + (i,) + (Ellipsis,)
 
         beg = max(0, i-fmax) or None
         end = min(u.shape[dim]-1, i+fmax)
@@ -96,7 +96,7 @@ def complexAmplitudeProductNegative(u, v, dim):
             slice1 = slice(end, beg-1, -1)
         except:
             slice1 = slice(end, beg, -1)
-        uv[sliceUV] = 0.5*np.sum(u[[slice(None)]*dim + [slice1]+[Ellipsis]]*v[[slice(None)]*dim + [slice2]+[Ellipsis]], axis=dim)
+        uv[sliceUV] = 0.5*np.sum(u[(slice(None),)*dim + (slice1,)+(Ellipsis,)]*v[(slice(None),)*dim + (slice2,)+(Ellipsis,)], axis=dim)
 
         # b-part
         beg = max(0, i-fmax) or None
@@ -107,8 +107,8 @@ def complexAmplitudeProductNegative(u, v, dim):
         except:
             slice2 = slice(-end-1, beg)
 
-        uv[sliceUV] += 0.25*np.sum(u[[slice(None)]*dim + [slice1]+[Ellipsis]]*vcon[[slice(None)]*dim + [slice2]+[Ellipsis]], axis=dim)
-        uv[sliceUV] += 0.25*np.sum(v[[slice(None)]*dim + [slice1]+[Ellipsis]]*ucon[[slice(None)]*dim + [slice2]+[Ellipsis]], axis=dim)
+        uv[sliceUV] += 0.25*np.sum(u[(slice(None),)*dim + (slice1,)+(Ellipsis,)]*vcon[(slice(None),)*dim + (slice2,)+(Ellipsis,)], axis=dim)
+        uv[sliceUV] += 0.25*np.sum(v[(slice(None),)*dim + (slice1,)+(Ellipsis,)]*ucon[(slice(None),)*dim + (slice2,)+(Ellipsis,)], axis=dim)
 
     return uv
 
