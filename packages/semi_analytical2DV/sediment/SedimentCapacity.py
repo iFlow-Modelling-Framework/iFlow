@@ -178,8 +178,8 @@ class SedimentCapacity:
 
         # Derivative (analytical)
         self.c04x, __ = np.gradient(self.c04, self.x[1], edge_order=2)
-        self.c04z = (A1 * r1_M4 * np.exp(r1_M4 * (self.zarr+self.HR)) + A2 * r2_M4 * np.exp(r2_M4 * (self.zarr+self.HR)))
-        self.c04zz = (A1 * r1_M4 ** 2 * np.exp(r1_M4 * (self.zarr+self.HR)) + A2 * r2_M4 ** 2 * np.exp(r2_M4 * (self.zarr+self.HR)))
+        self.c04z = (A1 * r1_M4 * np.exp(r1_M4 * self.zarr) + A2 * r2_M4 * np.exp(r2_M4 * self.zarr))
+        self.c04zz = (A1 * r1_M4 ** 2 * np.exp(r1_M4 * self.zarr) + A2 * r2_M4 ** 2 * np.exp(r2_M4 * self.zarr))
 
         ## Prepare results
         hatc0 = np.zeros((len(self.x), len(self.z), 3), dtype=complex)
