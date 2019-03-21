@@ -101,7 +101,7 @@ class SalinityFirst:
         ################################################################################################################
         ## LHS terms
         #   First-order river discharge
-        Q = self.input.v('Q1', range(0, jmax+1))
+        Q = -self.input.v('Q1', range(0, jmax+1))
 
         #   Diffusion coefficient
         us = ny.complexAmplitudeProduct(u0, sCoef, 2)[:, :, 0, 0]       # subtidal part of u*s

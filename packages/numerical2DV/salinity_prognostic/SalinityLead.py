@@ -45,7 +45,7 @@ class SalinityLead:
         ################################################################################################################
         ## LHS terms
         #   First-order river discharge
-        Q = self.input.v('Q1', range(0, jmax+1))
+        Q = -self.input.v('Q1', range(0, jmax+1))
         #   First-order river discharge or zero if not available
         # u1riv = self.input.v('u1', 'river', range(0, jmax+1), range(0, kmax+1))
         # B = self.input.v('B', range(0, jmax+1))
