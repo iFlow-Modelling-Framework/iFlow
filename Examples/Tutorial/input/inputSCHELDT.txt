@@ -55,11 +55,15 @@ xc          60.6140e3
 xl          27.1020e3
 
 ## Sediment ############################################################################################################
-module      semi_analytical2DV.SedDynamic
+module      semi_analytical2DV.EquilibriumAvailability semi_analytical2DV.SedimentCapacity
 submodules  sedadv erosion noflux
-astar       1.e-5
+erosion_formulation     Chernetsky
+finf            1.
+sedbc       csea
+csea       0.06
 ws0         2.e-3
 Kh          100
+Qsed        0
 
 ## Plot ################################################################################################################
 module                  plotting.Plot_measurements

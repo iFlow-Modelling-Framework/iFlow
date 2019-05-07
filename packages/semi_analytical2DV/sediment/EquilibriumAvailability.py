@@ -9,9 +9,10 @@ Optional input parameters
     sedsource: other sediment sources
 
 From version: 2.4 - update 2.6, 2.7
-Date: December 2018
+Date: 18 April 2019
 Authors: R.L. Brouwer, Y.M. Dijkstra
 Additions by Y.M. Dijkstra: - erodability (with time integrator); v2.6
+                            - sources of sediment; v2.7
 # TODO: allow for csea=0 in timeinteg (S not set error)
 """
 import logging
@@ -261,7 +262,7 @@ class EquilibriumAvailability:
         ## Sourceterm G
         ################################################################################################################
         jmax = self.input.v('grid', 'maxIndex', 'x')
-        B = self.input.v('B', range(0, jmax + 1), [0], [0])
+        B = self.input.v('B', range(0, jmax + 1), 0, 0)
         x = ny.dimensionalAxis(self.input, 'x')[:, 0, 0]
         G = np.zeros(jmax+1)
 
@@ -371,6 +372,10 @@ class EquilibriumAvailability:
                                 'Setting the seaward concentration to its maximum.')
             fsea = 0.999
 
+        # remove any nans or infs from f0uncap
+        f0uncap[np.where(f0uncap==np.inf)] = 0
+        f0uncap[np.where(np.isnan(f0uncap))] = 0
+
         aeq = f0uncap / f0uncap[0]  # scale the availability such that aeq=1 at x=0
 
         ## Initialise solution vector X = (f/aeq, S)
@@ -456,8 +461,8 @@ class EquilibriumAvailability:
         ################################################################################################################
         # Exner equation
         ################################################################################################################
-        htil = self.erodibility_stock_relation(alpha2, X[jmax + 1:] / alpha1) / atil
-        htil_der = self.erodibility_stock_relation_der(alpha2, X[jmax + 1:] / alpha1) / (alpha1 * atil)
+        htil = self.erodibility_stock_relation(alpha2, X[jmax + 1:] / alpha1) / (atil+1e-20)
+        htil_der = self.erodibility_stock_relation_der(alpha2, X[jmax + 1:] / alpha1) / (alpha1 * (atil+1e-20))
 
         # transport
         dxav = 0.5 * (dx[:-1] + dx[1:])

@@ -95,7 +95,20 @@ class ReferenceLevel:
         self.difference = np.linalg.norm(R - self.input.v('R', range(0, jmax+1)), np.inf)
 
         d = {}
-        d['R'] = R
+        d['R'] = np.maximum(R, -self.H+0.3)
+
+        import matplotlib.pyplot as plt
+        import step as st
+
+        st.configure()
+        plt.figure(1, figsize=(1,2))
+        plt.plot(x, -(self.H), 'k')
+        plt.plot(x, d['R'], label='R new')
+        plt.plot(x, self.input.v('R', range(0, jmax+1)), label='R old')
+        # plt.ylim(None, np.m)
+        plt.legend()
+        st.show()
+
         return d
 
     def uSolver(self, j, R):

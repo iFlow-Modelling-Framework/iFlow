@@ -52,11 +52,15 @@ sigma_rho   1.                                      # Prandt-Schmidt number
 #xl          	11.88e3
 
 ## Sediment ############################################################################################################
-module      	semi_analytical2DV.SedDynamic
+module      	semi_analytical2DV.EquilibriumAvailability semi_analytical2DV.SedimentCapacity
 submodules      erosion noflux sedadv
+erosion_formulation     Chernetsky
+finf            1.
+sedbc           astar
 astar       	1.e-5                               # Measure for total sediment availability in the system
 ws0          	1.e-3                              # settling velocity
 Kh          	100                                 # Horizontal eddy diffusivity
+Qsed            0
 
 EITHER 1. do a sensitivity test
 ## Sensitivity #########################################################################################################

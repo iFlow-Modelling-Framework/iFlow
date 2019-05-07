@@ -6,10 +6,6 @@ Options on input
     sedbc: type of horizontal boundary condition: 'csea' for seaward concentration or 'astar' for total amount of sediment in the domain
     friction: what roughness value to use; 'roughness' for same roughness as hydrodynamics, 'skin_friction' for a skin friction coefficient which is different to the hydrodynamic roughness
 
-Optional input parameters
-    Qsed: sediment inflow from upstream
-    sedsource: other sediment sources
-
 From version: 2.4 - update 2.6, 2.7
 Date: December 2018
 Authors: R.L. Brouwer, Y.M. Dijkstra

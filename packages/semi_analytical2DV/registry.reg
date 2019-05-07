@@ -54,7 +54,7 @@ noflux			input		zeta0 hatc0
 
 module		EquilibriumAvailability
 packagePath sediment/
-input       grid hatc0 hatc1 hatc2 u0 zeta0 u1 Kh B sedbc @sedbc         #optional: Qsed sedsource
+input       grid hatc0 hatc1 hatc2 u0 zeta0 u1 Kh B sedbc @sedbc Qsed   #optional: sedsource
 output		c0 c1 c2 a f F T
 
 module		DynamicAvailability
