@@ -7,7 +7,7 @@ Authors: Y.M. Dijkstra
 import matplotlib as mpl
 import step_config as cf
 from cycler import cycler
-
+import matplotlib.font_manager
 
 def configure(axislimits=3):
     """Configures font and dpi for saving of all plots.
@@ -68,5 +68,8 @@ def configure(axislimits=3):
         # mpl.rcParams['legend.fontsize'] = 'large'
         mpl.rcParams['figure.titlesize'] = 'medium'
 
-    cc = [mpl.colors.to_rgb(i['color']) for i in list(mpl.rcParams['axes.prop_cycle'])]
+    if int(mpl.__version__.split('.')[0]) > 1:
+        cc = [mpl.colors.to_rgb(i['color']) for i in list(mpl.rcParams['axes.prop_cycle'])]
+    else:
+        cc = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
     return cc

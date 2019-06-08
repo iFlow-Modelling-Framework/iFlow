@@ -206,16 +206,16 @@ def sfMat(sf, inv = False):
         # convert back to band
         bandwd = 0
         for n in np.arange(ftot-1, -1, -1):
-            if np.any(abs(Matinv[[slice(None), range(n, ftot), range(0, ftot-n)]]) > 0):
+            if np.any(abs(Matinv[(slice(None), range(n, ftot), range(0, ftot-n))]) > 0):
                 bandwd = max(bandwd, n)
-            if np.any(abs(Matinv[[slice(None),range(0, ftot-n), range(n, ftot)]]) > 0):
+            if np.any(abs(Matinv[(slice(None),range(0, ftot-n), range(n, ftot))]) > 0):
                 bandwd = max(bandwd, n)
 
         Mat = np.zeros((jmax+1, 2*bandwd+1, ftot), dtype=complex)
-        Mat[[slice(None), bandwd, slice(None)]] = Matinv[[slice(None), range(0, ftot), range(0, ftot)]]
+        Mat[(slice(None), bandwd, slice(None))] = Matinv[(slice(None), range(0, ftot), range(0, ftot))]
         for n in range(1, bandwd+1):
-            Mat[[slice(None), bandwd-n, slice(n, None)]] = Matinv[[slice(None), range(0, ftot-n), range(n, ftot)]]
-            Mat[[slice(None), bandwd+n, slice(None,-n)]] = Matinv[[slice(None), range(n, ftot), range(0, ftot-n)]]
+            Mat[(slice(None), bandwd-n, slice(n, None))] = Matinv[(slice(None), range(0, ftot-n), range(n, ftot))]
+            Mat[(slice(None), bandwd+n, slice(None,-n))] = Matinv[(slice(None), range(n, ftot), range(0, ftot-n))]
     return Mat
 
 def bandedMatVec(A, x):
@@ -225,10 +225,10 @@ def bandedMatVec(A, x):
     bandwdA = (A.shape[0]-1)/2
     size = shape[1]
 
-    Afull[[range(0, size), range(0, size)]] += A[[bandwdA, slice(None)]+[Ellipsis]]
+    Afull[(range(0, size), range(0, size))] += A[(bandwdA, slice(None))+(Ellipsis,)]
     for n in range(1, bandwdA+1):
-        Afull[[range(0, size-n), range(n, size)]] += A[[bandwdA-n, slice(n,None)]]
-        Afull[[range(n, size), range(0, size-n)]] += A[[bandwdA+n, slice(None, -n)]]
+        Afull[(range(0, size-n), range(n, size))] += A[(bandwdA-n, slice(n,None))]
+        Afull[(range(n, size), range(0, size-n))] += A[(bandwdA+n, slice(None, -n))]
 
     return np.dot(Afull, x)
 

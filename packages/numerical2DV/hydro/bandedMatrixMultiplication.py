@@ -28,15 +28,15 @@ def bandedMatrixMultiplication(A, B, truncate=False):
     size = shape[1]
 
     # convert both to full matrices
-    Afull[[range(0, size), range(0, size)]] += A[[bandwdA, slice(None)]+[Ellipsis]]
+    Afull[(range(0, size), range(0, size))] += A[(bandwdA, slice(None))+(Ellipsis,)]
     for n in range(1, bandwdA+1):
-        Afull[[range(0, size-n), range(n, size)]] += A[[bandwdA-n, slice(n,None)]]
-        Afull[[range(n, size), range(0, size-n)]] += A[[bandwdA+n, slice(None, -n)]]
+        Afull[(range(0, size-n), range(n, size))] += A[(bandwdA-n, slice(n,None))]
+        Afull[(range(n, size), range(0, size-n))] += A[(bandwdA+n, slice(None, -n))]
 
-    Bfull[[range(0, size), range(0, size)]] += B[[bandwdB, slice(None)]+[Ellipsis]]
+    Bfull[(range(0, size), range(0, size))] += B[(bandwdB, slice(None))+(Ellipsis,)]
     for n in range(1, bandwdB+1):
-        Bfull[[range(0, size-n), range(n, size)]] += B[[bandwdB-n, slice(n,None)]]
-        Bfull[[range(n, size), range(0, size-n)]] += B[[bandwdB+n, slice(None, -n)]]
+        Bfull[(range(0, size-n), range(n, size))] += B[(bandwdB-n, slice(n,None))]
+        Bfull[(range(n, size), range(0, size-n))] += B[(bandwdB+n, slice(None, -n))]
 
     # multiply
     Cfull = np.dot(Afull, Bfull)
@@ -44,17 +44,17 @@ def bandedMatrixMultiplication(A, B, truncate=False):
     # convert back to band
     bandwd = 0
     for n in np.arange(size-1, -1, -1):
-        if np.any(abs(Cfull[[range(n, size), range(0, size-n)]]) > 0):
+        if np.any(abs(Cfull[(range(n, size), range(0, size-n))]) > 0):
             bandwd = max(bandwd, n)
-        if np.any(abs(Cfull[[range(0, size-n), range(n, size)]]) > 0):
+        if np.any(abs(Cfull[(range(0, size-n), range(n, size))]) > 0):
             bandwd = max(bandwd, n)
 
     shape[0] = 2*bandwd+1
     C = np.zeros(shape, Cfull.dtype)
-    C[[bandwd, slice(None)]] = Cfull[[range(0, size), range(0, size)]]
+    C[(bandwd, slice(None))] = Cfull[(range(0, size), range(0, size))]
     for n in range(1, bandwd+1):
-        C[[bandwd-n, slice(n, None)]] = Cfull[[range(0, size-n), range(n, size)]]
-        C[[bandwd+n, slice(None, -n)]] = Cfull[[range(n, size), range(0, size-n)]]
+        C[(bandwd-n, slice(n, None))] = Cfull[(range(0, size-n), range(n, size))]
+        C[(bandwd+n, slice(None, -n))] = Cfull[(range(n, size), range(0, size-n))]
 
     if truncate == True:
         newbandwd = max(bandwdA, bandwdB)
@@ -77,13 +77,13 @@ def bandedMatrixMultiplication(A, B, truncate=False):
 #     size = shape[startdim+1]
 #
 #     # convert both to full matrices
-#     Afull[[slice(None)]*startdim +[range(0, size), range(0, size)]+[Ellipsis]] += A[[slice(None)]*startdim +[bandwd, slice(None)]+[Ellipsis]]
-#     Bfull[[slice(None)]*startdim +[range(0, size), range(0, size)]+[Ellipsis]] += B[[slice(None)]*startdim +[bandwd, slice(None)]+[Ellipsis]]
+#     Afull[(slice(None)]*startdim +[range(0, size), range(0, size)]+[Ellipsis)] += A[(slice(None)]*startdim +[bandwd, slice(None)]+[Ellipsis)]
+#     Bfull[(slice(None)]*startdim +[range(0, size), range(0, size)]+[Ellipsis)] += B[(slice(None)]*startdim +[bandwd, slice(None)]+[Ellipsis)]
 #     for n in range(1, bandwd+1):
-#         Afull[[slice(None)]*startdim +[range(0, size-n), range(n, size)]+[Ellipsis]] += A[[slice(None)]*startdim +[bandwd-n, slice(n,None)]+[Ellipsis]]
-#         Afull[[slice(None)]*startdim +[range(n, size), range(0, size-n)]+[Ellipsis]] += A[[slice(None)]*startdim +[bandwd+n, slice(None, -n)]+[Ellipsis]]
-#         Bfull[[slice(None)]*startdim +[range(0, size-n), range(n, size)]+[Ellipsis]] += B[[slice(None)]*startdim +[bandwd-n, slice(n,None)]+[Ellipsis]]
-#         Bfull[[slice(None)]*startdim +[range(n, size), range(0, size-n)]+[Ellipsis]] += B[[slice(None)]*startdim +[bandwd+n, slice(None, -n)]+[Ellipsis]]
+#         Afull[(slice(None)]*startdim +[range(0, size-n), range(n, size)]+[Ellipsis)] += A[(slice(None)]*startdim +[bandwd-n, slice(n,None)]+[Ellipsis)]
+#         Afull[(slice(None)]*startdim +[range(n, size), range(0, size-n)]+[Ellipsis)] += A[(slice(None)]*startdim +[bandwd+n, slice(None, -n)]+[Ellipsis)]
+#         Bfull[(slice(None)]*startdim +[range(0, size-n), range(n, size)]+[Ellipsis)] += B[(slice(None)]*startdim +[bandwd-n, slice(n,None)]+[Ellipsis)]
+#         Bfull[(slice(None)]*startdim +[range(n, size), range(0, size-n)]+[Ellipsis)] += B[(slice(None)]*startdim +[bandwd+n, slice(None, -n)]+[Ellipsis)]
 #
 #     # multiply
 #     #   First set axes in right place for np.dot
@@ -102,14 +102,14 @@ def bandedMatrixMultiplication(A, B, truncate=False):
 #     # convert back to band
 #     bandwd = 0
 #     for n in np.arange(Cfull.shape[startdim], -1, -1):
-#         if np.any(abs(Cfull[[slice(None)]*startdim+[range(n, Cfull.shape[startdim]), range(0, Cfull.shape[startdim]-n)]+[Ellipsis]]) > 0):
+#         if np.any(abs(Cfull[(slice(None)]*startdim+[range(n, Cfull.shape[startdim]), range(0, Cfull.shape[startdim]-n)]+[Ellipsis)]) > 0):
 #             bandwd = max(bandwd, n)
 #
 #     shape[startdim] = 2*bandwd+1
 #     C = np.zeros(shape)
-#     C[[slice(None)]*startdim+ [bandwd, slice(None)]+[Ellipsis]] = Cfull[[slice(None)]*startdim+[range(0, Cfull.shape[startdim]), range(0, Cfull.shape[startdim])]+[Ellipsis]]
+#     C[(slice(None)]*startdim+ [bandwd, slice(None)]+[Ellipsis)] = Cfull[(slice(None)]*startdim+[range(0, Cfull.shape[startdim]), range(0, Cfull.shape[startdim])]+[Ellipsis)]
 #     for n in range(1, bandwd+1):
-#         C[[slice(None)]*startdim+ [bandwd-n, slice(n, None)]+[Ellipsis]] = Cfull[[slice(None)]*startdim+[range(0, Cfull.shape[startdim]-n), range(n, Cfull.shape[startdim])]+[Ellipsis]]
-#         C[[slice(None)]*startdim+ [bandwd+n, slice(None, -n)]+[Ellipsis]] = Cfull[[slice(None)]*startdim+[range(n, Cfull.shape[startdim]), range(0, Cfull.shape[startdim]-n)]+[Ellipsis]]
+#         C[(slice(None)]*startdim+ [bandwd-n, slice(n, None)]+[Ellipsis)] = Cfull[(slice(None)]*startdim+[range(0, Cfull.shape[startdim]-n), range(n, Cfull.shape[startdim])]+[Ellipsis)]
+#         C[(slice(None)]*startdim+ [bandwd+n, slice(None, -n)]+[Ellipsis)] = Cfull[(slice(None)]*startdim+[range(n, Cfull.shape[startdim]), range(0, Cfull.shape[startdim]-n)]+[Ellipsis)]
 #
 #     return C
