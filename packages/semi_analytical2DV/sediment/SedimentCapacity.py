@@ -136,8 +136,10 @@ class SedimentCapacity:
         ## M0 contribution
         # erosion
             # bed shear stress
-        uabs_M0 = absoluteU(u0b, 0).reshape(len(self.x), 1)
-        uabs_M0_x = np.gradient(uabs_M0[:, 0], self.x[1], edge_order=2).reshape(len(self.x), 1)
+        # uabs_M0 = absoluteU(u0b, 0).reshape(len(self.x), 1)
+        # uabs_M0_x = np.gradient(uabs_M0[:, 0], self.x[1], edge_order=2).reshape(len(self.x), 1)     # Error: this is a derivative along the grid, not x
+        uabs_M0 = absoluteU(self.u0, 0)
+        uabs_M0_x = ny.derivative(uabs_M0, 'x', self.input.slice('grid'))[:, [-1]]                  # Improved code
 
             # near-bed concentration, from erosion law
         if self.input.v('erosion_formulation') == 'Partheniades':
@@ -173,7 +175,8 @@ class SedimentCapacity:
         self.c04 = A1 * np.exp(r1_M4 * (self.zarr)) + A2 * np.exp(r2_M4 * (self.zarr))
 
         # Derivative (analytical)
-        self.c04x, __ = np.gradient(self.c04, self.x[1], edge_order=2)
+        # self.c04x, __ = np.gradient(self.c04, self.x[1], edge_order=2)                 # Error: this is a derivative along the grid, not x
+        self.c04x = ny.derivative(self.c04, 'x', self.input.slice('grid'))               # Improved code
         self.c04z = (A1 * r1_M4 * np.exp(r1_M4 * self.zarr) + A2 * r2_M4 * np.exp(r2_M4 * self.zarr))
         self.c04zz = (A1 * r1_M4 ** 2 * np.exp(r1_M4 * self.zarr) + A2 * r2_M4 ** 2 * np.exp(r2_M4 * self.zarr))
 
