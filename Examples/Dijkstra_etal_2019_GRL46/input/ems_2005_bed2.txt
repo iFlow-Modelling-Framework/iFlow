@@ -1,0 +1,99 @@
+# Ems model for decreasing alpha
+# This file may be used and adapted. Please refer to the article mentioned below when using information from this input file.
+#
+# Appears in: Dijkstra et al (2019) GRL 46
+# iFlow version: 2.6.2
+# Date: September 2018
+# Author: Y.M. Dijkstra
+
+module       general.Iterator
+modules      numerical2DV.KEFittedMAW semi_analytical2DV.HinderedSettling_bed
+
+## Sensitivity
+module      general.Sensitivity
+variables   alpha Q1
+alpha       np.linspace(1.5, 0, 151)
+Q1          np.arange(30, 151, 2.5)
+loopstyle   b a
+
+## Geometry ##
+module      modulesGRL46.CombinedDepth
+resolution  250
+L           64.e3
+B0 	        type    functions.Polynomial
+ 	        C       -2.05001187e-20   3.26623360e-15  -1.77496965e-10   3.82812572e-06 -4.18442587e-02   7.62139923e+02
+
+alpha1  0
+H1      type    modulesGRL46.TangentLinear
+        alpha      -2.8
+        beta       -7.1e-5
+        gamma       10.
+        xl          5000.
+        xc          13000.
+
+alpha2  1
+H2      type    modulesGRL46.TangentLinear
+        alpha      -1.2
+        beta       -5.1e-05
+        gamma       10.
+        xl          5000.
+        xc          13000.
+
+## Method ##
+module	    numerical2DV.RegularGrid
+xgrid		equidistant     250
+zgrid	    equidistant     50
+fgrid		integer         2
+
+xoutputgrid    equidistant     50
+zoutputgrid    equidistant     20
+foutputgrid    integer         2
+
+## Hydrodynamics ##
+module      semi_analytical2DV.HydroLead semi_analytical2DV.HydroFirst numerical2DV.KEFittedMAW modulesGRL46.SalinityCoefficients
+submodules  tide river baroc adv nostress stokes #mixing
+A0			0 1.40 0
+A1			0 0 0.21
+phase0		0 0 0
+phase1		0 0 -172
+Q0			0
+
+roughnessParameter  z0*
+n                   0.
+profile             uniform
+ignoreSubmodule
+referenceLevel      True
+Avmin               1.e-6
+lambda              1
+truncationOrder     1
+uzmin               0.03
+z0*                 0.0093
+Ribedmax            2.
+
+## Salinity ##
+#conditions Ems
+module      analytical2DV.SaltHyperbolicTangent
+ssea        30
+
+## Sediment ##
+module      semi_analytical2DV.SedimentCapacity semi_analytical2DV.EquilibriumAvailability semi_analytical2DV.HinderedSettling_bed
+submodules  erosion noflux sedadv# mixing
+finf        0.02
+Kh          100
+erosion_formulation Partheniades
+sedbc       csea
+csea        0.1
+friction    skin_friction
+
+mhs         5
+cgel        100.
+ws00        1e-3
+wsmin       1e-6
+
+## Output
+module          general.Output
+path	        output/down
+filename        out_alpha@{'alpha'}_Q@{'Q1'}
+iteratesWith    general.Sensitivity
+
+requirements    Av Roughness zeta0 zeta1 u0 u1 B H c0 c1 c2 T F a f Kv R Ri skin_friction s0 BottomBC ws0 converged

@@ -1,0 +1,8 @@
+module SalinityCoefficients
+packagePath
+input       Q1
+output      xc xl
+
+module      CombinedDepth
+input       H1 alpha1 B0 L alpha resolution
+output      L B H
