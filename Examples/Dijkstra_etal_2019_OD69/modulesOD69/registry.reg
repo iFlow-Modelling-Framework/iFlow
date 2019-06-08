@@ -1,0 +1,7 @@
+module      CombinedDepth
+input       H1 alpha1 B0 L alpha resolution
+output      L B H
+
+module          SaltDischarge
+input           Q1 Qsource
+output          xc

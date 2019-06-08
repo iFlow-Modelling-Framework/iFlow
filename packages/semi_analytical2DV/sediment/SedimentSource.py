@@ -32,7 +32,7 @@ class SedimentSource:
         #   Upstream boundary
         d['Qsed'] = c0[-1]*Q**cexp[-1]
 
-        #   Other flucial sources
+        #   Other fluvial sources
         d['sedsource'] = [['point', xsedsource[i], c0[i]*Qsource[i]**cexp[i]] for i in range(0, len(Qsource))]
 
         ## Other sources and sinks

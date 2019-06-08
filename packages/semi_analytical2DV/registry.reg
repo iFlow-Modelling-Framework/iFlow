@@ -70,5 +70,6 @@ output      ws0
 iterative   True
 
 module          SedimentSource
+packagePath     sediment/
 input           QC_c QC_exp Q1 grid B x_sedsource type_sedsource Q_sedsource
 output          Qsed sedsource

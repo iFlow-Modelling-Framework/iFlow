@@ -142,6 +142,20 @@ class HydroFirst:
             JuFirst[:, :, :, submodulesToRun.index('stokes')] = gamma
         BJuFirst = JuFirst*self.input.v('B', np.arange(0,jmax+1)).reshape(jmax+1, 1, 1, 1)
 
+        source = np.zeros((jmax+1, 1, ftot, len(submodulesToRun)))
+        if 'source' in submodulesToRun:
+            xsrc = self.input.v('xsource')
+            Qsrc = self.input.v('Qsource')
+
+            xsrc = ny.toList(xsrc)
+            Qsrc = ny.toList(Qsrc)
+            for i, xi in enumerate(xsrc):
+                x = ny.dimensionalAxis(self.input.slice('grid'), 'x')[:, 0, 0]
+                xind = np.argmin(abs(x-xi))
+
+                qmid = Qsrc[i]/(self.input.v('B', xind)*(x[xind]-x[xind-1]))
+                source[xind, 0, fmax, submodulesToRun.index('source')] = qmid
+
         #   open BC: tide
         Fopen = np.zeros([1, 1, ftot, len(submodulesToRun)], dtype=complex)
         if 'tide' in submodulesToRun:
@@ -156,7 +170,7 @@ class HydroFirst:
         Fclosed += -JuFirst[jmax, 0, :, :]*self.input.v('B', jmax)
 
         ## Solve equation
-        zetaCoef, zetaxCoef, _ = zetaFunctionMassConservative(B, BJuFirst, Fopen, Fclosed, self.input, hasMatrix=zetaMatrix)
+        zetaCoef, zetaxCoef, _ = zetaFunctionMassConservative(B, BJuFirst, Fopen, Fclosed, self.input, source=source, hasMatrix=zetaMatrix)
         zetax = ny.eliminateNegativeFourier(zetaxCoef, 2)
         zeta = ny.eliminateNegativeFourier(zetaCoef, 2)
 

@@ -45,7 +45,7 @@ module          HydroFirst
 input			BottomBC grid Av Roughness OMEGA G BETA
 output			u1 zeta1 w1
 packagePath		hydro/
-submodules		tide river baroc stokes nostress adv mixing
+submodules		tide river baroc stokes nostress adv mixing source
 tide            input       A1 phase1
                 output
 river           input       Q1
@@ -60,6 +60,8 @@ adv				input		u0 w0
 				output
 mixing			input		u0 Av1
 				output
+source          input       xsource Qsource
+                output
 
 module          HydroHigher
 packagePath		hydro/

@@ -1,0 +1,101 @@
+# Scheldt. Model for 2010 and various Q, ws0 and M. Constant dumping at 2010 level
+# This file may be used and adapted. Please refer to the article mentioned below when using information from this input file.
+#
+# Appears in: Dijkstra et al (2019) OD
+# iFlow version: 2.7
+# Date: October 2018
+# Author: Y.M. Dijkstra
+
+module       general.Iterator
+modules      numerical2DV.KEFittedMAW semi_analytical2DV.HinderedSettling_bed
+
+## Sensitivity
+module                  general.Sensitivity
+variables               Q1 Qsource ws00 finf uzmin
+loopstyle               f  f       d    c    a
+Q1                      36	16
+Qsource                 [[63, 11], [36, 4]]
+ws00                    np.linspace(5.e-4, 4e-3, 15)
+finf                    10**np.linspace(-4, -1, 15)
+uzmin                   0.03
+
+## Geometry ##
+module  analytical2DV.Geometry2DV
+L       161.e3
+B0      type    functions.ExpRationalFunc
+ 	    C1      -0.02742e-3 1.8973
+ 	    C2      4.9788e-11 -9.213e-6 1.
+H0      type    functions.PolynomialLinear
+        C       3.72661847e-19  -1.15133973e-13   1.13427367e-08  -4.34610842e-04   1.50000000e+01
+        XL      1.29069757e+05
+
+## Method ##
+module	    numerical2DV.RegularGrid
+xgrid		equidistant     250
+zgrid	    equidistant     50
+fgrid		integer         2
+
+xoutputgrid    equidistant     40
+zoutputgrid    equidistant     10
+foutputgrid    integer         2
+
+## Hydrodynamics ##
+module      semi_analytical2DV.HydroLead numerical2DV.HydroFirst numerical2DV.KEFittedMAW semi_analytical2DV.SedimentSource modulesOD69.SaltDischarge
+submodules  tide river baroc adv nostress stokes source #mixing
+A0			0 1.81 0 0
+A1			0 0 0.164 0
+phase0		0 0 0 0
+phase1		0 0 -4.1 0
+Q0			0
+Q1          36
+
+xsource     95000.  123000.
+Qsource     63      11
+QC_c        0.035   0.088   0.08
+QC_exp      1.      1.      1.
+
+x_sedsource     73000.   78000.
+type_sedsource  point    point
+Q_sedsource     60.5     98.5
+
+roughnessParameter  z0*
+n                   0
+profile             uniform
+ignoreSubmodule
+referenceLevel      True
+Avmin               1.e-4
+lambda              1
+truncationOrder     1
+uzmin               0.03
+z0*                 0.0005
+sigma_rho           1.
+Ribedmax            2.
+
+## Salinity ##
+module      analytical2DV.SaltHyperbolicTangent
+ssea        31.
+xl          32000.
+
+## Sediment ##
+module      semi_analytical2DV.SedimentCapacity semi_analytical2DV.EquilibriumAvailability semi_analytical2DV.HinderedSettling_bed
+submodules  erosion noflux sedadv
+finf        7.e-4
+Kh          100
+erosion_formulation Partheniades
+sedbc       csea
+csea        0.06
+friction    skin_friction
+#ws0        2e-3
+
+mhs         5
+cgel        100
+ws00        2.e-3
+wsmin       1e-5
+
+## Output ##
+module          general.Output
+path	        output/sensitivity/wsM_d
+filename        out_2010_Q@{'Q1'}_M@{'finf'}_ws@{'ws00'}_csea@{'csea'}_uzmin@{'uzmin'}
+iteratesWith    general.Sensitivity
+
+requirements    zeta0 zeta1 u0 u1 B H c0 c1 c2 T F f R      # less output to reduce memory requirements

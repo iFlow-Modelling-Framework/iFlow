@@ -2,15 +2,16 @@
 zetaFunctionMassConservative
 
 Solve a function
-q_t + 1/B (M q_x + F)_x = 0     for x in (0, L)
+q_t + 1/B (M q_x + F)_x = S     for x in (0, L)
     q(0) = Fopen
     F(L)q_x(L) = Fclosed
 
 Solved in a mass conservative way, i.e. the solution q_x is always
 such that M q_x + F = int q_t/B
 
+NB added source 16-05-2018
 
-Date: 04-Aug-15
+Date: 16-05-2018
 Authors: Y.M. Dijkstra
 """
 import numpy as np
@@ -18,7 +19,7 @@ from scipy.linalg import solve_banded
 from nifty import integrate
 
 
-def zetaFunctionMassConservative(M, F, Fopen, Fclosed, data, hasMatrix = False):
+def zetaFunctionMassConservative(M, F, Fopen, Fclosed, data, source=None, hasMatrix = False):
     # Init
     jmax = data.v('grid', 'maxIndex', 'x')
     fmax = data.v('grid', 'maxIndex', 'f')
@@ -97,6 +98,8 @@ def zetaFunctionMassConservative(M, F, Fopen, Fclosed, data, hasMatrix = False):
         bdx_down = (dx[:-1]*B[:-1]).reshape(jmax-1, 1)
         bdx0 = dx[0]*B[0]
         zRHS[ftot:-ftot, i] = -((F[2:, 0, :, i] - F[1:-1, 0, :, i])/bdx_up - (F[1:-1, 0, :, i] - F[:-2, 0, :, i])/bdx_down).reshape((jmax-1)*ftot)
+        if source is not None:
+            zRHS[ftot:-ftot, i] += (0.5*(source[1:-1, 0, :, i]+source[2:, 0, :, i])-0.5*(source[1:-1, 0, :, i]+source[:-2, 0, :, i])).reshape((jmax-1)*ftot)
         zRHS[:ftot, i] += -(F[1, 0, :, i] - F[0, 0, :, i])/bdx0
 
     ##### SOLVE #####
