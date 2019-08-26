@@ -23,6 +23,7 @@ from src.util.diagnostics import KnownError
 import DataContainer
 import inspect
 import logging
+import src.config as cf
 
 
 class Module:
@@ -204,10 +205,17 @@ class Module:
             DataContainer with results of calculated module
         """
         self.timer.tic()
-        if init and self.isIterative():         #21-07-2017 YMD correction: check if iterative, not if run_init exists
-            result = self.module.run_init()
-        else:
-            result = self.module.run()
+        try:
+            if init and self.isIterative():         #21-07-2017 YMD correction: check if iterative, not if run_init exists
+                result = self.module.run_init()
+            else:
+                result = self.module.run()
+        except Exception as e:
+            if cf.IGNOREEXCEPTIONS:
+                result = {'ERROR':True}
+                pass
+            else:
+                raise
 
         # make a dataContainer for the result
         try:

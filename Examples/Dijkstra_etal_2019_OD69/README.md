@@ -3,8 +3,8 @@ Can the Scheldt River Estuary become hyperturbid?
 A model analysis of suspended sediment concentrations and transport in response to channel
 deepening
 
-Dijkstra et al (2019). Ocean Dynamics 69 \
-doi: [10.1029/2018JC014367](https://doi.org/10.1029/2018JC014367) (Open Access) 
+Dijkstra et al (2019). Ocean Dynamics 69:809-827 \
+doi: [10.1007/s10236-019-01277-z](https://doi.org/10.1007/s10236-019-01277-z) (Open Access) 
 
 # iFlow version
 Works with iFlow version 2.7

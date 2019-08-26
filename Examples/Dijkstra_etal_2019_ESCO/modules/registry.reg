@@ -1,0 +1,16 @@
+# Registry for package ecology2DV
+#
+# date: 	05-09-2017
+# authors: 	Y.M.Dijkstra
+
+module          SedimentDischarge
+input           QC_c QC_exp Q1 grid B
+output          Qsed
+
+module          SalinityDischarge
+input           Q1
+output          xc
+
+module          NutrientsDischarge
+input           Q1 QN_c QN_exp
+output          QN

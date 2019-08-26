@@ -9,6 +9,7 @@ DERMETHOD = 'CENTRAL'   #'FORWARD'
 SECONDDERMETHOD = 'CENTRAL'
 INTMETHOD = 'TRAPEZOIDAL'
 MAXITERATIONS = 1000000          # maximum number of iterations in a single loop of modules
+IGNOREEXCEPTIONS = False
 solver = 'numerical'            # solver for the semi analytical model 'numerical' or 'bvp'.
 mode = 'debug'
 
@@ -29,3 +30,7 @@ DS = 2.e-5                      # Sediment grain size
 R = 0                           # Reference level
 TOLERANCEBVP = 1.e-6            # Tolerance of the bvp_solver, i.e. accuracy of the water level solution
 sigma_rho = 1                   # Prandtl-Schmidt number
+Qsed = 0.                       # Sediment discharge default value
+
+Chl_N_rat = 1.6
+N_P_rat = 16.0

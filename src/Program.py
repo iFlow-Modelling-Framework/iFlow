@@ -184,4 +184,5 @@ class Program:
         d = {}
         for var in configvars:
             exec('d[var] = config.'+var)
+        d['CWD'] = self.cwd
         return DataContainer(d)

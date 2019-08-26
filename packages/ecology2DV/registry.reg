@@ -1,0 +1,11 @@
+# Registry for package ecology2DV
+#
+# date: 	05-09-2017
+# authors: 	Y.M.Dijkstra
+
+
+module          NutrientsTime
+packagePath
+input           grid u0 u1 Kv mu00 mp OMEGA Kh Nsea QN ALPHA recycle c0 QP Temp #(optional) taumax dtau Nsource
+output          Ceco Feco Teco Geco mu0 FE FN FP tau_night mumax
+
