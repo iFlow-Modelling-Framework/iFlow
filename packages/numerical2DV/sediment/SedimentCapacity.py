@@ -139,8 +139,6 @@ class SedimentCapacity:
         d['hatc0']['a'] = {}
         d['hatc0']['a']['erosion'] = hatc0
         d['cMatrix'] = cMatrix
-
-
         return d
 
     def first_order(self, d):
@@ -199,14 +197,14 @@ class SedimentCapacity:
             ws1 = self.input.v('ws1', range(0, jmax + 1), range(0, kmax + 1), range(0, fmax + 1))
             ksi = ny.complexAmplitudeProduct(ws1, c0, 2)
             ksiz = ny.derivative(ksi, 'z', self.input.slice('grid'))
-            zeta0 = self.input.v('zeta0', range(0, jmax + 1), 0, range(0, fmax + 1))
 
             F[:, :, fmax:, self.submodulesToRun.index('fallvel')] = ksiz
-            Fsurf[:, 0, fmax:, self.submodulesToRun.index('fallvel')] = -ny.complexAmplitudeProduct(ksiz[:, 0, :], zeta0, 1)
+            Fsurf[:, 0, fmax:, self.submodulesToRun.index('fallvel')] = -ksi[:, 0, :]
 
-            # adjustment to erosion
-            E = erosion(ws1, 0, self.input, self.erosion_method, friction=self.frictionpar)
-            Fbed[:, :, fmax:, self.submodulesToRun.index('fallvel')] = -E
+            # adjustment to erosion; only if erosion depends on the settling velocity
+            if self.erosion_method == 'Chernetsky':
+                E = erosion(ws1, 0, self.input, self.erosion_method, friction=self.frictionpar)
+                Fbed[:, :, fmax:, self.submodulesToRun.index('fallvel')] = -E
 
         # 4. First-order eddy diffusivity
         if 'mixing' in self.submodulesToRun:

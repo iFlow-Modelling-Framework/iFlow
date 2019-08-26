@@ -84,6 +84,7 @@ def shearstress_exact(tau_order, data, submodule=None, friction='Roughness'):   
     jmax = data.v('grid', 'maxIndex', 'x')
     kmax = data.v('grid', 'maxIndex', 'z')
     fmax = data.v('grid', 'maxIndex', 'f')
+    fmax = np.maximum(fmax, 3)              ## NB. take fmax 3 at minimum: erosion uses |u0|*u1 which, with standard assumptions, yields an M2 signal for |u0| containing an M2 and M6
     rho0 = data.v('RHO0')
     sf = data.v(friction, range(0, jmax+1), 0, 0)
 
@@ -113,6 +114,7 @@ def shearstressCheb(tau_order, data, submodule=None, friction='Roughness'):     
     jmax = data.v('grid', 'maxIndex', 'x')
     kmax = data.v('grid', 'maxIndex', 'z')
     fmax = data.v('grid', 'maxIndex', 'f')
+    fmax = np.maximum(fmax, 3)              ## NB. take fmax 3 at minimum: erosion uses |u0|*u1 which, with standard assumptions, yields an M2 signal for |u0| containing an M2 and M6
     if submodule is None:
         submodule = (None, )*(tau_order+1)
 
@@ -201,6 +203,7 @@ def shearstress_truncated(tau_order, data, submodule=None, friction='Roughness')
     jmax = data.v('grid', 'maxIndex', 'x')
     kmax = data.v('grid', 'maxIndex', 'z')
     fmax = data.v('grid', 'maxIndex', 'f')
+    fmax = np.maximum(fmax, 3)              ## NB. take fmax 3 at minimum: erosion uses |u0|*u1 which, with standard assumptions, yields an M2 signal for |u0| containing an M2 and M6
     rho0 = data.v('RHO0')
     sf = data.v(friction, range(0, jmax+1), 0, 0)
 

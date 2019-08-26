@@ -7,6 +7,7 @@ Authors: Y.M. Dijkstra
 import numpy as np
 from scipy.linalg import solve_banded
 import nifty as ny
+from copy import copy
 
 
 def cFunctionUncoupled(ws, Kv, F, Fsurf, Fbed, data, n, hasMatrix=False):
@@ -69,9 +70,9 @@ def cFunctionUncoupled(ws, Kv, F, Fsurf, Fbed, data, n, hasMatrix=False):
             A[1, -1] = b
 
             # save matrix
-            cMatrix[j, Ellipsis] = A[Ellipsis]
+            cMatrix[j, Ellipsis] = copy(A[Ellipsis])
         else:
-            A = Kv[j, Ellipsis]
+            A = copy(Kv[j, Ellipsis])
 
         A[1, 1:-1] += n*1j*OMEGA*dz_av
 
