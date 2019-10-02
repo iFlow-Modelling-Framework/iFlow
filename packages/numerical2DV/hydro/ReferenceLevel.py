@@ -71,7 +71,7 @@ class ReferenceLevel:
         self.bottomBC = self.input.v('BottomBC')
 
         self.z = np.linspace(0, 1, np.minimum(kmax, 100))
-        self.xaxis = self.input.v('grid', 'axis', 'x')
+        self.xaxis = self.input.v('grid', 'axis', 'x', x=np.linspace(0, 1, jmax+1))
         self.Av = np.real(self.input.v('Av', x=self.xaxis, z=self.z, f=0))
         self.H = self.input.v('H', x=self.xaxis)
         self.sf = np.real(self.input.v('Roughness', x=self.xaxis, z=0, f=0))
@@ -83,9 +83,14 @@ class ReferenceLevel:
         dx = x[1:]-x[0:-1]
         R[0] = 0.
         for j in range(0, jmax):
-            f = self.uSolver(j, R[j])
-            intfac = B[j]*f
-            Rx = -self.Q/intfac
+            c = self.uSolver(j, R[j])*B[j]
+            b = self.uSolver2(j, R[j])*B[j]*dx[j]
+            a = self.uSolver3(j, R[j])*B[j]*(dx[j]**2)
+            Rx_all = np.roots([a, b, c, self.Q])
+            for Rx in Rx_all:
+                if np.imag(Rx)==0:
+                    Rx = np.real(Rx)
+                    break
             R[j+1] = R[j]+Rx*dx[j]
 
         # if self.input.v('zeta1', range(0, jmax+1), 0, 0) is not None:
@@ -95,19 +100,7 @@ class ReferenceLevel:
         self.difference = np.linalg.norm(R - self.input.v('R', range(0, jmax+1)), np.inf)
 
         d = {}
-        d['R'] = np.maximum(R, -self.H+0.3)
-
-        import matplotlib.pyplot as plt
-        import step as st
-
-        st.configure()
-        plt.figure(1, figsize=(1,2))
-        plt.plot(x, -(self.H), 'k')
-        plt.plot(x, d['R'], label='R new')
-        plt.plot(x, self.input.v('R', range(0, jmax+1)), label='R old')
-        # plt.ylim(None, np.m)
-        plt.legend()
-        st.show()
+        d['R'] = np.maximum(R, -self.H+0.2)
 
         return d
 
@@ -120,6 +113,29 @@ class ReferenceLevel:
         if self.bottomBC == 'PartialSlip':
             f += ((R+self.H[j])/self.sf[j])
         f = -self.G*self.quickInt(f, dz)
+        return f
+
+    def uSolver2(self, j, R):
+        z = self.z*(-self.H[j]-R)+R
+
+        dz = (z[0]-z[1])
+        f = self.quickInt((1./self.Av[j, :])[::-1], dz, cumulative=True)[::-1]
+        f += (R-z)/self.Av[j, :]
+
+        if self.bottomBC == 'PartialSlip':
+            f +=  2./self.sf[j]
+        f = -self.G*self.quickInt(f, dz)
+        return f
+
+    def uSolver3(self, j, R):
+        z = self.z*(-self.H[j]-R)+R
+
+        dz = (z[0]-z[1])
+        f = self.quickInt(1./self.Av[j,:], dz)
+
+        if self.bottomBC == 'PartialSlip':
+            f +=  1./self.sf[j]
+        f = -self.G*f
         return f
 
     def quickInt(self, u, dz, cumulative=False):
