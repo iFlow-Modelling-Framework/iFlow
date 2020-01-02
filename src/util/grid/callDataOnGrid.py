@@ -6,6 +6,7 @@ Authors: Y.M. Dijkstra
 """
 import logging
 import nifty as ny
+from functools import reduce
 
 
 def callDataOnGrid(dataContainer, keys, grid, gridname, reshape):

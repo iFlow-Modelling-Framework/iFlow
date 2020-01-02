@@ -7,10 +7,11 @@
         List wrapping the input item if it was not already a list/array
 """
 import numpy as np
+from collections.abc import Iterable
 
 
 def toList(item, forceNone=False):
-    if not isinstance(item, list) and not isinstance(item, np.ndarray):
+    if not (isinstance(item, Iterable) and not isinstance(item, str)):
         if item is None:
             if forceNone:
                 item = [None]

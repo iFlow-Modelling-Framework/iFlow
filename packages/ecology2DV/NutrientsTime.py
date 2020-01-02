@@ -9,7 +9,7 @@ Authors: Y.M. Dijkstra
 import logging
 import numpy as np
 import nifty as ny
-from util.EcologyCore import EcologyCore
+from .util.EcologyCore import EcologyCore
 
 
 class NutrientsTime:

@@ -7,7 +7,7 @@ Authors: Y.M. Dijkstra, R.L. Brouwer
 """
 import os
 import src.config_menu as cfm
-import cPickle as pickle
+import pickle as pickle
 import logging
 import numbers
 from src.util.grid import callDataOnGrid
@@ -245,7 +245,7 @@ class Output:
         configvars = [var for var in dir(cf) if not var.startswith('__')]
         d = {}
         for var in configvars:
-            exec('d[var] = cf.'+var)
+            d[var] = eval('cf.'+var)
         return DataContainer(d)
 
     def __makeFileName(self):
@@ -267,8 +267,7 @@ class Output:
             key = key.strip("'")
             key = key.split(',')
             key = ','.join([self.__tryint(qq) for qq in key])
-
-            exec('outnames.append(self.input.v('+key+'))')
+            outnames.append(self.input.v(key))
             if not isinstance(outnames[-1], numbers.Number):
                 try:
                     outnames[-1] = float(outnames[-1])

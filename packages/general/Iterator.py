@@ -20,7 +20,10 @@ class Iterator:
         # also instantiate dependent modules
         modules = ny.toList(self.input.v('modules'))
         for module in modules:
-            module.instantiateModule()
+            try:
+                module.instantiateModule()
+            except:
+                pass
         return
 
     def stopping_criterion(self, iteration):

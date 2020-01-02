@@ -24,7 +24,7 @@ def absoluteU(u, n):
         alternatively one can take the +n-component and then add its complex conjugate.
     """
     if n % 2 == 0:
-        k = n / 2
+        k = int(n/2)
         if k >= 0:
             absU = (2. / np.pi) * np.abs(u) * (u / np.conj(u + 1.e-12))**k * (-1)**k / (1 - 4 * k**2)
         else:
@@ -53,7 +53,7 @@ def signU(u, n):
         sgnU = 0
     else:
         # sgnU = -2 * (-1j)**(n + 1) * (u / abs(u))**n / (np.pi * n)
-        k = (n-1)/2
+        k = int((n-1)/2)
         if n>=0:
             sgnU = (2 * (-1)**k / (np.pi * n)) * (u / abs(u + 1.e-12))**n
         else:

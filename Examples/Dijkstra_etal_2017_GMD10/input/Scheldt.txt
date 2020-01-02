@@ -2,9 +2,9 @@
 # This file may be used and adapted. Please refer to the article mentioned below when using information from this input file.
 #
 # Appears in: Dijkstra et al (2017) GMD, 10:2691-2713
-# iFlow version: 2.4.4
-# Date: 18-11-16
-# Author: R.L. Brouwer
+# iFlow version: 2.4.4. Updated to version 3.0
+# Date: 18-11-16. Updated 02-01-2020
+# Author: R.L. Brouwer, Y.M. Dijkstra
 
 ## Geometry ##
 module  analytical2DV.Geometry2DV
@@ -62,9 +62,12 @@ xl          26.e3
 #xl          24.5097e3
 
 ## Sediment ##
-module      semi_analytical2DV.SedDynamic
+module      semi_analytical2DV.EquilibriumAvailability semi_analytical2DV.SedimentCapacity
 submodules  erosion noflux sedadv
 astar       1
+sedbc       astar
+erosion_formulation Chernetsky
+finf        1.
 ws0         2.e-3
 Kh          100
 

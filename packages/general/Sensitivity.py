@@ -156,11 +156,13 @@ class Sensitivity:
         #   try to interpret as python string
         if any([i in valString for i in ['(', '[', ',', 'np.arange', 'range']]):
             try:
-                valuespy = None
-                exec('valuespy ='+valString)
+                if valString is None or valString=='':
+                    valuespy = None
+                else:
+                    valuespy = eval(valString)
                 return valuespy
             except Exception as e:
-                try: errorString = ': '+ e.msg
+                try: errorString = ': '+ str(e)
                 except: errorString = ''
                 raise KnownError('Failed to interpret input as python command %s in input: %s' %(errorString, valString), e)
 
@@ -191,7 +193,7 @@ class Sensitivity:
         # set output file name
         outnames = []
         for i, key in enumerate(outputnames):
-            exec('outnames.append(dc.v('+key+'))')
+            outnames.append(dc.v(key))
             if not isinstance(outnames[-1], numbers.Number):
                 try:
                     outnames[-1] = float(outnames[-1])

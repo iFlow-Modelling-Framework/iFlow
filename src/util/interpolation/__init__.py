@@ -1,2 +1,2 @@
-from Intergrid import Intergrid
-from RegularGridInterpolator import RegularGridInterpolator
+from .Intergrid import Intergrid
+from .RegularGridInterpolator import RegularGridInterpolator

@@ -206,14 +206,14 @@ class KEFittedMAW:
             # Av
             MA_av = (1+10*Rida)**(-0.5)
             dAv = ny.fft(Avmid*MA_av, 2)[:, :, :fmax+1] - Avold
-            Av = Avold + (1-self.RELAX)*(self.LOCAL*dAv + .5*(1-self.LOCAL)*dAv[[0]+range(0, jmax), :, :] + .5*(1-self.LOCAL)*dAv[range(1, jmax+1)+[jmax], :, :])
+            Av = Avold + (1-self.RELAX)*(self.LOCAL*dAv + .5*(1-self.LOCAL)*dAv[[0]+list(range(0, jmax)), :, :] + .5*(1-self.LOCAL)*dAv[list(range(1, jmax+1))+[jmax], :, :])
             # Av = Avold + dAv
             Av0 = Av[:, :, 0]
 
             # Kv
             MA_kv = (1+3.33*Rida)**(-1.5)
             dKv = ny.fft(Kvmid*MA_kv, 2)[:, :, :fmax+1] - Kvold
-            Kv = Kvold + (1-self.RELAX)*(self.LOCAL*dKv + .5*(1-self.LOCAL)*dKv[[0]+range(0, jmax), :, :] + .5*(1-self.LOCAL)*dKv[range(1, jmax+1)+[jmax], :, :])
+            Kv = Kvold + (1-self.RELAX)*(self.LOCAL*dKv + .5*(1-self.LOCAL)*dKv[[0]+list(range(0, jmax)), :, :] + .5*(1-self.LOCAL)*dKv[list(range(1, jmax+1))+[jmax], :, :])
             # Kv = Kvold + dKv
             Kv0 = Kv[:, :, 0]
 
@@ -223,7 +223,7 @@ class KEFittedMAW:
             damp_sf = Cd
             sf = sfmid*damp_sf
             dsf = sf - sfold
-            sf = sfold + (1-self.RELAX)*(self.LOCAL*dsf + .5*(1-self.LOCAL)*dsf[[0]+range(0, jmax)] + .5*(1-self.LOCAL)*dsf[range(1, jmax+1)+[jmax]])
+            sf = sfold + (1-self.RELAX)*(self.LOCAL*dsf + .5*(1-self.LOCAL)*dsf[[0]+list(range(0, jmax))] + .5*(1-self.LOCAL)*dsf[list(range(1, jmax+1))+[jmax]])
             # self.timers[5].toc()
 
             # process for output

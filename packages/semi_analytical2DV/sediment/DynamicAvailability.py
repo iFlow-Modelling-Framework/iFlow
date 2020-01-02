@@ -15,7 +15,7 @@ import sys
 from nifty import toList
 import numbers
 from copy import copy
-from EquilibriumAvailability import EquilibriumAvailability
+from .EquilibriumAvailability import EquilibriumAvailability
 from src.DataContainer import DataContainer
 
 class DynamicAvailability(EquilibriumAvailability):
@@ -115,8 +115,8 @@ class DynamicAvailability(EquilibriumAvailability):
 
         ## Collect output
         d = {}
-        for key, value in vars.iteritems():
-            d[key] = value
+        for key in vars.keys():
+            d[key] = vars[key]
         return d
 
     def init_stock(self, T, F, Chat):
@@ -491,11 +491,13 @@ class DynamicAvailability(EquilibriumAvailability):
         #   try to interpret as python string
         if any([i in valString for i in ['(', '[', ',', '/', '*', '+', '-']]):
             try:
-                valuespy = None
-                exec('valuespy ='+valString)
+                if valString is None or valString=='':
+                    valuespy = None
+                else:
+                    valuespy = eval(valString)
                 return valuespy
             except Exception as e:
-                try: errorString = ': '+ e.msg
+                try: errorString = ': '+ str(e)
                 except: errorString = ''
                 raise KnownError('Failed to interpret input as python command %s in input: %s' %(errorString, valString), e)
 

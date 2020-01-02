@@ -7,8 +7,8 @@ Authors: Y.M. Dijkstra
 import logging
 import numpy as np
 import nifty as ny
-from svarFunction import svarFunction
-from sclosureFunction import sclosureFunction
+from .svarFunction import svarFunction
+from .sclosureFunction import sclosureFunction
 
 
 class SalinityLead:

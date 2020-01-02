@@ -13,7 +13,7 @@ Date: 03-11-15
 Authors: Y.M. Dijkstra, R.L. Brouwer
 """
 import sys
-import Reader
+from . import Reader
 from src.util.diagnostics import KnownError
 from nifty import toList
 from src.util.localpath import localpath

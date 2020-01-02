@@ -6,9 +6,9 @@ These methods return DataContainer instances with the input data
 Date: 04-05-15
 Authors: Y.M. Dijkstra, R.L. Brouwer
 """
-from util import nestedListToDictionary
+from .util import nestedListToDictionary
 from src.util.diagnostics import KnownError
-from DataContainer import DataContainer
+from .DataContainer import DataContainer
 
 
 class Reader:
@@ -33,7 +33,7 @@ class Reader:
         try:
             self.filePointer = open(filePath, 'r')
         except IOError as e:                       # throw exception if file is not found
-            raise KnownError(('No file found at ' + filePath), e)
+            raise KnownError(('No file found at ' + filePath)) from None
 
         return
 

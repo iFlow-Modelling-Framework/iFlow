@@ -7,8 +7,8 @@ Authors: Y.M. Dijkstra
 """
 import logging
 import nifty as ny
-from profiles.ParabolicXZF import ParabolicXZF
-from profiles.UniformXF import UniformXF
+from .profiles.ParabolicXZF import ParabolicXZF
+from .profiles.UniformXF import UniformXF
 import numpy as np
 
 

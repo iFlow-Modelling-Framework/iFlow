@@ -5,8 +5,8 @@ Date: 10-07-15
 Authors: Y.M. Dijkstra
 """
 import numpy as np
-from toList import toList
-from primitive import primitive
+from .toList import toList
+from .primitive import primitive
 from src.util.diagnostics import KnownError
 import src.config as cf
 import scipy.integrate
@@ -36,7 +36,7 @@ def integrate(u, dimNo, low, high, grid, *args, **kwargs):
     """
     INTMETHOD = kwargs.get('INTMETHOD') or cf.INTMETHOD
     # if string of dimension is provided, convert to number of axis
-    if isinstance(dimNo, basestring):
+    if isinstance(dimNo, str):
         dimNo = grid.v('grid', 'dimensions').index(dimNo)
 
     if INTMETHOD == 'TRAPEZOIDAL' or INTMETHOD == 'INTERPOLSIMPSON':

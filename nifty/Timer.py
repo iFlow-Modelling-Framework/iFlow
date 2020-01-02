@@ -32,9 +32,9 @@ class Timer:
         '''Print elapsed time
         '''
         if self.timespent < 1:
-            print message+": %.1f msec" % (self.timespent*1000)
+            print(message+": %.1f msec" % (self.timespent*1000))
         else:
-            print message+": %.1f sec" % (self.timespent)
+            print(message+": %.1f sec" % (self.timespent))
 
     def string(self, message):
         '''Print elapsed time

@@ -3,8 +3,9 @@ Date: 21-07-15
 Authors: Y.M. Dijkstra, R.L. Brouwer
 """
 from src.util.grid import makeCollocatedGridAxis
-from toList import toList
+from .toList import toList
 import numpy as np
+from functools import reduce
 
 
 def makeRegularGrid(dimensions, axisType, axisSize, axisOther, enclosures, contraction = None, copy = None):

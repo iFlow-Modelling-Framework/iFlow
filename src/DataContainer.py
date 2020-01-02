@@ -276,7 +276,7 @@ class DataContainer:
         ################################################################################################################
         # 3a. Lists
         ################################################################################################################
-        elif isinstance(value, list):
+        elif isinstance(value, list) or isinstance(value, range):
             reshape = False
 
             # use the args as indices
@@ -336,8 +336,8 @@ class DataContainer:
             if args:
                 coordinates.update(convertIndexToCoordinate(self.data['grid'], args))
 
-            [coordinates.update({dim:np.asarray(nf.toList(coordinates[dim]))}) for dim in value.im_self.dimNames if coordinates.get(dim) is not None]    # convert called dimensions to array. i.e. function will not be called with scalar arguments
-            functiondims = value.im_self.dimNames
+            [coordinates.update({dim:np.asarray(nf.toList(coordinates[dim]))}) for dim in value.__self__.dimNames if coordinates.get(dim) is not None]    # convert called dimensions to array. i.e. function will not be called with scalar arguments
+            functiondims = value.__self__.dimNames
             value = value(reshape=reshape, **coordinates) # function call with coordinates and operations in **coordinates
             if isinstance(value, types.MethodType) or isinstance(value, types.FunctionType):
                 reshape = False
@@ -421,8 +421,8 @@ class DataContainer:
         """
         done = False
 
-        keyset = [key]+[i for i in args if isinstance(i, basestring)]
-        indexset = [i for i in args if not isinstance(i, basestring)]
+        keyset = [key]+[i for i in args if isinstance(i, str)]
+        indexset = [i for i in args if not isinstance(i, str)]
         for i, key in enumerate(keyset):
             if key in value:        # if the key is in the dictionary
                 value = value[key]  # step into dictionary
@@ -443,7 +443,7 @@ class DataContainer:
         """
         done = False
         value = None
-        for dictValue in dictionary.itervalues():
+        for dictValue in dictionary.values():
             # if the dictionary contains sub-dictionaries: further unwrap these
             if isinstance(dictValue, dict):
                 dictValue, done = self.__addvalues(dictValue, *args, **kwargs)
@@ -584,7 +584,7 @@ class DataContainer:
         # determine shape of request
         if args:
             shape = [len(nf.toList(n)) for n in args]
-            shapeTruncated = [len(n) for n in args if isinstance(n, list) or isinstance(n, np.ndarray)]
+            shapeTruncated = [len(nf.toList(n)) for n in args if isinstance(n, list) or isinstance(n, range) or isinstance(n, np.ndarray)]
         elif kwargs:
             shape = []
             shapeTruncated =[]
@@ -592,7 +592,7 @@ class DataContainer:
                 n = kwargs.get(dim)
                 if n is not None:       # i.e. if this dimension is passed in the request
                     shape += [len(nf.toList(n))]
-                    if isinstance(n, list) or isinstance(n, np.ndarray):
+                    if isinstance(n, list) or isinstance(n, np.ndarray) or isinstance(n, range):
                         shapeTruncated += [len(n)]
                 else:                   # else, provide data on original grid.
                     try:

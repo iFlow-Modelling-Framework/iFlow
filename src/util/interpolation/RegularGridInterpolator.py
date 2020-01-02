@@ -57,13 +57,14 @@ class RegularGridInterpolator:
             convert the coordinates in kwargs to points on the [0, 1] axes for all enclosed axes
         3. interpolate
         """
-        dimensionList = dataContainer.v('grid', 'dimensions')  # list of dimensions in registry
+        data = dataContainer.data
+        dimensionList = data['grid']['dimensions']  # list of dimensions in registry
 
         # 1. check dimensions. Stop interpolating if the dimensions are not fit
         for i, v in enumerate(value.shape):
             if i < len(dimensionList):
                 dim = dimensionList[i]
-                if not (v == 1 or v == dataContainer.v('grid', 'axis', dim).shape[i]):
+                if not (v == 1 or v == data['grid']['axis'][dim].shape[i]):
                     raise KnownError('Tried to interpolate data that is not conform the dimensions of the grid')
 
         # 2. retrieve kwargs arguments and convert to numbers on the [0,1] axes if enclosures are provided
@@ -85,13 +86,13 @@ class RegularGridInterpolator:
                 # read argument and axis
                 dim = dimensionList[i]
                 argument = kwargs.get(dim)
-                grid = dataContainer.v('grid', 'axis', dim)
+                grid = data['grid']['axis'][dim]
                 axis.append(grid.reshape(grid.shape[i]))    # NB. only works for a single grid axis
-                if dataContainer.v('grid', 'low', dim) is not None:
+                if 'low' in data['grid'] and dim in data['grid']['low'] and data['grid']['low'][dim] is not None:
                     lo.append(0.)
                 else:
                     lo.append(axis[-1][0])
-                if dataContainer.v('grid', 'high', dim) is not None:
+                if 'high' in data['grid'] and dim in data['grid']['high'] and data['grid']['high'][dim] is not None:
                     hi.append(1.)
                 else:
                     hi.append(axis[-1][-1])
@@ -105,14 +106,6 @@ class RegularGridInterpolator:
             else:                               # dimension beyond axes; take data on original grid
                 grid = range(0, v)
                 axis.append(grid)
-                # if dataContainer.v('grid', 'low', dim) is not None:           # 23-10-2017: Seems to be a bug, dimension beyond axes can never be contained in the grid. Also 'dim' is not up to date
-                #     lo.append(0.)
-                # else:
-                #     lo.append(axis[-1][0])
-                # if dataContainer.v('grid', 'high', dim) is not None:
-                #     hi.append(1.)
-                # else:
-                #     hi.append(axis[-1][-1])
                 lo.append(axis[-1][0])
                 hi.append(axis[-1][-1])
                 samplePoints.append(toList(axis[-1])) # add all points to the sample points
@@ -120,25 +113,6 @@ class RegularGridInterpolator:
         #   2c. rewrite sample point to all permutations
         sampleShape = [len(toList(j)) for j in samplePoints]    # shape of sample points
         samplePoints = self.__cartesian(samplePoints)
-
-        #   2d. for each axis, check if it is enclosed. If so, convert all sample points to [0,1] on this axis
-        """ # NB. COMMENTED OUT, call data using values between 0 and 1 for all axes except axes without enclosure (e.g. integer axes)
-        for i, dim in enumerate(dimensionList):
-            if i < len(value.shape):
-                low = dataContainer.v(dim, 'low')  # lower grid enclosure (loaded here to test if it exists)
-                argument = kwargs.get(dim)
-                if low!=None and value.shape[i] >= 1 and (not argument == None):
-                    # if axis is enclosed and is not a dummy axis and its argument is set
-                    for j in range(0, len(samplePoints)):
-                        newargs = {}
-                        for k in range(0, len(samplePoints[j])):
-                            newargs[dimensionList[k]] = samplePoints[j][k]
-
-                        minAxis = float(dataContainer.v(dim, 'low', **newargs))            #TODO CHANGE BECAUSE IT SLOWS THE CALCULATION DOWN SIGNIFICANTLY
-                        maxAxis = float(dataContainer.v(dim, 'high', **newargs))           #TODO CHANGE BECAUSE IT SLOWS THE CALCULATION DOWN SIGNIFICANTLY
-
-                        samplePoints[j][i] = (samplePoints[j][i]-minAxis)/(maxAxis-minAxis)
-        """
 
         # 3. interpolate
         interfunc = Intergrid(
@@ -148,8 +122,5 @@ class RegularGridInterpolator:
             verbose=0
             )
         value = interfunc(samplePoints).reshape(sampleShape)
-
-
-
 
         return value

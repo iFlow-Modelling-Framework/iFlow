@@ -18,7 +18,7 @@ Example:
 Date: 23-07-15
 Authors: Y.M. Dijkstra
 """
-from NumericalFunctionBase import NumericalFunctionBase
+from .NumericalFunctionBase import NumericalFunctionBase
 
 
 class NumericalFunctionWrapper(NumericalFunctionBase):

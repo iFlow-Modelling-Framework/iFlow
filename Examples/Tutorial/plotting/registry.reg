@@ -12,7 +12,7 @@ input                   zeta0 zeta1 T c0 F
 visualisationModule     True
 
 module                  Plot_measurements
-input                   zeta0 zeta1 T c0 F grid u0 u1 measurementset
+input                   zeta0 zeta1 T c0 F grid u0 u1 measurementset @measurementset
 visualisationModule     True
 
 module                  Plot_base_model

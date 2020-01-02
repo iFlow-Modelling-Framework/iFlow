@@ -5,7 +5,7 @@ def toMatrix(a, includeNegative=False):
         # DOES NOT WORK
         jmax = a.shape[0]-1
         ftot = a.shape[2]
-        fmax = (ftot-1)/2
+        fmax = int((ftot-1)/2)
 
         Z = np.zeros((jmax+1, 1, ftot, ftot), dtype=complex)
         for j in range(0, jmax+1):

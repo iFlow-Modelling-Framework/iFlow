@@ -1,3 +1,3 @@
-from ParabolicXZF import ParabolicXZF
-from UniformX import UniformX
-from UniformXF import UniformXF
+from .ParabolicXZF import ParabolicXZF
+from .UniformX import UniformX
+from .UniformXF import UniformXF

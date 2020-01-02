@@ -106,7 +106,7 @@ def svarFunction(Kv, F, Fsurf, Fbed, data, hasMatrix=False):
             bandwidthA = bandwidth+ftot
         else:
             A = Kv[j, Ellipsis]     # if hasMatrix Av replaces the role of the matrix in this equation
-            bandwidthA = (A.shape[0]-1)/2
+            bandwidthA = int((A.shape[0]-1)/2)
 
 
         ##### RIGHT HAND SIDE #####

@@ -8,8 +8,8 @@ TODO: dynamically adjust time step and end time to equilibrium and growth rates
 import logging
 import numpy as np
 import nifty as ny
-from pFunction_subtidal import pFunction
-from cSolverTime import cSolverTime
+from .pFunction_subtidal import pFunction
+from .cSolverTime import cSolverTime
 from src.util.mergeDicts import mergeDicts
 from copy import copy
 
@@ -119,7 +119,7 @@ class EcologyCore:
 
             if spinup:
                 dif = self.DT/dt*np.linalg.norm((X - self.Xprev)/(X+0.001*np.max(X)), np.inf)
-                print dind, dif
+                print(dind, dif)
 
                 ## DEBUG
                 # if np.max(X[:, 0]) > 50/1000. and dind > 100:
@@ -133,7 +133,7 @@ class EcologyCore:
                 elif self.dif_prev < dif and dind > 100:                                     # adjust time step if diffence increases after 200th iteration (only in spin-up)
                     dt = dt/2.
                     dind = 0
-                    print 'timestep: ' + str(dt)
+                    print('timestep: ' + str(dt))
                 else:
                     self.Xprev = copy(X)
                     self.dif_prev = dif

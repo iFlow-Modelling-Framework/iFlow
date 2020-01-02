@@ -4,7 +4,7 @@ ManualCalibrationPlot
 Date: 22-Apr-16
 Authors: Y.M. Dijkstra
 """
-from cost_function_DJ96 import cost_function_DJ96
+from .cost_function_DJ96 import cost_function_DJ96
 import numpy as np
 import step as st
 import matplotlib.pyplot as plt
@@ -107,10 +107,10 @@ class ManualCalibrationPlot:
             except:
                 minlocM2 = [np.nan]
                 minlocM4 = [np.nan]
-            print 'Minumim $M_2$: '
-            print calib_param[0]+' '+str(minlocM2[0])
-            print 'Minumim $M_4$: '
-            print calib_param[0]+' '+str(minlocM4[0])
+            print('Minumim $M_2$: ')
+            print(calib_param[0]+' '+str(minlocM2[0]))
+            print('Minumim $M_4$: ')
+            print(calib_param[0]+' '+str(minlocM4[0]))
 
             if self.input.v('axis')=='log':
                 axis = np.log10(param_range[0])
@@ -145,12 +145,12 @@ class ManualCalibrationPlot:
             except:
                 minlocM2 = [np.nan, np.nan]
                 minlocM4 = [np.nan, np.nan]
-            print 'Minumim $M_2$: '
-            print calib_param[0]+' '+str(minlocM2[0])
-            print calib_param[1]+' '+str(minlocM2[1])
-            print 'Minumim $M_4$: '
-            print calib_param[0]+' '+str(minlocM4[0])
-            print calib_param[1]+' '+str(minlocM4[1])
+            print('Minumim $M_2$: ')
+            print(calib_param[0]+' '+str(minlocM2[0]))
+            print(calib_param[1]+' '+str(minlocM2[1]))
+            print('Minumim $M_4$: ')
+            print(calib_param[0]+' '+str(minlocM4[0]))
+            print(calib_param[1]+' '+str(minlocM4[1]))
 
             if self.input.v('axis')=='log':
                 axis1 = np.log10(param_range[0])

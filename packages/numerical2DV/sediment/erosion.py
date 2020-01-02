@@ -1,6 +1,6 @@
 import numpy as np
 import nifty as ny
-from shearstress import shearstress
+from .shearstress import shearstress
 
 def erosion(ws, tau_order, data, method='Chernetsky', submodule=None, friction='Roughness'):
     jmax = data.v('grid', 'maxIndex', 'x')

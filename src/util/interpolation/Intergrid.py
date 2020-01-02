@@ -79,11 +79,12 @@ More doc: https://denis-bz.github.com/docs/intergrid.html
 """
 # split class Gridmap ?
 
-from __future__ import division
+
 from time import time
 # warnings
 import numpy as np
 from scipy.ndimage import map_coordinates, spline_filter
+import logging
 
 __version__ = "2014-01-15 jan denis"  # 15jan: fix bug in linear scaling
 __author_email__ = "denis-bz-py@t-online.de"  # comments welcome, testcases most welcome
@@ -91,6 +92,7 @@ __author_email__ = "denis-bz-py@t-online.de"  # comments welcome, testcases most
 #...............................................................................
 class Intergrid:
     __doc__ = globals()["__doc__"]
+    logger = logging.getLogger(__name__)
 
     def __init__( self, griddata, lo, hi, maps=[], copy=True, verbose=1,
             order=1, prefilter=False ):
@@ -152,10 +154,12 @@ class Intergrid:
                     j, n, len(map) )
                 mlo, mhi = map.min(), map.max()
                 if not (l <= mlo <= mhi <= h):
-                    print "Warning: Intergrid maps[%d] min %.3g max %.3g " \
+                    self.logger.warning("Warning: Intergrid maps[%d] min %.3g max %.3g " \
                         "are outside lo %.3g hi %.3g" % (
-                        j, mlo, mhi, l, h )
+                        j, mlo, mhi, l, h))
 
+                    import traceback
+                    traceback.print_stack()
 #...............................................................................
     def _map_to_uniform_grid( self, X ):
         """ clip, map X linear / nonlinear  inplace """
@@ -219,8 +223,8 @@ class Intergrid:
                 # test: mode="constant", cval=np.NaN,
             output=out )
         if self.verbose:
-            print "Intergrid: %.3g msec  %d points in a %s grid  %d maps  order %d" % (
-                (time() - t0) * 1000, npt, self.griddata.shape, self.nmap, self.order )
+            print("Intergrid: %.3g msec  %d points in a %s grid  %d maps  order %d" % (
+                (time() - t0) * 1000, npt, self.griddata.shape, self.nmap, self.order ))
         return out if Xdim == 2  else out[0]
 
     at = __call__

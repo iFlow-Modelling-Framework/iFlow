@@ -8,7 +8,7 @@ import numpy as np
 from scipy.linalg import solve_banded
 from nifty.integrate import integrate
 import nifty as ny
-from bandedMatrixMultiplication import bandedMatrixMultiplication
+from .bandedMatrixMultiplication import bandedMatrixMultiplication
 
 def uFunctionMomentumConservative(Av, F, Fsurf, Fbed, data, hasMatrix = False):
     # Init
@@ -102,7 +102,7 @@ def uFunctionMomentumConservative(Av, F, Fsurf, Fbed, data, hasMatrix = False):
 
                 DNsmall = bandedMatrixMultiplication(D, N[kmax, :, :], truncate=True)
                 DN = np.zeros((2*bandwidth+1, ftot), dtype=complex)
-                DN[bandwidth-(DNsmall.shape[0]-1)/2:bandwidth+(DNsmall.shape[0]-1)/2 + 1, :] = DNsmall
+                DN[bandwidth-int((DNsmall.shape[0]-1)/2):bandwidth+int((DNsmall.shape[0]-1)/2 + 1), :] = DNsmall
                 A[2*fmax+1:2*fmax+2*bandwidth+2, -ftot:] += DN
 
             # save matrix
@@ -110,7 +110,7 @@ def uFunctionMomentumConservative(Av, F, Fsurf, Fbed, data, hasMatrix = False):
             bandwidthA = bandwidth+ftot
         else:
             A = Av[j, Ellipsis]     # if hasMatrix Av replaces the role of the matrix in this equation
-            bandwidthA = (A.shape[0]-1)/2
+            bandwidthA = int((A.shape[0]-1)/2)
 
 
         ##### RIGHT HAND SIDE #####
@@ -160,7 +160,7 @@ def uFunctionMomentumConservative(Av, F, Fsurf, Fbed, data, hasMatrix = False):
             SfInvFbed = bandedMatVec(SfInv[j, Ellipsis], Fbed[j, 0,:, :])
 
             # rewrite to bandmatrix
-            bandwd_inv = (SfInvN.shape[0]-1)/2    # note: bandwidth of inverse velocity can be larger than other bandwidth
+            bandwd_inv = int((SfInvN.shape[0]-1)/2)    # note: bandwidth of inverse velocity can be larger than other bandwidth
             Ndiag = np.diag(SfInvN[bandwd_inv, :])
             for n in range(1, bandwd_inv+1):
                 Ndiag += np.diag(SfInvN[bandwd_inv+n, :-n], n)
@@ -222,7 +222,7 @@ def bandedMatVec(A, x):
     shape = list(A.shape)
     shape[0] = shape[1]
     Afull = np.zeros(shape, dtype=A.dtype)
-    bandwdA = (A.shape[0]-1)/2
+    bandwdA = int((A.shape[0]-1)/2)
     size = shape[1]
 
     Afull[(range(0, size), range(0, size))] += A[(bandwdA, slice(None))+(Ellipsis,)]

@@ -7,8 +7,8 @@ Authors: Y.M. Dijkstra
 import logging
 import numpy as np
 import nifty as ny
-from zetaFunctionMassConservative import zetaFunctionMassConservative
-from uFunctionMomentumConservative import uFunctionMomentumConservative
+from .zetaFunctionMassConservative import zetaFunctionMassConservative
+from .uFunctionMomentumConservative import uFunctionMomentumConservative
 
 
 class HydroFirst:

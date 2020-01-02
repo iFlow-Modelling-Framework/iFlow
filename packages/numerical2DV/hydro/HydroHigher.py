@@ -7,9 +7,9 @@ Authors: Y.M. Dijkstra
 import logging
 import numpy as np
 import nifty as ny
-from zetaFunctionMassConservative import zetaFunctionMassConservative
+from .zetaFunctionMassConservative import zetaFunctionMassConservative
 import scipy.misc
-from uFunctionMomentumConservative import uFunctionMomentumConservative
+from .uFunctionMomentumConservative import uFunctionMomentumConservative
 
 
 class HydroHigher:
