@@ -7,7 +7,7 @@ Takes the current order from the data (e.g. provided by 'HigherOrderIterator') a
 Date: 02-11-2016 (original date: 20-11-2015)
 Authors: Y.M. Dijkstra
 """
-from TurbulenceKepFitted_core import TurbulenceKepFitted_core
+from .TurbulenceKepFitted_core import TurbulenceKepFitted_core
 
 
 class KEFittedHigher(TurbulenceKepFitted_core):

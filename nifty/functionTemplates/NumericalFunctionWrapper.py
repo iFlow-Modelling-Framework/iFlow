@@ -18,7 +18,7 @@ Example:
 Date: 23-07-15
 Authors: Y.M. Dijkstra
 """
-from NumericalFunctionBase import NumericalFunctionBase
+from .NumericalFunctionBase import NumericalFunctionBase
 
 
 class NumericalFunctionWrapper(NumericalFunctionBase):
@@ -36,10 +36,10 @@ class NumericalFunctionWrapper(NumericalFunctionBase):
 
         # check if a grid is provided in DC data
         dimensions = gridData.v(gridName, 'dimensions')
-        dimNames = [dimensions[i] for i in range(0, len(value.shape))]
+        dimNames = [dimensions[i] for i in range(0, min(len(value.shape), len(dimensions)))]
         NumericalFunctionBase.__init__(self, dimNames)
 
         # add grid (with name 'grid') and value
-        self.addGrid(gridData)
+        self.addGrid(gridData, gridName='grid')
         self.addValue(value)
         return

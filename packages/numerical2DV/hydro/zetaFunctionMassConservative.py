@@ -81,7 +81,7 @@ def zetaFunctionMassConservative(M, F, Fopen, Fclosed, data, source=None, hasMat
         bandwidth = bandwidth+ftot
     else:
         A = M
-        bandwidth = (A.shape[0]-1)/2
+        bandwidth = int((A.shape[0]-1)/2)
 
     ##### RIGHT HAND SIDE #####
     nRHS = F.shape[-1]

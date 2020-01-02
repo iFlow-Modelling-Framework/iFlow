@@ -55,11 +55,11 @@ def primitive(u, dimNo, low, high, grid, *args, **kwargs):
         upInds = inds
         downInds = inds[:]
         if high > low:
-            upInds[dimNo] = [low] + range(low+1, high+1)
-            downInds[dimNo] = [low] + range(low, high)
+            upInds[dimNo] = [low] + list(range(low+1, high+1))
+            downInds[dimNo] = [low] + list(range(low, high))
         else:
-            upInds[dimNo] = range(high, low) + [low]
-            downInds[dimNo] = range(high+1, low+1) + [low]
+            upInds[dimNo] = list(range(high, low)) + [low]
+            downInds[dimNo] = list(range(high+1, low+1)) + [low]
 
         # take grid axis at the grid points required
         upaxis = np.multiply(grid.v('grid', 'axis', dim, *upInds, copy = 'all'), (grid.v('grid', 'high', dim, *upInds, copy = 'all')-grid.v('grid', 'low', dim, *upInds, copy = 'all')))+grid.v('grid', 'low', dim, *upInds, copy = 'all')
@@ -76,12 +76,12 @@ def primitive(u, dimNo, low, high, grid, *args, **kwargs):
         axis = axis.reshape(np.product(axis.shape))
         axis_mid = np.zeros(axis.shape)
         if high > low:
-            upInds[dimNo] = [low] + range(low+1, high+1)
-            downInds[dimNo] = [low] + range(low, high)
+            upInds[dimNo] = [low] + list(range(low+1, high+1))
+            downInds[dimNo] = [low] + list(range(low, high))
             axis_mid = 0.5*(axis[downInds[dimNo]] - axis[upInds[dimNo]])+axis[upInds[dimNo]]
         else:
-            upInds[dimNo] = range(high, low) + [low]
-            downInds[dimNo] = range(high+1, low+1) + [low]
+            upInds[dimNo] = list(range(high, low)) + [low]
+            downInds[dimNo] = list(range(high+1, low+1)) + [low]
             axis_mid = 0.5*(axis[downInds[dimNo]] - axis[upInds[dimNo]])+axis[upInds[dimNo]]
 
 

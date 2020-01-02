@@ -25,7 +25,7 @@ class ReferenceLevel:
     def stopping_criterion(self, iteration):
         self.iteration = iteration
         if hasattr(self, 'difference'):
-            print self.difference
+            print(self.difference)
             if self.difference < self.TOLLERANCE:
                 del self.difference
                 return True

@@ -2,9 +2,11 @@
 28-04-15 (update 18-01-2017)
 @author: Y.M. Dijkstra
 """
-import imp
+# import importlib as imp
 from src.util.diagnostics import KnownError
 from src.util.localpath import localpath
+import imp
+
 
 def dynamicImport(path, name):
     """Dynamically load a class from its path.
@@ -21,6 +23,8 @@ def dynamicImport(path, name):
     Raises:
         Exception is the class could not be found
     """
+    loader_details = (imp.machinery.ExtensionFileLoader, imp.machinery.EXTENSION_SUFFIXES)
+
     # set . as the path separator
     if path is None or path == '':
         packagePath = ''
@@ -42,7 +46,7 @@ def dynamicImport(path, name):
                 else:
                     modpack = imp.find_module(workpath[i], [modpack[1]])
             except ImportError as e:
-                raise KnownError('Error while loading module ' + '.'.join(workpath)+'.\nPlease check if '+str(workpath[-1]+' exists in package '+'.'.join(workpath[:-1]))+'.\nError given is: '+e.message)
+                raise KnownError('Error while loading module ' + '.'.join(workpath)+'.\nPlease check if '+str(workpath[-1]+' exists in package '+'.'.join(workpath[:-1]))+'.\nError given is: '+str(e))
             imp.load_module('.'.join(workpath[:i+1]), *modpack)
             i += 1
         # find and load the module
@@ -51,7 +55,7 @@ def dynamicImport(path, name):
         programMain_ = getattr(programPointer, name)
 
     except ImportError as e:
-        errorlocation = e.message.split(' ')[-1]
+        errorlocation = str(e).split(' ')[-1]
         errorlocation = errorlocation.split('.')[-1]
 
         if errorlocation==name:
@@ -59,7 +63,7 @@ def dynamicImport(path, name):
         else:
             raise           # re-raises the original exception
     except AttributeError as e:
-        errorlocation = e.message.split(' ')[-1]
+        errorlocation = str(e).split(' ')[-1]
         errorlocation = errorlocation.split('.')[-1]
         errorlocation = errorlocation.replace("'", "")
         errorlocation = errorlocation.replace('"', '')

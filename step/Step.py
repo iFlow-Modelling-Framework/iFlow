@@ -7,7 +7,7 @@ Authors: Y.M. Dijkstra, R.L. Brouwer
 import matplotlib as mpl
 import numpy as np
 import matplotlib.pyplot as plt
-import step_config as cf
+from . import step_config as cf
 from copy import copy
 import nifty as ny
 import itertools
@@ -64,7 +64,7 @@ class Step:
         # TODO: handle time axis
 
         # get all keys/subkeys to data
-        keyList = [axis[dataAxisNo]]+[i for i in args if isinstance(i, basestring)]     # key + subkeys to data
+        keyList = [axis[dataAxisNo]]+[i for i in args if isinstance(i, str)]     # key + subkeys to data
 
         # display a sub-level yes/no
         subplots = kwargs.get('subplots') or None           # which (if any) var to display in subplots
@@ -114,7 +114,7 @@ class Step:
         for combi in permutations:
             if subplots in looplist:    # make subplot frame if there are subplots
                 subplotIndex = looplist.index(subplots)
-                subplot_number = loopvalues[subplotIndex].index(combi[subplotIndex])
+                subplot_number = list(loopvalues[subplotIndex]).index(combi[subplotIndex])
                 plt.subplot(*(subplotShape+(subplot_number+1,)))
 
             ## load data
@@ -262,7 +262,7 @@ class Step:
         """
 
         # get all keys/subkeys to data
-        keyList = [value_label]+[i for i in args if isinstance(i, basestring)]      # key + subkeys to data
+        keyList = [value_label]+[i for i in args if isinstance(i, str)]      # key + subkeys to data
 
         # display a sub-level yes/no
         subplots = kwargs.get('subplots') or False          # Variable for subplots

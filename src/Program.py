@@ -15,14 +15,14 @@ if 'matplotlib.pyplot' not in sys.modules and 'matplotlib.pylab' not in sys.modu
     from matplotlib import use
     use('TkAgg')
 elif mpl.get_backend != 'TkAgg':
-    print 'Warning: iFlow could not load its preferred backend. iFlow\'s own plotting routines may not behave as expected. Probably your IDE (e.g. Spyder) loads its own backend. Please consider disabling the backend of your IDE.'
+    print('Warning: iFlow could not load its preferred backend. iFlow\'s own plotting routines may not behave as expected. Probably your IDE (e.g. Spyder) loads its own backend. Please consider disabling the backend of your IDE.')
 
 import logging
-from DataContainer import DataContainer
-from RegistryChecker import RegistryChecker
-from ModuleList import ModuleList
+from .DataContainer import DataContainer
+from .RegistryChecker import RegistryChecker
+from .ModuleList import ModuleList
 from nifty import toList
-from Reader import Reader
+from .Reader import Reader
 from src.util import importModulePackages
 from src.util.diagnostics import LogConfigurator
 from src.util.diagnostics.NoInputFileException import NoInputFileException
@@ -66,7 +66,7 @@ class Program:
 
         # display elapsed time
         if hasattr(cf, 'mode') and cf.mode == 'debug':
-            print 'Elapsed time per module:'
+            print('Elapsed time per module:')
             for i in self.moduleList.moduleList:
                 i.timer.disp(i.getName()+': ')
         return
@@ -179,10 +179,10 @@ class Program:
         return
 
     def __loadConfig(self):
-        import config
+        from . import config
         configvars = [var for var in dir(config) if not var.startswith('__')]
         d = {}
         for var in configvars:
-            exec('d[var] = config.'+var)
+            d[var] = eval('config.'+var)
         d['CWD'] = self.cwd
         return DataContainer(d)

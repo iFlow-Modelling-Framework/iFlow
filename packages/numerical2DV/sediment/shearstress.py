@@ -176,8 +176,8 @@ def shearstressCheb(tau_order, data, submodule=None, friction='Roughness'):     
     for i, t in enumerate(taub):
         dif = np.max(np.abs(t - taub1[i]))
         if dif>1.e-15:
-            print 'test stress ' + str(np.max(np.abs(t - taub1[i])))
-            print 'order ' + str(tau_order)
+            print('test stress ' + str(np.max(np.abs(t - taub1[i]))))
+            print('order ' + str(tau_order))
 
 
     # amplitude

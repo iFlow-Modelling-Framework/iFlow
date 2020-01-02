@@ -397,7 +397,7 @@ class EquilibriumAvailability:
             Smod = X[jmax + 1:]  # S at beginning of time step i+1
 
         ## Report result
-        self.logger.info('\t Erosion limited conditions; time iterator took %s iterations, last change: %s' % (str(i), str(difference)))
+        self.logger.info('\tErosion limited conditions; time iterator took %s iterations, last change: %s' % (str(i), str(difference)))
         self.X = X
 
         return f0, Smod

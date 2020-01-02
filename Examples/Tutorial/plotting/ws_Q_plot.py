@@ -42,7 +42,7 @@ class ws_Q_plot:
         ETMloc = np.nan*np.ones((len(v1), len(v2)))
         maxc = np.nan*np.ones((len(v1), len(v2)))
         for q, dat in enumerate(data):
-            print q
+            print(q)
 
             dc = self.input.v('experimentdata', dat)
             i = v1.index(dc.v(var1))
@@ -58,7 +58,7 @@ class ws_Q_plot:
                 loc = ny.toList(self.findETM(xdim, c))
                 ETMloc[i,j] = np.asarray(loc)
             except:
-                print 'no etm'
+                print('no etm')
 
 
         plt.figure(1, figsize=(1,1))
@@ -71,7 +71,7 @@ class ws_Q_plot:
 
         x_up_round = np.ceil(max(xdim)/10000.)*10.
         ETMloc[np.where(ETMloc>=x_up_round*1000.)] = x_up_round*1000.
-        levels = np.linspace(0., x_up_round, x_up_round/2+1)
+        levels = np.linspace(0., x_up_round, int(x_up_round/2+1))
         plt.contourf(np.asarray(v1), np.asarray(v2), ETMloc.T/1000., levels=levels)
         plt.title('ETM location (km)')
         if log1 == 'True':

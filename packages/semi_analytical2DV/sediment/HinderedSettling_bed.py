@@ -27,7 +27,7 @@ class HinderedSettling_bed:
 
         stop = False
         if hasattr(self, 'difference'):
-            self.logger.info('\t'+str(self.difference))
+            self.logger.info('\tHindered settling rel. difference in ws in last iteration: '+str(self.difference))
             if self.difference < self.TOLLERANCE*(1-self.RELAX):
                 stop = True
         return stop

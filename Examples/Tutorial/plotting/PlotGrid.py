@@ -25,10 +25,10 @@ class PlotGrid:
         z = ny.dimensionalAxis(self.input.slice('grid'), 'z')[:,:,0]
         x = ny.dimensionalAxis(self.input.slice('grid'), 'x')[:,:,0]
 
-        print 'maximum depth: ' + str(self.input.v('H', x=0))
-        print 'minimum depth: ' + str(self.input.v('H', x=1))
-        print 'maximum width: ' + str(self.input.v('B', x=0))
-        print 'minimum width: ' + str(self.input.v('B', x=1))
+        print('maximum depth: ' + str(self.input.v('H', x=0)))
+        print('minimum depth: ' + str(self.input.v('H', x=1)))
+        print('maximum width: ' + str(self.input.v('B', x=0)))
+        print('minimum width: ' + str(self.input.v('B', x=1)))
 
         plt.figure(1, figsize=(1,2))
         for i in range(0, z.shape[1]):

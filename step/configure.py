@@ -5,7 +5,7 @@ Date: 21-Feb-16
 Authors: Y.M. Dijkstra
 """
 import matplotlib as mpl
-import step_config as cf
+from . import step_config as cf
 from cycler import cycler
 import matplotlib.font_manager
 
@@ -48,7 +48,7 @@ def configure(axislimits=3):
     # Revert to matplotlib 1.. style instead of 2.. style (see https://matplotlib.org/users/dflt_style_changes.html)
     if int(mpl.__version__.split('.')[0]) > 1:
         # mpl.rcParams['axes.prop_cycle'] = cycler(color='bgrcmyk')
-        mpl.rcParams['axes.prop_cycle'] = cycler(color=[u'#1f77b4', u'#2ca02c', u'#ff7f0e', u'#d62728', u'#9467bd', u'#8c564b', u'#e377c2', u'#7f7f7f', u'#bcbd22', u'#17becf'])
+        mpl.rcParams['axes.prop_cycle'] = cycler(color=['#1f77b4', '#2ca02c', '#ff7f0e', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'])
         # mpl.rcParams['axes.prop_cycle'] = cycler(color=['#377eb8', '#ff7f00', '#4daf4a', '#f781bf', '#a65628', '#984ea3', '#999999', '#e41a1c', '#dede00'])
         # print cc
         # print cc2

@@ -6,7 +6,7 @@ Authors: Y.M. Dijkstra
 """
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import step_config as cf
+from . import step_config as cf
 
 
 def show(block=True, fname=None, hspace=0.6, wspace=0.4):   #, facecolor=(0.9765, 0.953, 0.9176)):

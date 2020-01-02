@@ -89,14 +89,14 @@ def axisDerivative(u, dim, dimNo, grid, *args, **kwargs):
         try:
             upInd = np.minimum(np.asarray(args[dimNo])+1, maxIndex)
         except:
-            upInd = np.asarray(range(1, maxIndex+1)+[maxIndex])
+            upInd = np.asarray(list(range(1, maxIndex+1))+[maxIndex])
         upInds[dimNo] = upInd
 
         downInds = inds[:]
         try:
             downInd = np.maximum(np.asarray(args[dimNo])-1, 0)
         except:
-            downInd = np.asarray([0] + range(0, maxIndex))
+            downInd = np.asarray([0] + list(range(0, maxIndex)))
         downInds[dimNo] = downInd
 
         upaxis = np.multiply(grid.v('grid', 'axis', dim, *upInds, copy='all'), (grid.v('grid', 'high', dim, *upInds, copy='all')-grid.v('grid', 'low', dim, *upInds, copy='all')))+grid.v('grid', 'low', dim, *upInds, copy='all')
@@ -108,14 +108,14 @@ def axisDerivative(u, dim, dimNo, grid, *args, **kwargs):
         try:
             upInd = np.minimum(np.asarray(args[dimNo])+1, maxIndex)
         except:
-            upInd = np.asarray(range(1, maxIndex+1)+[maxIndex])
+            upInd = np.asarray(list(range(1, maxIndex+1))+[maxIndex])
         upInds[dimNo] = upInd
 
         downInds = inds[:]
         try:
             downInd = np.minimum(np.asarray(args[dimNo]), maxIndex-1)
         except:
-            downInd = np.asarray(range(0, maxIndex) + [maxIndex-1])
+            downInd = np.asarray(list(range(0, maxIndex)) + [maxIndex-1])
         downInds[dimNo] = downInd
 
         upaxis = np.multiply(grid.v('grid', 'axis', dim, *upInds, copy='all'), (grid.v('grid', 'high', dim, *upInds, copy='all')-grid.v('grid', 'low', dim, *upInds, copy='all')))+grid.v('grid', 'low', dim, *upInds, copy='all')

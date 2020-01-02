@@ -6,7 +6,7 @@ Authors: Y.M. Dijkstra
 """
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import step_config as cf
+from . import step_config as cf
 
 
 def save(fname=None, hspace=0.6, wspace=0.4):

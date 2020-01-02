@@ -20,7 +20,7 @@ import types
 from nifty.dynamicImport import dynamicImport
 from nifty import toList, Timer
 from src.util.diagnostics import KnownError
-import DataContainer
+from . import DataContainer
 import inspect
 import logging
 import src.config as cf
@@ -93,7 +93,7 @@ class Module:
                 raise
             # Else raise a new KnownError
             else:
-                raise KnownError('Could not instantiate module %s. Please check if the init method is correct and if all variables used in the init method are also available to the module.\nDo this by checking whether all variables are provided on input and by checking the call stack.'% self.__register.v('module'), e)
+                raise KnownError('Could not instantiate module %s. Please check if the init method is correct and if all variables used in the init method are also available to the module.\nDo this by checking whether all variables are provided on input and by checking the call stack.'% self.__register.v('module'), str(e))
 
         if not (hasattr(self.module, 'run') and isinstance(self.module.run, types.MethodType)):
             raise KnownError('Module '+self.__register.v('module')+' has no working run() method')
@@ -213,6 +213,7 @@ class Module:
         except Exception as e:
             if cf.IGNOREEXCEPTIONS:
                 result = {'ERROR':True}
+                self.logger.error('FATAL ERROR OCCURRED.\nSIMULATION CONTINUES BECAUSE IGNOREEXCEPTIONS IS SET TO TRUE IN THE SRC/CONFIG.PY.')
                 pass
             else:
                 raise

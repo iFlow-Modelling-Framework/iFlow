@@ -23,8 +23,8 @@ def bandedMatrixMultiplication(A, B, truncate=False):
     shape[0] = shape[1]
     Afull = np.zeros(shape, dtype=A.dtype)
     Bfull = np.zeros(shape, dtype=B.dtype)
-    bandwdA = (A.shape[0]-1)/2
-    bandwdB = (B.shape[0]-1)/2
+    bandwdA = int((A.shape[0]-1)/2)
+    bandwdB = int((B.shape[0]-1)/2)
     size = shape[1]
 
     # convert both to full matrices

@@ -10,8 +10,8 @@ Authors: Y.M. Dijkstra
 import logging
 import numpy as np
 import nifty as ny
-from cFunction import cFunction
-from erosion import erosion
+from .cFunction import cFunction
+from .erosion import erosion
 
 
 class SedimentCapacity:

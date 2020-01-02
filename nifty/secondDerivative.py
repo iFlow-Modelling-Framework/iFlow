@@ -8,8 +8,8 @@ import numpy as np
 import nifty as ny
 from src.config import SECONDDERMETHOD
 from src.util.diagnostics import KnownError
-from derivative import derivative
-from derivative import axisDerivative
+from .derivative import derivative
+from .derivative import axisDerivative
 
 
 def secondDerivative(u, dimNo, grid, *args):
@@ -88,21 +88,21 @@ def axisSecondDerivative(u, dim, dimNo, grid, *args):
         try:
             upInd = np.maximum(np.minimum(np.asarray(args[dimNo])+1, maxIndex), 2)
         except:
-            upInd = np.asarray([2] + range(2, maxIndex+1)+[maxIndex])
+            upInd = np.asarray([2] + list(range(2, maxIndex+1))+[maxIndex])
         upInds[dimNo] = upInd
 
         midInds = inds[:]
         try:
             midInd = np.maximum(np.minimum(np.asarray(args[dimNo]), maxIndex-1), 1)
         except:
-            midInd = np.asarray([1] + range(1, maxIndex)+[maxIndex-1])
+            midInd = np.asarray([1] + list(range(1, maxIndex))+[maxIndex-1])
         midInds[dimNo] = midInd
 
         downInds = inds[:]
         try:
             downInd = np.maximum(np.minimum(np.asarray(args[dimNo])-1, maxIndex-2), 0)
         except:
-            downInd = np.asarray([0] + range(0, maxIndex-1)+[maxIndex-2])
+            downInd = np.asarray([0] + list(range(0, maxIndex-1))+[maxIndex-2])
         downInds[dimNo] = downInd
 
         upaxis = np.multiply(grid.v('grid', 'axis', dim, *upInds, copy='all'), (grid.v('grid', 'high', dim, *upInds, copy='all')-grid.v('grid', 'low', dim, *upInds, copy='all')))+grid.v('grid', 'low', dim, *upInds, copy='all')

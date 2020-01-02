@@ -6,11 +6,12 @@ Date: 02-11-15
 Authors: Y.M. Dijkstra, R.L. Brouwer
 """
 import logging
-from Program import Program
+from .Program import Program
 from src.util.diagnostics.NoInputFileException import NoInputFileException
 import time
 from nifty.Timer import Timer
 import os
+import importlib
 
 
 class iFlowTUI:   
@@ -43,7 +44,7 @@ class iFlowTUI:
         try:
             program.run()
         except NoInputFileException as e:
-            print e.message
+            print(e.message)
         timer.toc()
         self.logger.info(timer.string('\n'
                                       'iFlow run time'))
@@ -67,12 +68,12 @@ class iFlowTUI:
         """
         # import the self.config_menu file or create
         try:
-            import config_menu
+            from . import config_menu
         except:
             with open('src/config_menu.py', 'w') as file:
                 file.write('LASTINPUTFILES = []\n')
                 file.write('CWD = ""')
-            import config_menu
+            from . import config_menu
         self.config_menu = config_menu
 
         # get last files and cwd
@@ -81,32 +82,32 @@ class iFlowTUI:
 
         # 1. Print menu
         #   1a. title
-        print "iFlow version %s" % str(version)
-        print ''
+        print("iFlow version %s" % str(version))
+        print('')
 
         #   1b. Workding-directory
         if cwdpath:
-            print 'Current working directory set to '+cwdpath+'.'
+            print('Current working directory set to '+cwdpath+'.')
         else:
-            print 'No working directory set. Now working from the iFlow root directory.'
-        print 'Enter cwd to change the working directory.'
-        print ''
+            print('No working directory set. Now working from the iFlow root directory.')
+        print('Enter cwd to change the working directory.')
+        print('')
 
         #   1c. Ask for file
         if lastfiles:
-            print 'Please choose an input file from the list of recent files:'
+            print('Please choose an input file from the list of recent files:')
             for i, path in enumerate(lastfiles):
-                print '\t' + str(i+1) + '\t' + path
-            filePath = raw_input("or enter the path to a new input file: ")
-            print ''
+                print('\t' + str(i+1) + '\t' + path)
+            filePath = str(input("or enter the path to a new input file: "))
+            print('')
         else:
-            filePath = raw_input("Please enter the path to a new input file: ")
-            print ''
+            filePath = str(input("Please enter the path to a new input file: "))
+            print('')
 
         # 2. Handle menu output
         #   2a. change working directory
         if filePath == 'cwd' or filePath == 'CWD':
-            newcwd = raw_input('Please enter the path to the new working directory (entering no path will return the iFlow root directory):\n')
+            newcwd = str(input('Please enter the path to the new working directory (entering no path will return the iFlow root directory):\n'))
             if newcwd:
                 self.__updateCWD(newcwd)
             filePath = None
@@ -124,7 +125,7 @@ class iFlowTUI:
                 except ValueError:
                     pass
                 except IndexError:   # when filepath is integer, but exceeds the index of lastfiles
-                    print 'Index exceeds list of recent files. Please enter a different path.'
+                    print('Index exceeds list of recent files. Please enter a different path.')
                     filePath = None
 
             # update list of recent files
@@ -138,7 +139,7 @@ class iFlowTUI:
         """
         logging.shutdown()
         time.sleep(0.05)    # short pause to make sure that log is indeed flushed before final statement
-        raw_input("Done. Press enter to close all windows and end the program.")
+        input("Done. Press enter to close all windows and end the program.")
         return
 
     def __getRecentFiles(self):
@@ -161,7 +162,7 @@ class iFlowTUI:
         """
         # Check if the config menu file exists
         try:
-            reload(self.config_menu)
+            importlib.reload(self.config_menu)
             cwdpath = self.config_menu.CWD
         except:
             cwdpath = ''
@@ -195,10 +196,10 @@ class iFlowTUI:
         import fileinput
         for i, line in enumerate(fileinput.input("src/config_menu.py", inplace=True)):
             if i==0:
-                print 'LASTINPUTFILES = %s' % str(lastfiles)
+                print('LASTINPUTFILES = %s' % str(lastfiles))
             if not 'LASTINPUTFILES' in line:
                 line = line.replace('\n','')
-                print line
+                print(line)
         return
 
     def __updateCWD(self, cwdPath):
@@ -212,20 +213,20 @@ class iFlowTUI:
 
         # 1. test existence of directory
         if not os.path.exists(cwdPath):
-            print 'Directory could not be located.'
+            print('Directory could not be located.')
             if not os.path.isabs(cwdPath):
-                print 'Please enter the absolute path to the working directory, not the relative path.'
-            print ''
+                print('Please enter the absolute path to the working directory, not the relative path.')
+            print('')
             return
 
         # 2. make a new config file
         import fileinput
         for i, line in enumerate(fileinput.input("src/config_menu.py", inplace=True)):
             if i==0:
-                print 'CWD = %s' % "'"+str(cwdPath)+"'"
+                print('CWD = %s' % "'"+str(cwdPath)+"'")
             if not 'CWD' == line.strip()[:3]:
                 line = line.replace('\n','')
-                print line
+                print(line)
         return
 
 

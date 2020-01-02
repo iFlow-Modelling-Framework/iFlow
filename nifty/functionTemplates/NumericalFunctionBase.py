@@ -42,7 +42,7 @@ Use (same as for analytical functions, see also FunctionBase):
 Date: 16-07-15
 Authors: Y.M. Dijkstra
 """
-from FunctionBase import FunctionBase
+from .FunctionBase import FunctionBase
 from src.DataContainer import DataContainer
 from src.util.diagnostics import KnownError
 
@@ -126,6 +126,7 @@ class NumericalFunctionBase(FunctionBase):
     def addGrid(self, gridData, gridName='grid'):
         # set own DataContainer containing grid data
         data = gridData.slice(gridName, excludeKey=True)
+        # datanew = deepcopy(data)
         self.dataContainer.addData('grid', data.data)  # improper use of the DataContainer by accessing its data directly
         return
 
@@ -188,4 +189,3 @@ class NumericalFunctionBase(FunctionBase):
 class FunctionEvaluationError(Exception):
     def __init__(self, *args):
         return
-

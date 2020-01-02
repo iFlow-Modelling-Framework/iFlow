@@ -4,7 +4,7 @@ pickleload
 Date: 29-Feb-16
 Authors: Y.M. Dijkstra
 """
-import cPickle as pickle
+import pickle as pickle
 import types
 from src.util.diagnostics.KnownError import KnownError
 import src.DataContainer
@@ -16,8 +16,13 @@ def pickleload(filepath, variables):
         filepath = filepath+'.p'
 
     try:
-        with open(filepath,'rb') as fp:
-            alldata = pickle.load(fp)
+        try:
+            with open(filepath,'rb') as fp:
+                alldata = pickle.load(fp)
+        except UnicodeDecodeError:
+            with open(filepath, 'rb') as fp:
+                alldata = pickle.load(fp, encoding="latin1")
+
     except IOError as e:
         raise KnownError('Could not find file %s' % (filepath), e)
     except pickle.UnpicklingError as e:
@@ -31,7 +36,7 @@ def pickleload(filepath, variables):
         for key in variables:
             # verify that requested key exists, else raise an exception
             if key not in alldata:
-                raise KnownError('Could not load variable %s from file %s' % (key, file))
+                raise KnownError('Could not load variable %s from file %s' % (key, filepath))
             # load data
             d[key] = alldata[key]
 
@@ -46,7 +51,7 @@ def __convertfunction(data, variables):
         if isinstance(data[key], dict):
             __convertfunction(data[key], data[key].keys())
         # if instance, make it a function
-        elif isinstance(data[key], types.InstanceType):
+        elif hasattr(data[key], 'function'):
             # a. also change instances in datacontainers within the instance
             classvars = vars(data[key])
             for var in classvars:

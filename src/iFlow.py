@@ -6,7 +6,7 @@ Also catches KnownError and displays exceptions, which are iFlow specific error 
 Date: 02-11-15
 Authors: Y.M. Dijkstra, R.L. Brouwer
 """
-from iFlowTUI import iFlowTUI
+from .iFlowTUI import iFlowTUI
 from src.util.diagnostics import ExceptionHandler
 from src.util.diagnostics.KnownError import KnownError
 
@@ -20,8 +20,10 @@ class iFlow:
         """Start iFlow user interface and add src to python path"""
         # start user interface
         userInterface = iFlowTUI()
+        # userInterface.start(self.__version)
         try:
             userInterface.start(self.__version)
         except KnownError as e:  # TODO extend to all exceptions
+            # print(str(e))
             exceptionHandler = ExceptionHandler()
             exceptionHandler.handle(e)

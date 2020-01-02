@@ -38,7 +38,7 @@ def cFunction(ws, Kv, F, Fsurf, Fbed, data, hasMatrix = False):
     # If bandwidth=0, revert to a simpler solution method
     ####################################################################################################################
     if bandwidth == 0 or (hasMatrix and Kv.shape[1]==3):
-        from cFunctionUncoupled import cFunctionUncoupled
+        from .cFunctionUncoupled import cFunctionUncoupled
         for n in range(0, fmax+1):
             if np.all(F[:, :, fmax+n, :]==0) and np.all(F[:, :, fmax-n, :]==0) and np.all(Fsurf[:, :, fmax+n, :]==0) and np.all(Fsurf[:, :, fmax-n, :]==0) and np.all(Fbed[:, :, fmax+n, :]==0) and np.all(Fbed[:, :, fmax-n, :]==0):
                 cCoef_d[:, :, fmax+n, :] = 0
@@ -128,7 +128,7 @@ def cFunction(ws, Kv, F, Fsurf, Fbed, data, hasMatrix = False):
             bandwidthA = bandwidth+ftot
         else:
             A = Kv[j, Ellipsis]     # if hasMatrix Kv replaces the role of the matrix in this equation
-            bandwidthA = (A.shape[0]-1)/2
+            bandwidthA = int((A.shape[0]-1)/2)
 
         ################################################################################################################
         # Right hand side

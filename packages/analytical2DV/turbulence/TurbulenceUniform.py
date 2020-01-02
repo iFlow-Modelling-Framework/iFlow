@@ -7,7 +7,7 @@ Authors: Y.M. Dijkstra, R.L. Brouwer
 """
 import logging
 import nifty as ny
-from profiles.UniformXF import UniformXF
+from .profiles.UniformXF import UniformXF
 
 
 class TurbulenceUniform:

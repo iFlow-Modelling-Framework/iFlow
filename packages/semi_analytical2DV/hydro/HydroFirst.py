@@ -8,7 +8,7 @@ from scipy import integrate
 from nifty.functionTemplates.NumericalFunctionWrapper import NumericalFunctionWrapper
 import logging
 import nifty as ny
-from zetaFunctionUncoupled import zetaFunctionUncoupled
+from .zetaFunctionUncoupled import zetaFunctionUncoupled
 from src.util.diagnostics import KnownError
 
 

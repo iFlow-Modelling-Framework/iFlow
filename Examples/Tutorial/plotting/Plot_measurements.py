@@ -44,7 +44,7 @@ class Plot_measurements:
         c = self.input.v('c0', x=x, z=z, f=range(0, fmax+1)) + self.input.v('c1', x=x, z=z, f=range(0, fmax+1)) + self.input.v('c2', x=x, z=z, f=range(0, fmax+1))  # concentration (jmax+1, kmax+1, fmax+1)
 
         StotalB = ny.integrate(ny.integrate(B*c, 'z', kmax, 0, self.input.slice('grid')), 'x', 0, jmax, self.input.slice('grid'))   # compute total sediment stock
-        print 'Total sediment stock in domain (mln kg): '+str(np.real(StotalB[0,0,0])/1.e6)
+        print('Total sediment stock in domain (mln kg): '+str(np.real(StotalB[0,0,0])/1.e6))
 
         # use data from measurements
         measurementset = self.input.v('measurementset')

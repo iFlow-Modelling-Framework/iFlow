@@ -81,7 +81,7 @@ def complexAmplitudeProductNegative(u, v, dim):
     v = v.reshape(v.shape+(1,)*(dif))
     size = [max(u.shape[i], v.shape[i]) for i in range(0, len(u.shape))]
     uv = np.empty(size, dtype=complex)
-    fmax = (uv.shape[dim]-1)/2
+    fmax = int((uv.shape[dim]-1)/2)
     vcon = np.conjugate(v)
     ucon = np.conjugate(u)
 

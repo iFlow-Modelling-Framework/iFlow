@@ -24,14 +24,9 @@ class ExceptionHandler:
          which are fully displayed except for their call list.
         """
         if isinstance(e, KnownError):
-            d = {'type': e.getOriginalErrorType(), 
-                 'trace': traceback.format_exc(e)}
-            self.logger.error(e.message + 
-                              '\n\tSee the diagnostic file for further information'
-                              , extra=d)
+            # d = {'type': e.getOriginalErrorType(),
+            #      'trace': traceback.format_exc(e)}
+            self.logger.error('ERROR\n'+e.message+'\n\nIs this information not sufficient or inaccurate, see the debug file for traceback.')
         else:
-            self.logger.error(('An unknown error occurred' +
-                              '\n\tError type: ' + type(e).__name__ +
-                               '\n\tError message: ' + e.message) +
-                              '\n\tSee the diagnostic file for further information')
+            self.logger.exception('An unknown error occurred. Please see the traceback below.')
         return

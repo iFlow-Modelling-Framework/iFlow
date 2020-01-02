@@ -9,10 +9,10 @@ Date: 26-02-16
 Authors: Y.M. Dijkstra, R.L. Brouwer
 """
 import logging
-from Module import Module
+from .Module import Module
 from src.util.diagnostics import KnownError
 from nifty import toList
-from config import MAXITERATIONS
+from .config import MAXITERATIONS
 import copy
 
 
@@ -111,7 +111,7 @@ class ModuleList:
             if iterationNo == 0:
                 # no iteration
                 # sort the iterativeList and unplacedList so that non-iterative modules are always placed first
-                iterativeList, unplacedList = (list(x) for x in zip(*sorted(zip(iterativeList, unplacedList))))
+                iterativeList, unplacedList = (list(x) for x in zip(*sorted(zip(iterativeList, unplacedList), key=lambda pair: pair[0])))
 
             else:
                 # in an iteration
@@ -119,7 +119,7 @@ class ModuleList:
                 # if more modules can contribute, take non-iteratives first
                 contributionList = [(i in iterationReqList[-1]) for i in unplacedList]
                 iterativeList = [-i for i in iterativeList]      # sorting is reversed for contribution list, therefore also reverse iterativelist. Reverse back later
-                contributionList, iterativeList, unplacedList = (list(x) for x in zip(*sorted(zip(contributionList, iterativeList, unplacedList), reverse=True)))
+                contributionList, iterativeList, unplacedList = (list(x) for x in zip(*sorted(zip(contributionList, iterativeList, unplacedList), reverse=True, key=lambda pair: pair[0])))
                 iterativeList = [-i for i in iterativeList]
 
             # b. place modules that can be placed according to their input requirements
@@ -148,7 +148,7 @@ class ModuleList:
                 # add module if iterative output is requested and it belongs to this iteration loop
                 iteratingModules = [mod for mod in unplacedList if mod.getIteratesWith()]
                 outputmodule = [mod.isOutputModule() for mod in iteratingModules]                   # find output modules ...
-                iteratingModules = [x for (y,x) in sorted(zip(outputmodule, iteratingModules))]     #.. and sort them to set at the front
+                iteratingModules = [x for (y,x) in sorted(zip(outputmodule, iteratingModules), key=lambda pair: pair[0])]     #.. and sort them to set at the front
                 for mod in iteratingModules:
                     IterationModule = mod.getIteratesWith()                              # find with which module the output iterates or None if non-iterative
                     iterStartModuleName_list = [q.getName() for i, q in enumerate(self.callStack[0]) if (self.callStack[2][i]=='start' and self.callStack[1][i]==iterationNo)]    # find the module(s) that started the current iteration loop

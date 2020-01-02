@@ -7,7 +7,7 @@ Runs its parent's methods.
 Date: 02-11-2016 (original date: 20-11-2015)
 Authors: Y.M. Dijkstra
 """
-from TurbulenceKepFitted_core import TurbulenceKepFitted_core
+from .TurbulenceKepFitted_core import TurbulenceKepFitted_core
 
 
 class KEFittedTruncated(TurbulenceKepFitted_core):

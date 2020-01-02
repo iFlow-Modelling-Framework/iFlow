@@ -7,7 +7,7 @@ import logging
 import numpy as np
 from nifty.functionTemplates.NumericalFunctionWrapper import NumericalFunctionWrapper
 import nifty as ny
-from zetaFunctionUncoupled import zetaFunctionUncoupled
+from .zetaFunctionUncoupled import zetaFunctionUncoupled
 from src.util.diagnostics import KnownError
 
 

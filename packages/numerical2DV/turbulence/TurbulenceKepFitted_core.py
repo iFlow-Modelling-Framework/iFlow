@@ -73,7 +73,6 @@ class TurbulenceKepFitted_core:
         """
         # Init - read input variables
         d = {}
-
         if init:
             self.roughnessParameter = self.input.v('roughnessParameter')
             self.n = self.input.v('n')
@@ -87,7 +86,7 @@ class TurbulenceKepFitted_core:
         # 0. Reference level (initial)
         ################################################################################################################
 
-        if self.referenceLevel == 'True' and init and order < 1:
+        if self.referenceLevel == 'True' and init and (order is None or order < 1):
             # make initial grid
             if self.input.v('grid') == None:
                 grid = self._makegrid()
@@ -340,7 +339,7 @@ class TurbulenceKepFitted_core:
         # Init
         jmax = self.input.v('grid', 'maxIndex', 'x')
         fmax = self.input.v('grid', 'maxIndex', 'f')
-        if order < 1:
+        if order is None or order < 1:
             Avmin = self.Avmin
 
         #   Make a new data container with the roughness parameter with the depth-scaling param n incorporated
@@ -439,7 +438,7 @@ class TurbulenceKepFitted_core:
             sf0 = 0.22 / 0.636 * Cd_div_k2 * uabs[:, 0, :]
 
             #   background eddy viscosity
-            if order < 1:       # i.e. None or 0
+            if order is None or order < 1:       # i.e. None or 0
                 Av0[:, 0] = np.maximum(Av0[:,0], self.Avmin)
                 depth = self.input.v('grid', 'low', 'z', x=0) - self.input.v('grid', 'high', 'z', x=0)
                 sf0[:, 0] = np.maximum(sf0[:,0], self.Avmin*2/depth)       # minimum sf = 2*Avmin/H (relation from case 1a)
