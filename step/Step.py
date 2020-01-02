@@ -426,7 +426,7 @@ class Step:
                 else:
                     plt.title(value_name+' ('+value_unit+')', fontsize=cf.fontsize)
         plt.draw()
-        return
+        return cb
 
     def transportplot_mechanisms(self, **kwargs):
         """

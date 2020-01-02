@@ -49,7 +49,8 @@ class Iterator:
         for module in modules:
             module.addInputData(self.input.data)
             d1 = module.run(init=True)
-            d.update(d1.data)
+            d.update(d1)
+            self.input.merge(d1)            # make output of last run module available to the next ones
 
         return d
 
@@ -59,7 +60,8 @@ class Iterator:
         for module in modules:
             module.addInputData(self.input.data)
             d1 = module.run()
-            d.update(d1.data)
+            d.update(d1)
+            self.input.merge(d1)            # make output of last run module available to the next ones
 
         if self.iteration >= self.MAXITERS:     # output variable indicating if iterotor has converged or not.
             d['converged'] = False

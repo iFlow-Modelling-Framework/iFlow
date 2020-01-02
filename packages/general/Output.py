@@ -102,6 +102,8 @@ class Output:
             saveAnalytical = outputVariables
         if 'all' in dontConvert:
             dontConvert = outputVariables
+        # dontConvert.append('grid')
+        # dontConvert.append('outputgrid')
         self._convertData(saveData, grid, outputgrid, saveAnalytical, dontConvert)
 
         # rename the outputgrid to grid and replace the original grid in saveData
@@ -171,7 +173,9 @@ class Output:
                     dontConvert_nf = list(set([i[0] for i in data.dataContainer.getAllKeys()]))
                 else:                           # else, add the output grid to the nf
                     dontConvert_nf = []
-                    data.dataContainer.merge(outputgrid.data)
+                    data.dataContainer.merge(deepcopy(outputgrid.data))
+                # dontConvert_nf.append('grid')
+                # dontConvert_nf.append('outputgrid')
                 self._convertData(data.dataContainer, nfgrid, outputgrid, [], dontConvert_nf, convertGrid = True) # recursively convert the data inside the numerical function
 
             #   b. Other function + saveAnalytical
@@ -205,7 +209,15 @@ class Output:
                     gridname = self.outputgridName
 
                 # call on grid 'gridname'
-                data, _ = callDataOnGrid(saveData, keys, grid, gridname, False)
+                # if keys == ('outputgrid', 'axis', 'x'):
+                #     a=1
+                # data, _ = callDataOnGrid(saveData, keys, grid, gridname, False)
+                if not keys[0] == 'outputgrid':
+                    data, _ = callDataOnGrid(saveData, keys, grid, gridname, False)
+                else:
+                    saveData_temp = saveData.slice('outputgrid')
+                    saveData_temp.addData('grid', saveData_temp.data['outputgrid'])
+                    data, _ = callDataOnGrid(saveData_temp, keys, saveData_temp, gridname, False)
 
             # merge into saveData
             saveData.merge(self._buildDicts(keys, data))
@@ -251,6 +263,11 @@ class Output:
         # set output file name
         outnames = []
         for i, key in enumerate(outputnames):
+            key = key.strip('"')
+            key = key.strip("'")
+            key = key.split(',')
+            key = ','.join([self.__tryint(qq) for qq in key])
+
             exec('outnames.append(self.input.v('+key+'))')
             if not isinstance(outnames[-1], numbers.Number):
                 try:
@@ -297,4 +314,12 @@ class Output:
                                     'This variable is now only written to output if explicitly requested in input file. '
                                     'It is advised to change the name of the input/config variable.' % inkey[0])
         return inputKeys
+
+    def __tryint(self, i):
+        try:
+            int(i)
+            iout = i
+        except:
+            iout = "'"+i+"'"
+        return iout
 

@@ -15,7 +15,7 @@ iterative       True
 ## Module Output: standard iFlow output module ##
 # standard ouput module. Uses cPickle to produce binary output file(s)
 module          Output
-input           @output.requirements path filename  # optional 'iteratesWith'
+input           @output.requirements path filename outputgrid # optional 'iteratesWith'
 output          outputDirectory
 outputModule		True
 

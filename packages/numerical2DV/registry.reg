@@ -10,7 +10,7 @@
 module          RegularGrid
 packagePath
 input           L B H xgrid zgrid fgrid xoutputgrid zoutputgrid foutputgrid R
-output          grid outputGrid
+output          grid outputgrid
 
 module          HigherOrderIterator
 packagePath

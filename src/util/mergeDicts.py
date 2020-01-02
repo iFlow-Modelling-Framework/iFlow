@@ -6,6 +6,7 @@ Authors: Edward Loper, http://stackoverflow.com/questions/10703858/python-merge-
 """
 import collections
 
+
 def mergeDicts(d1, d2):
         """Modifies d1 in-place to contain values from d2.  If any value in d1 is a dictionary and the corresponding
         value in d2 is also a dictionary, then merge them in-place. Overwrites values of d1 on the lowest sub-dict level
@@ -18,6 +19,8 @@ def mergeDicts(d1, d2):
             if ( isinstance(v1, collections.Mapping) and
                  isinstance(v2, collections.Mapping) ):
                 mergeDicts(v1, v2)
+            elif(v1.__class__.__name__=='DataContainer' and v2.__class__.__name__=='DataContainer'):
+                v1.merge(v2)
             else:
                 d1[k] = v2
 

@@ -375,6 +375,7 @@ class EquilibriumAvailability:
         # remove any nans or infs from f0uncap
         f0uncap[np.where(f0uncap==np.inf)] = 0
         f0uncap[np.where(np.isnan(f0uncap))] = 0
+        f0uncap = np.minimum(f0uncap, 1e4)
 
         aeq = f0uncap / f0uncap[0]  # scale the availability such that aeq=1 at x=0
 
@@ -532,7 +533,10 @@ class EquilibriumAvailability:
         rhs[-1] = d
 
         # solve system of equations
-        S = scipy.linalg.solve_banded((1, 1), A, rhs)
+        try:
+            S = scipy.linalg.solve_banded((1, 1), A, rhs)
+        except:
+            a=1
 
         X[:jmax + 1] = htil + htil_der * (S - X[jmax + 1:])
         X[jmax + 1:] = S

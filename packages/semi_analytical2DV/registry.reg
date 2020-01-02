@@ -7,19 +7,19 @@
 ## Module HydroLead: semi-analytical2DV perturbation model - leading order ##
 module          HydroLead
 packagePath		hydro/
-input 			BottomBC grid Av Roughness OMEGA G
+input 			grid Av Roughness OMEGA G
 output			u0 zeta0 w0
 submodules		tide river
-river	input   A0 phase0
+tide  	input   A0 phase0
 		output
 
-tide	input   Q0
+river	input   Q0
 		output
 
 ## Module HydroFirst: semi-analytical2DV perturbation model - first order ##
 module          HydroFirst
 packagePath		hydro/
-input 			BottomBC grid Av Roughness OMEGA G
+input 			grid Av Roughness OMEGA G
 output			u1 zeta1        # NB. does not compute w1 - use numerical modules if w1 is needed
 submodules		tide river baroc stokes nostress adv
 tide	    input   A1  phase1

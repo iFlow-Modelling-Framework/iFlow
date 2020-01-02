@@ -45,6 +45,7 @@ Authors: Y.M. Dijkstra
 from FunctionBase import FunctionBase
 from src.DataContainer import DataContainer
 from src.util.diagnostics import KnownError
+from copy import deepcopy
 
 
 class NumericalFunctionBase(FunctionBase):
@@ -126,6 +127,7 @@ class NumericalFunctionBase(FunctionBase):
     def addGrid(self, gridData, gridName='grid'):
         # set own DataContainer containing grid data
         data = gridData.slice(gridName, excludeKey=True)
+        # datanew = deepcopy(data)
         self.dataContainer.addData('grid', data.data)  # improper use of the DataContainer by accessing its data directly
         return
 

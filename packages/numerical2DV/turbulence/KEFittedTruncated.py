@@ -17,6 +17,7 @@ class KEFittedTruncated(TurbulenceKepFitted_core):
     # Methods
     def __init__(self, input):
         TurbulenceKepFitted_core.__init__(self, input)
+        self.input = input
         return
 
     def run_init(self):

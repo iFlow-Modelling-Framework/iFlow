@@ -40,7 +40,7 @@ class Sensitivity:
             if not varkeys:
                 values = self.input.v(var)
                 values = self.interpretValues(values)
-                self.values[var] = values
+                self.values[var] = toList(values)
 
             # case 2: values in sub-dict
             else:

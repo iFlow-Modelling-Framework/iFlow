@@ -55,8 +55,9 @@ def secondDerivative(u, dimNo, grid, *args):
             u_ii = axisSecondDerivative(u, grid.v('grid', 'dimensions')[contrDimNo], contrDimNo, grid, *args)                                     # 2nd derivative wrt i
             axis_d = axisDerivative(axis, dim, dimNo, grid, *args)
             axis_dd = axisSecondDerivative(axis, dim, dimNo, grid, *args)
+
             # grid contraction
-            der = der - 2.*u_di*axis_d - u_ii*axis_d**2-u_i*axis_dd
+            der = der - 2.*u_di*axis_d - u_ii*axis_d**2-u_i*axis_dd   # TODO does not work yet for arrays with more dimensions than the grid
 
     return der
 

@@ -218,12 +218,14 @@ class Module:
                 raise
 
         # make a dataContainer for the result
-        try:
-            self.result = DataContainer.DataContainer(result)
-        except:
+        # try:                                          ## YMD 10-12-2019 not necessary to convert to DC. Keep as dict.
+        #     self.result = DataContainer.DataContainer(result)
+        # except:
+        #     raise KnownError('Output of module %s is invalid. Please make sure to return a dictionary.' % self.getName())
+        if not isinstance(result, dict):
             raise KnownError('Output of module %s is invalid. Please make sure to return a dictionary.' % self.getName())
         self.timer.toc()
-        return self.result
+        return result
 
     def stopping_criterion(self, iteration):
         """Invoke method 'stopping_criterion' of the underlying module. Pass iteration number down to the module.
