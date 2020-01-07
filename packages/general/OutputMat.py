@@ -259,7 +259,11 @@ class OutputMat:
         # set output file name
         outnames = []
         for i, key in enumerate(outputnames):
-            outnames.append(self.input.v(key))
+            key = key.strip('"')
+            key = key.strip("'")
+            key = key.split(',')
+            key = [self.__tryint(qq) for qq in key]
+            outnames.append(self.input.v(*key))
             if not isinstance(outnames[-1], numbers.Number):
                 try:
                     outnames[-1] = float(outnames[-1])
@@ -305,4 +309,11 @@ class OutputMat:
                                     'This variable is now only written to output if explicitly requested in input file. '
                                     'It is advised to change the name of the input/config variable.' % inkey[0])
         return inputKeys
+
+    def __tryint(self, i):
+        try:
+            i = int(i)
+        except:
+            pass
+        return i
 

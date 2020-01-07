@@ -266,8 +266,8 @@ class Output:
             key = key.strip('"')
             key = key.strip("'")
             key = key.split(',')
-            key = ','.join([self.__tryint(qq) for qq in key])
-            outnames.append(self.input.v(key))
+            key = [self.__tryint(qq) for qq in key]
+            outnames.append(self.input.v(*key))
             if not isinstance(outnames[-1], numbers.Number):
                 try:
                     outnames[-1] = float(outnames[-1])
@@ -316,9 +316,8 @@ class Output:
 
     def __tryint(self, i):
         try:
-            int(i)
-            iout = i
+            i = int(i)
         except:
-            iout = "'"+i+"'"
-        return iout
+            pass
+        return i
 

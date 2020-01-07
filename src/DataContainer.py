@@ -138,7 +138,7 @@ class DataContainer:
         for arg in args:
             value = value[arg]
         if isinstance(value, dict):
-            keyList = value.keys()
+            keyList = list(value.keys())
         else:
             keyList = []
         return keyList
