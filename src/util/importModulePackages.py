@@ -35,20 +35,8 @@ def importModulePackages(cwd, imports):
         slash2 = '/'
 
     loggingpath = []
-    # 1. import packages in 'packages' folder
-    #   list packages
-    modlist = []
-    for importer, modname, ispkg in pkgutil.walk_packages(path=packages.__path__, onerror=lambda x: None):
-        if ispkg:
-            modlist.append(modname)
 
-    #  add to path and set logging system
-    localpath.append(packages.__path__[0])
-    for modname in modlist:
-        localpath.append(packages.__path__[0] + slash2 + modname)
-        loggingpath.append(packages.__path__[0] + slash2 + modname)
-
-    # 2. add working directory
+    # 1. add working directory
     modlist = []
     cwd = cwd.replace(slash1, slash2)
     for importer, modname, ispkg in pkgutil.walk_packages(path=[cwd], onerror=lambda x: None):
@@ -61,7 +49,7 @@ def importModulePackages(cwd, imports):
         localpath.append(cwd + slash2 + modname)
         loggingpath.append(cwd + slash2 + modname)
 
-    # 3. add data from 'import' in input file
+    # 2. add data from 'import' in input file
     for DC in imports:
         path = DC.v('import')
         path = ' '.join(toList(path))
@@ -75,6 +63,19 @@ def importModulePackages(cwd, imports):
         localpath.append(os.path.abspath(slash2.join(path[:-1])))
         localpath.append(os.path.abspath(slash2.join(path)))
         loggingpath.append(os.path.abspath(slash2.join(path)))
+
+    # 3. import packages in 'packages' folder
+    #   list packages
+    modlist = []
+    for importer, modname, ispkg in pkgutil.walk_packages(path=packages.__path__, onerror=lambda x: None):
+        if ispkg:
+            modlist.append(modname)
+
+    #  add to path and set logging system
+    localpath.append(packages.__path__[0])
+    for modname in modlist:
+        localpath.append(packages.__path__[0] + slash2 + modname)
+        loggingpath.append(packages.__path__[0] + slash2 + modname)
 
     # add handlers to loggers in all paths
     for pth in loggingpath:

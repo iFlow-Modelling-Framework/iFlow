@@ -10,6 +10,7 @@ SECONDDERMETHOD = 'CENTRAL'
 INTMETHOD = 'TRAPEZOIDAL'
 MAXITERATIONS = 1000000          # maximum number of iterations in a single loop of modules
 IGNOREEXCEPTIONS = False
+DISABLELOGGINGFORMAT = True
 solver = 'numerical'            # solver for the semi analytical model 'numerical' or 'bvp'.
 mode = 'debug'
 

@@ -8,7 +8,7 @@ Authors: Y.M. Dijkstra
 import logging
 import os
 from src.util.diagnostics import DiagFormatter
-
+import src.config as cf
 
 class LogConfigurator:   
     # Variables
@@ -33,8 +33,9 @@ class LogConfigurator:
         """
         console = logging.StreamHandler() #MsgCounterHandler()
         console.setLevel(logging.INFO)
-        consoleFormat   = DiagFormatter('console')
-        console.setFormatter(consoleFormat)
+        if not cf.DISABLELOGGINGFORMAT:
+            consoleFormat   = DiagFormatter('console')
+            console.setFormatter(consoleFormat)
         if not any([isinstance(i, logging.StreamHandler) for i in self.logger.handlers]):       # add a streamHandler logger if one does not exist
             self.logger.addHandler(console)
         return
@@ -62,8 +63,9 @@ class LogConfigurator:
         # format and add handlers
         fileHandler = logging.FileHandler(logFilePath)
         fileHandler.setLevel(logging.INFO)
-        fileHandlerFormat = DiagFormatter('file')
-        fileHandler.setFormatter(fileHandlerFormat)
+        if not cf.DISABLELOGGINGFORMAT:
+            fileHandlerFormat = DiagFormatter('file')
+            fileHandler.setFormatter(fileHandlerFormat)
         self.logger.addHandler(fileHandler)
         
         return
