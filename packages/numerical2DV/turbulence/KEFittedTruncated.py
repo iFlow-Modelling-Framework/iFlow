@@ -32,6 +32,9 @@ class KEFittedTruncated(TurbulenceKepFitted_core):
         d['BottomBC'] = BottomBC
         if self.input.v('referenceLevel')=='True':
             d['R'] = R
+            d['grid']={}
+            d['grid']['low']={}
+            d['grid']['low']['z']=R
         return d
 
     def run(self):
@@ -45,5 +48,8 @@ class KEFittedTruncated(TurbulenceKepFitted_core):
         d['Av'] = Av
         if self.input.v('referenceLevel')=='True':
             d['R'] = R
+            d['grid']={}
+            d['grid']['low']={}
+            d['grid']['low']['z']=R
         return d
 

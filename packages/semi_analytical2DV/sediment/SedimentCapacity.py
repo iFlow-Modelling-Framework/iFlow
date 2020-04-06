@@ -140,6 +140,7 @@ class SedimentCapacity:
         # uabs_M0_x = np.gradient(uabs_M0[:, 0], self.x[1], edge_order=2).reshape(len(self.x), 1)     # Error: this is a derivative along the grid, not x
         uabs_M0 = absoluteU(self.u0, 0)
         uabs_M0_x = ny.derivative(uabs_M0, 'x', self.input.slice('grid'))[:, [-1]]                  # Improved code
+        uabs_M0 = uabs_M0[:, [-1]]
 
             # near-bed concentration, from erosion law
         if self.input.v('erosion_formulation') == 'Partheniades':

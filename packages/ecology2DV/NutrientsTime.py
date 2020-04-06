@@ -92,10 +92,8 @@ class NutrientsTime:
         E0 = self.input.v('E0')
         HI = self.input.v('HI')
 
-        T = 8*25.655*3600      # approximate
-        t = np.linspace(0, T, 100)
-        # T = 49*25.655*3600      # approximate
-        # t = np.linspace(0, T, 5000)
+        T = 29*25.655*3600      # 25.655 hrs is the difference frequency of the M2 tide and a day. After 29 cycles, exactly 60 tides and 31 days have passed
+        t = np.linspace(0, T, 1000)
 
         # Growth rate (Eppley, 1972)
         Temp = self.input.v('Temp', range(0, jmax+1), [0])
@@ -130,7 +128,7 @@ class NutrientsTime:
 
             # Light - daily cycle
             omega_E = self.input.v('omega_E')       # in 1/hr
-            self.E = np.maximum(E0*np.sin(t/3600.*omega_E-1.6), 0).reshape((1,1,len(t)))
+            self.E = np.maximum(E0*np.sin(t/3600.*omega_E), 0).reshape((1,1,len(t)))
 
         if init or kp > 0:
             # Light - self-shading
@@ -188,7 +186,7 @@ class NutrientsTime:
         HI = self.input.v('HI')
         mu = {}
 
-        T = 49*25.655*3600      # approximate
+        T = 29*25.655*3600      # 25.655 hrs is the difference frequency of the M2 tide and a day. After 29 cycles, exactly 60 tides and 31 days have passed
         t = np.linspace(0, T, 1000)
 
         # Growth rate (Eppley, 1972)
@@ -222,7 +220,7 @@ class NutrientsTime:
 
         # Light - daily cycle
         omega_E = self.input.v('omega_E')       # in 1/hr
-        dE = np.maximum(np.sin(t*omega_E), 0).reshape((1,1,1,len(t)))
+        dE = np.maximum(np.sin(t/3600*omega_E), 0).reshape((1,1,1,len(t)))
 
         # Light - self-shading
         kself = -kp*np.cumsum(Pprim, axis=1).reshape((jmax+1, kmax+1,1,1))

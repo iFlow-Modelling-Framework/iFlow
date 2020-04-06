@@ -11,10 +11,10 @@ modules      numerical2DV.KEFittedMAW semi_analytical2DV.HinderedSettling_bed
 
 ## Geometry ##
 module  analytical2DV.Geometry2DV
-L       64.e3
+L       64.e3                                                                                                           # Length of the domain (in m)
 B0 	    type    functions.Polynomial
- 	    C       -2.05001187e-20   3.26623360e-15  -1.77496965e-10   3.82812572e-06 -4.18442587e-02   7.62139923e+02
-H0      type    modulesJGR124.TangentLinear
+ 	    C       -2.05001187e-20   3.26623360e-15  -1.77496965e-10   3.82812572e-06 -4.18442587e-02   7.62139923e+02     # polynomial coefficients for the width profile -2.05001187e-20*x^5 + 3.26623360e-15*x^4 -1.77496965e-10*x^3+3.82812572e-06*x^2-4.18442587e-02*x+7.62139923e+02 (with x in m)
+H0      type    modulesJGR124.TangentLinear                                                                             # Formula for the depth profile 0.5*alpha*(1+tanh((x-xc)/xl) + 0.5*beta*x*(1+tanh((x-xc)/xl) + gamma
         alpha      -1.2
         beta       -5.1e-05
         gamma       10.
@@ -23,8 +23,8 @@ H0      type    modulesJGR124.TangentLinear
 
 ## Grid ##
 module	    numerical2DV.RegularGrid
-xgrid		equidistant     250
-zgrid	    equidistant     50
+xgrid		equidistant     250                                                                                         # number of grid points horizontal
+zgrid	    equidistant     50                                                                                          # number of grid points vertical
 fgrid		integer         2
 
 xoutputgrid    equidistant     100
@@ -34,12 +34,12 @@ foutputgrid    integer         2
 ## Hydrodynamics ##
 module      semi_analytical2DV.HydroLead semi_analytical2DV.HydroFirst numerical2DV.KEFittedMAW modulesJGR124.SalinityCoefficients
 submodules  tide river baroc adv nostress stokes #mixing
-A0			0 1.40 0
-A1			0 0 0.21
-phase0		0 0 0
-phase1		0 0 -172
+A0			0 1.40 0                                                                                                    # Tidal amplitude at x=0 - M2 component (in m)
+A1			0 0 0.21                                                                                                    # Tidal amplitude at x=0 - M4 component (in m)
+phase0		0 0 0                                                                                                       # Tidal phase at x=0 - M2 component (in deg)
+phase1		0 0 -172                                                                                                    # Tidal phase at x=0 - M4 component (in deg)
 Q0			0
-Q1          80
+Q1          80                                                                                                          # River discharge
 
 roughnessParameter  z0*
 n                   0.
@@ -50,27 +50,27 @@ Avmin               1.e-6
 lambda              1
 truncationOrder     1
 uzmin               0.03
-z0*                 0.0093
+z0*                 0.0093                                                                                              # Roughness coefficient z0*=z0/H(x=0)
 Ribedmax            2.
 
 ## Salinity ##
 #conditions Ems
-module      analytical2DV.SaltHyperbolicTangent
+module      analytical2DV.SaltHyperbolicTangent                                                                         # salinity profile ssea/2*(1-tanh((x-xc)/xl)); parameters are coded separately for each discharge in folder modulesJGR124/SalinityCoefficients.py: for Q=80 xc=34900 xl=11500, for Q=40 xc=38700 xl=12700
 ssea        30
 
 ## Sediment ##
 module      semi_analytical2DV.SedimentCapacity semi_analytical2DV.EquilibriumAvailability semi_analytical2DV.HinderedSettling_bed
 submodules  erosion noflux sedadv   # mixing
-finf        0.02
-Kh          100
+finf        0.02                                                                                                        # Erosion parameter (s/m, Partheniades formula: Erosion=M|tau_bed|; no critical shear stress)
+Kh          100                                                                                                         # Horizontal dispersion parameter (m2/s)
 erosion_formulation Partheniades
 sedbc       csea
-csea        0.1
+csea        0.1                                                                                                         # Uniform constant concentration prescribed at x=0 (g/l)
 friction    skin_friction
 
-mhs         5
-cgel        100.
-ws00        1e-3
+mhs         5                                                                                                           # Power in Richardson & Zaki hindered settling formula
+cgel        100.                                                                                                        # Gelling concentration (g/l)
+ws00        1e-3                                                                                                        # Clear-water settling velocity
 wsmin       1e-6
 
 ## Output ##
