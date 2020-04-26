@@ -183,6 +183,9 @@ class Module:
     def setSubmoduleRunList(self, iter):
         self.submodulesToRun = self.getSubmodulesToRun(iter)
 
+    def getInput(self):
+        return self.__input
+
     def addInputData(self, d):
         """Append the input data by d
 

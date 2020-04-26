@@ -1,3 +1,4 @@
 from src import iFlow
 
-iFlow.iFlow()
+iflow = iFlow.iFlow()
+iflow.StartTUI()

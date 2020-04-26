@@ -242,6 +242,13 @@ class ModuleList:
         self.__runLoop(0, len(self.callStack[0])-1, 0)
         return
 
+    def getResults(self):
+        from .DataContainer import DataContainer
+        dc = DataContainer()
+        for module in self.callStack[0]:
+            dc.merge(module.getInput())
+        return dc
+
     def __runLoop(self, imin, imax, loopNo, **kwargs):
         """Rebuild the call stack by using recursion and then run
         In the rebuilt version of the call stack, loops are represented by one entity. So
@@ -302,6 +309,51 @@ class ModuleList:
                 if result is not None:
                     for module in self.callStack[0]:
                         module.addInputData(result)
+
+                ## DEBUG MEMORY MANAGEMENT ##
+                # import step as st
+                # import matplotlib.pyplot as plt
+                #
+                # d_dc = {}
+                # d_data = {}
+                # d_vars = {}
+                # plt.figure(1, figsize=(1,2))
+                # for module in self.callStack[0]:
+                #     input =  module.getInput()
+                #
+                #     ## Register dc
+                #     k1 = id(input)
+                #     if k1 in d_dc.keys():
+                #         no1 = d_dc[k1]
+                #     else:
+                #         no1 = len(d_dc.keys())
+                #         d_dc[k1] = no1
+                #
+                #     ## Register data
+                #     k2 = id(input)
+                #     if k2 in d_data.keys():
+                #         no2 = d_data[k2]
+                #     else:
+                #         no2 = len(d_data.keys())
+                #         d_data[k2] = no2
+                #
+                #     # Plot link dc and data
+                #     plt.plot([no1, no2], [0,1], 'bo-')
+                #
+                #     ## Register variables
+                #     for var in input.data.keys():
+                #         if not isinstance(input.data[var], str) and not isinstance(input.data[var], int) and not isinstance(input.data[var], list) and not isinstance(input.data[var], float):
+                #             k3 = id(input.data[var])
+                #             if k3 in d_vars.keys():
+                #                 no3 = d_vars[k3]
+                #             else:
+                #                 no3 = len(d_vars.keys())
+                #                 d_vars[k3] = no3
+                #                 plt.text(no3, 2, var, rotation=90, fontsize=6)
+                #
+                #             plt.plot([no2, no3], [1,2], 'ro-')
+                # st.show()
+
         return
 
     def __checkInputRequirements(self):

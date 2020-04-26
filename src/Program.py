@@ -35,12 +35,13 @@ class Program:
     logger = logging.getLogger(__name__)
 
     # Methods
-    def __init__(self, cwd, inputFilePath):
+    def __init__(self, cwd, inputFilePath, additionalInputData=None):
         """create utilities required by the program,
         i.e. a registry checker, reader and module list
         """
         self.cwd = cwd
         self.inputFilePath = inputFilePath
+        self.additionalInputData = additionalInputData
 
         self._registryChecker = RegistryChecker()
         self._inputReader = Reader()
@@ -70,6 +71,9 @@ class Program:
             for i in self.moduleList.moduleList:
                 i.timer.disp(i.getName()+': ')
         return
+
+    def getResults(self):
+        return self.moduleList.getResults()
 
     def __makeLogger(self, inputpath):
         # make console logger
@@ -169,6 +173,10 @@ class Program:
                     data.merge(dataContainer)
                     data.addData('module', moduleName)
                     data.addData('inputFile', self.inputFilePath)       # output needs the input file, add this to its data
+
+                # add additional input data (if available)
+                if self.additionalInputData is not None:
+                    data.merge(self.additionalInputData)
 
                 # make the module
                 self.moduleList.addModule(data, registerData, outputReq)
