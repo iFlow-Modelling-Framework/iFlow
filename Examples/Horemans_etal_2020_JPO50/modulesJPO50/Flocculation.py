@@ -48,6 +48,7 @@ class Flocculation:
         d['ws1'] = self.input.v('ws10')
 
         return d
+
     def shearRate(self, zz):
         H = self.input.v('H', x=self.input.v('grid', 'axis', 'x'))
         x = self.input.v('grid', 'axis', 'x')
@@ -66,14 +67,6 @@ class Flocculation:
         G = np.sqrt(np.power(ub, 3) * np.power(kappa / (np.log(zz*H / z0)), 3.) * (1 - zz) / (H * nu * kappa * zz))
 
         return G
-    def sqrtFit(self, Chla, dd,e):
-        out = []
-        for Chla_ in Chla:
-            if Chla_ > e:
-                out.append(dd * np.sqrt(Chla_-e))
-            else:
-                out.append(0)
-        return np.asarray(out)
 
     def run(self):
         self.logger.info('Running module flocculation')
