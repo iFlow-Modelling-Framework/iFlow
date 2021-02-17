@@ -156,7 +156,7 @@ class Flocculation:
             # Compute ws1 contribution which does not linearly scale to the suspended sediment concentration using
             # ws1ContributionNonlinearInC()
             wsAdditional = ws1ContributionNonlinearInC(A0=c0[:, :, 0], dA0=dzc00[:, :], A2=c0[:, :, 2],
-                                 dA2=dzc02[:, :], beta=beta[:, :, 0], Kv=Av[:, :, 0], tau=tau)
+                                 dA2=dzc02[:, :], beta=beta[:, :, 0], Kv=Av[:, :, 0]/self.input.v('sigma_rho'), tau=tau)
 
             # Add wsAdditional to ws1 which is due to the contribution which linearly scales to the suspended sediment
             # concentration
