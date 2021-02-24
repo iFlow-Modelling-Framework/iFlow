@@ -8,8 +8,7 @@ import numpy as np
 import nifty as ny
 import logging
 from datetime import datetime
-from modulesJPO50.savitzky_golay import savitzky_golay
-from modulesJPO50.ws1ContributionNonlinearInC import ws1ContributionNonlinearInC
+from ws1ContributionNonlinearInC import ws1ContributionNonlinearInC
 import math
 
 class Flocculation:
@@ -179,8 +178,8 @@ class Flocculation:
             # Smooth ws0 over longitudinal x-axis for each depth zi and for f=0:2. Exclude upstream boundary point.
             for zi in range(0, kmax+1):
                 for kj in range(0, 3):
-                    ws0[xstart:-1, zi, kj] = savitzky_golay(ws0[xstart:-1, zi, kj], window_size=15, order=ord)
-                    ws1[xstart:-1, zi, kj] = savitzky_golay(ws1[xstart:-1, zi, kj], window_size=15, order=ord)
+                    ws0[xstart:-1, zi, kj] = ny.savitzky_golay(ws0[xstart:-1, zi, kj], window_size=15, order=ord)
+                    ws1[xstart:-1, zi, kj] = ny.savitzky_golay(ws1[xstart:-1, zi, kj], window_size=15, order=ord)
 
         # At the upstream border, remove temporal fluctuations in ws1
         ws1[-1,:,1] = 0.

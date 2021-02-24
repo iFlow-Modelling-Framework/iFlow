@@ -31,14 +31,14 @@ def ws1ContributionNonlinearInC(A0, dA0, A2, dA2, beta, Kv, tau):
 
     from numpy.lib import scimath
     import numpy as np
-    from modulesJPO50.savitzky_golay import savitzky_golay
+    import nifty as ny
 
     # Apply smoothing of the suspended sediment concentration
     for zi in range(0, A2.shape[1]):
-        A0[:,zi] = savitzky_golay(A0[:, zi], window_size=15, order=1)
-        A2[:, zi] = savitzky_golay(A2[:, zi], window_size=15, order=1)
-        dA0[:, zi] = savitzky_golay(dA0[:, zi], window_size=15, order=1)
-        dA2[:, zi] = savitzky_golay(dA2[:, zi], window_size=15, order=1)
+        A0[:,zi] = ny.savitzky_golay(A0[:, zi], window_size=15, order=1)
+        A2[:, zi] = ny.savitzky_golay(A2[:, zi], window_size=15, order=1)
+        dA0[:, zi] = ny.savitzky_golay(dA0[:, zi], window_size=15, order=1)
+        dA2[:, zi] = ny.savitzky_golay(dA2[:, zi], window_size=15, order=1)
 
     # Compute the complex conjugate of the suspended sediment concentration
     A0C = np.conj(A0)

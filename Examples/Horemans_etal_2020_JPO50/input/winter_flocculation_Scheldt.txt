@@ -75,7 +75,7 @@ Q           233.
 loopstyle   permutations # simultaneous or permutations
 
 ## Flocculation ##
-module      modulesJPO50.Flocculation
+module      semi_analytical2DV.Flocculation
 ws00            2.15e-3
 ws10            2e-4
 kA              0.31

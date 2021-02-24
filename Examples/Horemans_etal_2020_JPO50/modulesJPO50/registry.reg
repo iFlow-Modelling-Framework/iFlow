@@ -2,12 +2,6 @@ module                  Plot_base_model
 visualisationModule		True
 input                   grid c0 c1 c2
 
-module      Flocculation
-inputInit   ws00 ws10
-input       c0 c1 kB kA fs Gs Dp mu skip_first spatial includec2 timeLimit ws00Skip smooth H scaleShearRate kASal NaNProblem
-output      ws0 ws1 picardConverged
-iterative   True
-
 module          calcQ
 input           QTributary Q
 output          Q1 Qsource

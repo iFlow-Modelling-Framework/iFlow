@@ -73,3 +73,13 @@ module          SedimentSource
 packagePath     sediment/
 input           QC_c QC_exp Q1 grid B x_sedsource type_sedsource Q_sedsource
 output          Qsed sedsource
+
+########################################################################################################################
+# Subpackage flocculation
+########################################################################################################################
+module      Flocculation
+packagePath flocculation/
+inputInit   ws00 ws10
+input       c0 c1 kB kA fs Gs Dp mu skip_first spatial includec2 timeLimit ws00Skip smooth H scaleShearRate kASal NaNProblem
+output      ws0 ws1 picardConverged
+iterative   True

@@ -5,10 +5,10 @@ settling velocity (Fig. 5c), and transport capacity mechanisms (Fig. 6a).
 Date: 17-Aug-20
 Authors: D.M.L. Horemans
 """
-import step as st
 import numpy as np
-from modulesJPO50 import Step
-from modulesJPO50.savitzky_golay import savitzky_golay
+from step import Step
+import step as st
+import nifty as ny
 
 class Plot_base_model:
     # Variables
@@ -36,9 +36,9 @@ class Plot_base_model:
             ord = 1  # order of smoothing
             xstart = 0  # start smoothing from longitudinal x-axis value.
             for zi in range(0, kmax + 1):
-                c0_tmp[xstart:-1, zi, 0] = savitzky_golay(c0_tmp[xstart:-1, zi, 0], window_size=7, order=ord)#.reshape(c0_tmp.shape[0]-1, 1)
-                c1_tmp[xstart:-1, zi, 0] = savitzky_golay(c1_tmp[xstart:-1, zi, 0], window_size=7, order=ord)#.reshape(c1_tmp.shape[0]-1, 1)
-                c2_tmp[xstart:-1, zi, 0] = savitzky_golay(c2_tmp[xstart:-1, zi, 0], window_size=7, order=ord)#.reshape(c2_tmp.shape[0]-1, 1)
+                c0_tmp[xstart:-1, zi, 0] = ny.savitzky_golay(c0_tmp[xstart:-1, zi, 0], window_size=7, order=ord)#.reshape(c0_tmp.shape[0]-1, 1)
+                c1_tmp[xstart:-1, zi, 0] = ny.savitzky_golay(c1_tmp[xstart:-1, zi, 0], window_size=7, order=ord)#.reshape(c1_tmp.shape[0]-1, 1)
+                c2_tmp[xstart:-1, zi, 0] = ny.savitzky_golay(c2_tmp[xstart:-1, zi, 0], window_size=7, order=ord)#.reshape(c2_tmp.shape[0]-1, 1)
 
             self.input.addData('csubt', (c0_tmp + c1_tmp + c2_tmp) * 1000)
 
