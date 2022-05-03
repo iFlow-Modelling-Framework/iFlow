@@ -1,0 +1,122 @@
+Call stack was built successfully (in src.ModuleList)
+** Call stack ** (in src.ModuleList)
+1	networkmodules.NetworkSetup			 (in src.ModuleList)
+2	networkmodules.NetworkGeometry		Loop 1	start (in src.ModuleList)
+3	analytical2DV.Geometry2DV		Loop 1	 (in src.ModuleList)
+4	networkmodules.Plot			 (in src.ModuleList)
+ (in src.ModuleList)
+** Run ** (in src.ModuleList)
+WARNING: Not all modules will be used.
+Module(s) numerical2DV.RegularGrid will not be run
+Computation will continue.
+ (in src.ModuleList)
+Call stack was built successfully (in src.ModuleList)
+** Call stack ** (in src.ModuleList)
+1	networkmodules.NetworkSetup			 (in src.ModuleList)
+2	networkmodules.NetworkGeometry		Loop 1	start (in src.ModuleList)
+3	analytical2DV.Geometry2DV		Loop 1	 (in src.ModuleList)
+4	networkmodules.Plot			 (in src.ModuleList)
+ (in src.ModuleList)
+** Run ** (in src.ModuleList)
+
+iFlow run time: 170.0 msec (in src.iFlowTUI)
+WARNING: Not all modules will be used.
+Module(s) numerical2DV.RegularGrid will not be run
+Computation will continue.
+ (in src.ModuleList)
+Call stack was built successfully (in src.ModuleList)
+** Call stack ** (in src.ModuleList)
+1	networkmodules.NetworkSetup			 (in src.ModuleList)
+2	networkmodules.NetworkGeometry		Loop 1	start (in src.ModuleList)
+3	analytical2DV.Geometry2DV		Loop 1	 (in src.ModuleList)
+4	networkmodules.NetworkGrid		Loop 1	start (in src.ModuleList)
+5	networkmodules.Plot			 (in src.ModuleList)
+ (in src.ModuleList)
+** Run ** (in src.ModuleList)
+Call stack was built successfully (in src.ModuleList)
+** Call stack ** (in src.ModuleList)
+1	networkmodules.NetworkSetup			 (in src.ModuleList)
+2	networkmodules.NetworkGeometry		Loop 1	start (in src.ModuleList)
+3	analytical2DV.Geometry2DV		Loop 1	 (in src.ModuleList)
+4	networkmodules.NetworkGrid		Loop 1	start (in src.ModuleList)
+5	numerical2DV.RegularGrid			 (in src.ModuleList)
+6	networkmodules.Plot			 (in src.ModuleList)
+ (in src.ModuleList)
+** Run ** (in src.ModuleList)
+Call stack was built successfully (in src.ModuleList)
+** Call stack ** (in src.ModuleList)
+1	networkmodules.NetworkSetup			 (in src.ModuleList)
+2	networkmodules.NetworkGeometry		Loop 1	start (in src.ModuleList)
+3	analytical2DV.Geometry2DV		Loop 1	 (in src.ModuleList)
+4	networkmodules.NetworkGrid		Loop 1	start (in src.ModuleList)
+5	numerical2DV.RegularGrid		Loop 1	 (in src.ModuleList)
+6	networkmodules.Plot			 (in src.ModuleList)
+ (in src.ModuleList)
+** Run ** (in src.ModuleList)
+Call stack was built successfully (in src.ModuleList)
+** Call stack ** (in src.ModuleList)
+1	networkmodules.NetworkSetup			 (in src.ModuleList)
+2	networkmodules.NetworkGeometry		Loop 1	start (in src.ModuleList)
+3	analytical2DV.Geometry2DV		Loop 1	 (in src.ModuleList)
+4	networkmodules.NetworkGrid		Loop 1	start (in src.ModuleList)
+5	numerical2DV.RegularGrid		Loop 1	 (in src.ModuleList)
+6	networkmodules.Plot			 (in src.ModuleList)
+ (in src.ModuleList)
+** Run ** (in src.ModuleList)
+Call stack was built successfully (in src.ModuleList)
+** Call stack ** (in src.ModuleList)
+1	networkmodules.NetworkSetup			 (in src.ModuleList)
+2	networkmodules.NetworkGeometry		Loop 1	start (in src.ModuleList)
+3	analytical2DV.Geometry2DV		Loop 1	 (in src.ModuleList)
+4	networkmodules.NetworkGrid		Loop 1	start (in src.ModuleList)
+5	numerical2DV.RegularGrid		Loop 1	 (in src.ModuleList)
+6	networkmodules.Plot			 (in src.ModuleList)
+ (in src.ModuleList)
+** Run ** (in src.ModuleList)
+
+iFlow run time: 100.0 msec (in src.iFlowTUI)
+Call stack was built successfully (in src.ModuleList)
+** Call stack ** (in src.ModuleList)
+1	networkmodules.NetworkSetup			 (in src.ModuleList)
+2	networkmodules.NetworkGeometry		Loop 1	start (in src.ModuleList)
+3	analytical2DV.Geometry2DV		Loop 1	 (in src.ModuleList)
+4	networkmodules.NetworkGrid		Loop 1	start (in src.ModuleList)
+5	numerical2DV.RegularGrid		Loop 1	 (in src.ModuleList)
+6	networkmodules.Plot			 (in src.ModuleList)
+ (in src.ModuleList)
+** Run ** (in src.ModuleList)
+
+iFlow run time: 197.0 msec (in src.iFlowTUI)
+
+ERROR: Not all required variables are given. Missing 'xoutputgrid, zoutputgrid, foutputgrid' in module 'numerical2DV.RegularGrid'.
+Variables can be calculated in other modules, given on input or specified in the iFlow config file
+	See the diagnostic file for further information
+---------------------------
+Error type: NoneType
+Error traceback: Traceback (most recent call last):
+  File "D:\Work\PhD\iFlow\iFlow\src\iFlow.py", line 24, in __init__
+    userInterface.start(self.__version)
+  File "D:\Work\PhD\iFlow\iFlow\src\iFlowTUI.py", line 44, in start
+    program.run()
+  File "D:\Work\PhD\iFlow\iFlow\src\Program.py", line 62, in run
+    self.__buildCallStack()
+  File "D:\Work\PhD\iFlow\iFlow\src\Program.py", line 178, in __buildCallStack
+    self.moduleList.buildCallStack()
+  File "D:\Work\PhD\iFlow\iFlow\src\ModuleList.py", line 79, in buildCallStack
+    self.__checkInputRequirements()
+  File "D:\Work\PhD\iFlow\iFlow\src\ModuleList.py", line 332, in __checkInputRequirements
+    raise KnownError(message)
+KnownError
+
+Call stack was built successfully (in src.ModuleList)
+** Call stack ** (in src.ModuleList)
+1	networkmodules.NetworkSetup			 (in src.ModuleList)
+2	networkmodules.NetworkGeometry		Loop 1	start (in src.ModuleList)
+3	analytical2DV.Geometry2DV		Loop 1	 (in src.ModuleList)
+4	networkmodules.NetworkGrid		Loop 1	start (in src.ModuleList)
+5	numerical2DV.RegularGrid		Loop 1	 (in src.ModuleList)
+6	networkmodules.Plot			 (in src.ModuleList)
+ (in src.ModuleList)
+** Run ** (in src.ModuleList)
+
+iFlow run time: 146.0 msec (in src.iFlowTUI)

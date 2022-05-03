@@ -1,0 +1,102 @@
+module          NetworkSedimentCapacity
+PackagePath
+inputInit       networksettings
+input           hatc0 hatc1 hatc2 u1
+output          network Kv
+iterative       True
+
+module          NetworkEquilibriumAvailability
+PackagePath
+inputInit       networksettings
+input           hatc0 hatc1 hatc2 
+output          network
+#iterative       True
+
+module          NetworkHydroLead
+packagePath
+inputInit       networksettings
+input           u0 zeta0 Av
+output          A0 Q0 phase0 network 
+iterative       True
+
+module          HydroLead_2
+packagePath		
+input 		BottomBC grid Av Roughness OMEGA G 
+output		u0 zeta0 w0 
+submodules	tide_2
+tide_2	input   A0 phase0
+        output  tide_2
+
+module          NetworkHydroFirst
+packagePath
+inputInit       networksettings 
+input           u1 zeta1 A0
+output          A1 phase1 Q1 network 
+iterative       True
+
+module          HydroFirst_2
+packagePath       
+input           grid Av Roughness OMEGA G
+output          u1 zeta1 sigma_rho
+submodules      tide_2
+tide_2  input   A1  phase1
+        output
+
+module          NetworkSetup
+PackagePath
+input
+output          networksettings
+  
+module          NetworkSensitivity
+packagePath
+#inputInit       variables loopstyle
+input           @output.requirements #variables loopstyle
+output          networksettings
+iterative       True
+
+module          NetworkGeometry
+packagePath
+inputInit       networksettings
+input           networksettings H B
+output          H0 B0 L network
+iterative       True
+
+module          NetworkTurbulence
+packagePath
+inputInit       networksettings
+input           networksettings H Av_coef sf0
+output          Av Roughness BottomBC network
+iterative       True
+
+module          NetworkGrid
+packagePath
+inputInit       networksettings
+input           networksettings grid outputgrid
+output          network xgrid zgrid fgrid xoutputgrid zoutputgrid foutputgrid
+iterative       True
+
+module          Plot
+packagePath
+input           network 
+output
+visualisationModule True
+
+module          NetworkSalinity
+packagePath
+inputInit       networksettings
+input           s0 
+output          ssea xc xl
+iterative       True 
+
+module          Plot1ch
+packagePath
+input           f 
+output
+visualisationModule True
+
+
+module          ReadPlot
+packagePath
+input           
+output          plot
+visualisationModule True

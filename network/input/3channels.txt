@@ -1,0 +1,75 @@
+#module          networkmodules.NetworkSensitivity
+
+module      networkmodules.NetworkSetup
+
+## Geometry ##
+module      networkmodules.NetworkGeometry
+module      analytical2DV.Geometry2DV
+
+## Grid ##
+module	    numerical2DV.RegularGrid
+module      networkmodules.NetworkGrid
+
+## Turbulence ##
+
+module      networkmodules.NetworkTurbulence
+Av_coef     0.0005
+sf0         0.001
+
+# module		analytical2DV.TurbulenceUniform
+# Av0phase	0.
+# 
+# Av0amp      0.006       # Eddy viscosity amplitude (constant uniform)
+# sf0		    0.002      # Partial slip roughness parameter
+# 
+# m		    0.                                      # Av = Av0amp (H/H0)^m
+# n		    0.       
+
+# module  numerical2DV.KEFittedLead
+# roughnessParameter  z0*
+# profile             uniform
+# n                   0.
+# z0*                 0.0001
+# sf0                 0.002
+# Avmin               1e-6
+# lambda              0.
+# ignoreSubmodule
+# referenceLevel      False
+# truncationOrder     0
+
+## Hydrodynamics ##
+module      semi_analytical2DV.HydroLead  
+#module      numerical2DV.HydroLead 
+submodules  tide tide_2
+
+module     semi_analytical2DV.HydroFirst 
+#module     numerical2DV.HydroFirst 
+submodules  river    tide tide_2 baroc  adv  stokes nostress 
+
+module      networkmodules.NetworkHydroLead networkmodules.HydroLead_2 networkmodules.NetworkHydroFirst networkmodules.HydroFirst_2
+
+module      analytical2DV.SaltHyperbolicTangent networkmodules.NetworkSalinity
+
+
+
+# Sediment ##
+module       semi_analytical2DV.SedimentCapacity networkmodules.NetworkSedimentCapacity  networkmodules.NetworkEquilibriumAvailability 
+submodules   erosion    noflux sedadv
+erosion_formulation     Chernetsky
+finf        1e-3
+sedbc       csea
+#csea       0.1
+ws0         2e-3
+Kh          100
+Qsed        0
+
+                               # sf = sf0 (H/H0)^n
+
+
+
+
+## Plot ##
+
+#module      	networkmodules.Plot
+
+requirements    network networksettings H grid u0 u1 zeta0 zeta1 
