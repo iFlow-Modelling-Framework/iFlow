@@ -140,6 +140,7 @@ class SedimentCapacity:
         # uabs_M0_x = np.gradient(uabs_M0[:, 0], self.x[1], edge_order=2).reshape(len(self.x), 1)     # Error: this is a derivative along the grid, not x
         uabs_M0 = absoluteU(self.u0, 0)
         uabs_M0_x = ny.derivative(uabs_M0, 'x', self.input.slice('grid'))[:, [-1]]                  # Improved code
+        uabs_M0 = uabs_M0[:, [-1]]
 
             # near-bed concentration, from erosion law
         if self.input.v('erosion_formulation') == 'Partheniades':
@@ -247,29 +248,59 @@ class SedimentCapacity:
 
         Returns:
             hatc2 - concentration amplitude due to river-river interaction of the M0 tidal component
+        This is from iFlow 2.8
         """
         # Make time series of total velocity signal to extract residual velocities at the bottom due to order epsilon terms
         hatc2 = np.zeros((len(self.x), len(self.z), 3), dtype=complex)
-        if self.input.v('u1', 'river'):
-            u1b = self.input.v('u1', 'river', range(0, len(self.x)), len(self.z)-1, 0)
-            T = np.linspace(0, 2*np.pi, 100)
-            utid = np.zeros((len(self.x), len(T)), dtype='complex')
-            ucomb = np.zeros((len(self.x), len(T)), dtype='complex')
-            for i, t in enumerate(T):
-                utid[:, i] = 0.5 * (self.u0[:, -1] * np.exp(1j*t) + np.conj(self.u0[:, -1]) * np.exp(-1j*t))
-                ucomb[:, i] = u1b + 0.5 * (self.u0[:, -1] * np.exp(1j*t) + np.conj(self.u0[:, -1]) * np.exp(-1j*t))
-            uabs_tid = np.mean(np.abs(utid), axis=1)
-            uabs_tot = np.mean(np.abs(ucomb), axis=1)
-            uabs_eps = uabs_tot.reshape(len(self.x), 1) - uabs_tid.reshape(len(self.x), 1)
+        u1b = self.input.v('u1', 'river', range(0, len(self.x)), len(self.z)-1, 0)
+        T = np.linspace(0, 2*np.pi, 100)
+        utid = np.zeros((len(self.x), len(T)), dtype='complex')
+        ucomb = np.zeros((len(self.x), len(T)), dtype='complex')
+        for i, t in enumerate(T):
+            utid[:, i] = 0.5 * (self.u0[:, -1] * np.exp(1j*t) + np.conj(self.u0[:, -1]) * np.exp(-1j*t))
+            ucomb[:, i] = u1b + 0.5 * (self.u0[:, -1] * np.exp(1j*t) + np.conj(self.u0[:, -1]) * np.exp(-1j*t))
+        uabs_tid = np.mean(np.abs(utid), axis=1)
+        uabs_tot = np.mean(np.abs(ucomb), axis=1)
+        uabs_eps = uabs_tot.reshape(len(self.x), 1) - uabs_tid.reshape(len(self.x), 1)
 
-            # erosion
-            if self.input.v('erosion_formulation') == 'Partheniades':
-                Ehat = self.finf*self.sf*(uabs_eps)*self.RHO0
-            else:
-                Ehat = (self.WS * self.finf*self.RHOS * self.sf / (self.GPRIME * self.DS))*(uabs_eps)
+        # erosion
+        if self.input.v('erosion_formulation') == 'Partheniades':
+            Ehat = self.finf*self.sf*(uabs_eps)*self.RHO0
+        else:
+            Ehat = (self.WS * self.finf*self.RHOS * self.sf / (self.GPRIME * self.DS))*(uabs_eps)
 
-            hatc2[:, :, 0] = Ehat/self.WS * np.exp(-self.WS * (self.HR + self.zarr) / self.Kv0)
+        hatc2[:, :, 0] = Ehat/self.WS * np.exp(-self.WS * (self.HR + self.zarr) / self.Kv0)
         return {'a': {'erosion': {'river_river': hatc2}}}
+
+    # def erosion_second(self):
+    #     """Calculates the amplitude of the concentration due to the river-river interaction, which is
+    #     a second order contribution with an M0 tidal component.
+
+    #     Returns:
+    #         hatc2 - concentration amplitude due to river-river interaction of the M0 tidal component
+    #     """
+    #     # Make time series of total velocity signal to extract residual velocities at the bottom due to order epsilon terms
+    #     hatc2 = np.zeros((len(self.x), len(self.z), 3), dtype=complex)
+    #     if self.input.v('u1', 'river'):
+    #         u1b = self.input.v('u1', 'river', range(0, len(self.x)), len(self.z)-1, 0)
+    #         T = np.linspace(0, 2*np.pi, 100)
+    #         utid = np.zeros((len(self.x), len(T)), dtype='complex')
+    #         ucomb = np.zeros((len(self.x), len(T)), dtype='complex')
+    #         for i, t in enumerate(T):
+    #             utid[:, i] = 0.5 * (self.u0[:, -1] * np.exp(1j*t) + np.conj(self.u0[:, -1]) * np.exp(-1j*t))
+    #             ucomb[:, i] = u1b + 0.5 * (self.u0[:, -1] * np.exp(1j*t) + np.conj(self.u0[:, -1]) * np.exp(-1j*t))
+    #         uabs_tid = np.mean(np.abs(utid), axis=1)
+    #         uabs_tot = np.mean(np.abs(ucomb), axis=1)
+    #         uabs_eps = uabs_tot.reshape(len(self.x), 1) - uabs_tid.reshape(len(self.x), 1)
+
+    #         # erosion
+    #         if self.input.v('erosion_formulation') == 'Partheniades':
+    #             Ehat = self.finf*self.sf*(uabs_eps)*self.RHO0
+    #         else:
+    #             Ehat = (self.WS * self.finf*self.RHOS * self.sf / (self.GPRIME * self.DS))*(uabs_eps)
+
+    #         hatc2[:, :, 0] = Ehat/self.WS * np.exp(-self.WS * (self.HR + self.zarr) / self.Kv0)
+    #     return {'a': {'erosion': {'river_river': hatc2}}}
 
     def noflux(self):
         """Calculates the amplitude of the concentration due to the no-flux boundary condition at the surface, which is
