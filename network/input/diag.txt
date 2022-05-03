@@ -19,3 +19,5 @@ Call stack was built successfully (in src.ModuleList)
 17	networkmodules.NetworkEquilibriumAvailability			 (in src.ModuleList)
  (in src.ModuleList)
 ** Run ** (in src.ModuleList)
+
+iFlow run time: 6.7 sec (in src.iFlowTUI)

@@ -395,7 +395,7 @@ class ModuleList:
                         break
                 for mod_other in self.callStack[0][imin:imax]:
                     outputList = list(set(outputList + toList(mod_other.getOutputVariables())))
-                mod.updateToRunIter(outputList)
+                # mod.updateToRunIter(outputList)
         return
 
     def __setIterator(self):
