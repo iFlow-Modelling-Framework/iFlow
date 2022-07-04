@@ -20,7 +20,7 @@ mp                  6.98E-07 1.45E-06 3.23E-06 4.45E-06 7.3E-06 6.75E-06 5.09E-0
 loopstyle           simultaneous
 
 ## Geometry ##
-module      analytical2DV.Geometry2DV
+module      hydrodynamics2DV.Geometry2DV
 L           215000
 B0          type    functions.Exponential
             C0      39000
@@ -30,7 +30,7 @@ H0          type   functions.Constant
             C0      8
 
 ## Method ##
-module	        numerical2DV.RegularGrid
+module	        hydrodynamics2DV.RegularGrid
 xgrid		    equidistant     250
 zgrid	        equidistant     30
 fgrid		    integer         2
@@ -40,7 +40,7 @@ zoutputgrid    equidistant     30
 foutputgrid    integer         2
 
 ## Hydrodynamics ##
-module          semi_analytical2DV.HydroLead numerical2DV.HydroFirst modules.SalinityDischarge modules.SedimentDischarge modules.NutrientsDischarge
+module          hydrodynamics2DV.HydroLead hydrodynamics2DV.HydroFirst modules.SalinityDischarge modules.SedimentDischarge modules.NutrientsDischarge
 submodules      tide river adv nostress stokes baroc source
 A0			    0 0.72 0 0
 A1			    0 0 0.014 0
@@ -59,7 +59,7 @@ QPhos_c         .005
 QPhos_exp       .89
 
 ## Turbulence ##
-module          analytical2DV.TurbulenceUniform numerical2DV.DiffusivityUndamped
+module          turbulence2DV.TurbulenceUniform turbulence2DV.DiffusivityUndamped
 Av0amp          0.0048
 Av0phase        0
 sf0             0.035
@@ -68,12 +68,12 @@ m               0
 sigma_rho       1
 
 ## Salinity ##
-module      analytical2DV.SaltHyperbolicTangent
+module      salinity2DV.SaltHyperbolicTangent
 ssea        30
 xl          40000
 
 ## Sediment ##
-module              semi_analytical2DV.SedimentCapacity semi_analytical2DV.EquilibriumAvailability
+module              sediment2DV.SedimentCapacity sediment2DV.EquilibriumAvailability
 submodules          erosion noflux sedadv
 finf                1.e-1
 Kh                  100

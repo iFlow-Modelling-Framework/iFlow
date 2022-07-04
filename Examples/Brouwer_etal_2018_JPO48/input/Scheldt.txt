@@ -2,13 +2,14 @@
 # This file may be used and adapted. Please refer to the article mentioned below when using information from this input file.
 #
 # Appears in: Brouwer et al (2018) JPO, 48:1629-1650
-# iFlow version: 2.5
-# Date: Jun 2017
+# iFlow version: 3.0 (originally for 2.5)
+# Original date: Jun 2017
+# Update: Feb 2022
 # Author: R.L. Brouwer
 
 
 ## Geometry ##
-module  analytical2DV.Geometry2DV
+module  hydrodynamics2DV.Geometry2DV
 L       160000
 B0      type    functions.ExpRationalFunc
  	    C1      -0.02742e-3 1.8973
@@ -17,7 +18,7 @@ H0      type    functions.Polynomial
         C		-2.9013e-24 1.4030e-18 -2.4218e-13 1.7490e-8 -5.2141e-4 15.332  #bottom Vlissingen-Gentbrugge 2013
 
 ## Method ##
-module	    numerical2DV.RegularGrid
+module	    hydrodynamics2DV.RegularGrid
 xgrid		equidistant     200
 zgrid	    equidistant     50
 fgrid		integer         2
@@ -27,7 +28,7 @@ zoutputgrid    equidistant     50
 foutputgrid    integer         2
 
 ## Hydrodynamics ##
-module      semi_analytical2DV.HydroLead semi_analytical2DV.HydroFirst
+module      hydrodynamics2DV.HydroLead hydrodynamics2DV.HydroFirst
 submodules  all
 A0			0 1.77 0
 A1			0 0 0.14
@@ -38,22 +39,22 @@ Q1          25
 
 
 ## Turbulence ##
-module		analytical2DV.TurbulenceUniform
+module		turbulence2DV.TurbulenceUniform
 Av0amp      0.0367
 Av0phase    0.
 sf0         0.0048
 m           1.
 n           0.
-module      numerical2DV.DiffusivityUndamped
+module      turbulence2DV.DiffusivityUndamped
 
 ## Salinity ##
-module      analytical2DV.SaltHyperbolicTangent
+module      salinity2DV.SaltHyperbolicTangent
 ssea        30
 xc          55.e3
 xl          26.e3
 
 ## Sediment ##
-module      semi_analytical2DV.SedimentCapacity semi_analytical2DV.DynamicAvailability
+module      sediment2DV.SedimentCapacity sediment2DV.DynamicAvailability
 erosion_formulation Chernetsky
 astar       1           # set astar to 1, functionality taken over by csea
 finf        1           # set finf to 1, functionality taken over by Mhat
@@ -84,6 +85,6 @@ Q           25.*np.ones(len(self.t))
 ## Output ##
 module          general.Output
 path	        output
-filename       out
+filename        out
 
 requirements    ft St Flux Ft Tt a F T c0bar CM4 B H alpha2

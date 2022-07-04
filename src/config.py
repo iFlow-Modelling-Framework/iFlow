@@ -1,17 +1,21 @@
-## Configuration file
-# Use this file to define any model constants.
+## iFlow v3.* configuration file
+# Use this file to define any model constants and default settings.
+#
 # All variables defined here will be overruled if there is a variable with the same name in the input file or as
 # output of a module
 #
-# Author: Y.M. Dijkstra
+# Original author: Y.M. Dijkstra
 
-DERMETHOD = 'CENTRAL'   #'FORWARD'
+# Logging system
+ConsoleLoggingLevel = 'info'   # 'off', 'debug', 'info', 'warning', 'error' or 'critical'. Recommended is 'info'
+FileLoggingLevel = 'off'      # 'off', 'debug', 'info', 'warning', 'error' or 'critical'. Recommended is 'info' or 'off' (i.e. no log file)
+Profiler = True
+
+DERMETHOD = 'CENTRAL'           #'FORWARD'/'CENTRAL2'
 SECONDDERMETHOD = 'CENTRAL'
 INTMETHOD = 'TRAPEZOIDAL'
 MAXITERATIONS = 1000000          # maximum number of iterations in a single loop of modules
 IGNOREEXCEPTIONS = False
-solver = 'numerical'            # solver for the semi analytical model 'numerical' or 'bvp'.
-mode = 'debug'
 
 # model constants
 OMEGA = 1.4056343e-4            # Angular frequency of the M2 tide (1/s)

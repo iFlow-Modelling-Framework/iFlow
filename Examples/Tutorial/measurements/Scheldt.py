@@ -7,7 +7,7 @@ Authors: Y.M. Dijkstra
 import numpy as np
 import copy
 from src.DataContainer import DataContainer
-import nifty.functionTemplates
+import src.old.functionTemplates
 
 
 class Scheldt:
@@ -105,12 +105,12 @@ class Scheldt:
         d['Scheldt_measurements']['sections'] = river_sections
 
         # water level
-        nf = nifty.functionTemplates.NumericalFunctionWrapper(water_level, grid_waterlevel)
+        nf = src.old.functionTemplates.NumericalFunctionWrapper(water_level, grid_waterlevel)
         d['Scheldt_measurements']['zeta'] = nf.function
         d['Scheldt_measurements']['x_waterlevel'] = x_waterlevel
 
         # velocity
-        nfu2 = nifty.functionTemplates.NumericalFunctionWrapper(u_comp, grid_velocity)       # now saved without phase data
+        nfu2 = src.old.functionTemplates.NumericalFunctionWrapper(u_comp, grid_velocity)       # now saved without phase data
         d['Scheldt_measurements']['x_velocity'] = x_station_vel
         d['Scheldt_measurements']['u_comp'] = nfu2.function
 

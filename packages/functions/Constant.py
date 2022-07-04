@@ -4,26 +4,29 @@ Implementation of FunctionBase. Accepts an arbitrary number of dimensions with a
 
 Requires a parameter 'C0' on initialisation.
 
-Date: 23-07-15
+Original date: 23-07-15
+Update: 04-02-22
 Authors: Y.M. Dijkstra, R.L. Brouwer
 """
-from nifty.functionTemplates import FunctionBase
+from .checkVariables import checkVariables
 
 
-class Constant(FunctionBase):
+class Constant():
     # Variables
         
     # Methods
     def __init__(self, dimNames, data):
-        FunctionBase.__init__(self, dimNames)
         self.C0 = float(data.v('C0'))
+        self.dimNames = dimNames
 
-        # call checkVariables method of FunctionBase to make sure that the input is correct
-        FunctionBase.checkVariables(self, ('C0', self.C0))
+        checkVariables(self.__class__.__name__, ('C0', self.C0))    # check if input is complete
         return
 
-    def value(self, *args, **kwargs):
+    def value(self, **kwargs):
         return self.C0
 
-    def derivative(self, *args, **kwargs):
+    def derivative(self, **kwargs):
+        return 0.
+
+    def secondDerivative(self, **kwargs):
         return 0.

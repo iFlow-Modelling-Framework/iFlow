@@ -53,8 +53,8 @@ class Reader:
 
         return 
 
-    def read(self, chapter='', name = ''):
-        """General reader. Reads data in file between 'chapter' 'name' and the next 'chapter' tag (first 'chapter' is inclusive)
+    def read(self, chapter='', name = '', stop=[]):
+        """General reader. Reads data in file between 'chapter' 'name' and the next 'chapter' tag or 'stop' tag (first 'chapter' is inclusive)
         This has the following structure:
 
             chaptername name (string)
@@ -70,13 +70,14 @@ class Reader:
             chapter - (str, optional) chapter name
                                       Default: ''; read full file
             name - (str, optional) name of 'chapter' to be read
+            stop - (list, optional) list of tags to stop this chapter additional to chapter name itself.
 
         Returns:
             list containing DataContainers with read data for each chapter block read
         """
         self.filePointer.seek(0)    # restarts reading the file
         startChapter = [chapter, name]
-        endChapter = chapter
+        endChapter = [chapter] + stop
         inChapter = False
         inIndent = False
 
@@ -87,7 +88,7 @@ class Reader:
         for line in self.filePointer:
             line = self.__removeComment(line)
             linesplit = ((line.replace('.', ' ')).replace('\t', ' ')).split(' ')+['']
-            if endChapter in linesplit and inChapter:
+            if any([i in linesplit for i in endChapter]) and inChapter:
                 # stop reading. Convert and clean result
                 inChapter = not inChapter
                 if inIndent:

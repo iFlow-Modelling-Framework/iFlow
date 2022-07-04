@@ -44,22 +44,3 @@ inputInit       folder files variables
 output          @variables experimentlength experimentnumber
 iterative       True
 
-# Plot cost function value of result of a sensitivity analysis
-module                  ManualCalibrationPlot
-input                   calibration_parameter axis experimentdata measurementset @measurementset
-visualisationModule     True
-
-module      Calibration
-packagePath
-inputInit   calibrationParameter changeFactor measurementset @calibrationParameter @measurementset
-input       zeta0
-output      @calibrationParameter
-iterative   True
-
-module          Iterator
-packagePath
-inputInit
-input
-output          converged
-iteratorModule  True
-iterative       True

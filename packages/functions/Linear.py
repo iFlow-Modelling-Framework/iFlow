@@ -5,22 +5,25 @@ Implementation of FunctionBase.
 Requires parameters 'C0': value at variable value 0
                     'CL': value at variable value 1
 
-Date: 23-07-15
+Original date: 23-07-15
+Update: 04-02-22
 Authors: Y.M. Dijkstra, R.L. Brouwer
 """
-from nifty.functionTemplates import FunctionBase
+from .checkVariables import checkVariables
 
 
-class Linear(FunctionBase):
+class Linear():
     #Variables
         
     #Methods
     def __init__(self, dimNames, data):
-        FunctionBase.__init__(self, dimNames)
         self.L = float(data.v('L'))
         self.C0 = float(data.v('C0'))
         self.CL = float(data.v('CL'))
-        FunctionBase.checkVariables(self, ('C0', self.C0), ('CL', self.CL), ('L', self.L))
+        self.dimNames = dimNames
+
+
+        checkVariables(self.__class__.__name__, ('C0', self.C0), ('CL', self.CL), ('L', self.L))
         return
 
     def value(self, x, **kwargs):
@@ -37,7 +40,11 @@ class Linear(FunctionBase):
         Parameters:
             x - value between 0 and 1
         """
-        if kwargs['dim'] == 'x':
-            return -self.C0/self.L+self.CL/self.L
-        else:
-            return 0.
+        return -self.C0/self.L+self.CL/self.L
+
+    def secondDerivative(self, x, **kwargs):
+        """
+        Parameters:
+            x - value between 0 and 1
+        """
+        return 0.

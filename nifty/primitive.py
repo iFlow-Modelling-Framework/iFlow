@@ -5,13 +5,13 @@ Date: 10-07-15
 Authors: Y.M. Dijkstra
 """
 import numpy as np
-import src.config as cf
+from src import config as cf
 from src.util.diagnostics import KnownError
 import scipy.integrate
 import scipy.interpolate
 
 
-def primitive(u, dimNo, low, high, grid, *args, **kwargs):
+def primitive(u, dimNo, low, high, grid, *args, gridname='grid', **kwargs):
     """Compute the integral of numerical array between low and high. The method is specified in src.config (INTMETHOD)
     NB. 'indices' now only as indices (not as coordinates)
     NB. when requesting a shape that has more dimensions that the data, this method fails. Needs fixing (TODO)
@@ -35,10 +35,10 @@ def primitive(u, dimNo, low, high, grid, *args, **kwargs):
     INTMETHOD = kwargs.get('INTMETHOD') or cf.INTMETHOD
     # find dimension name corresponding to dimNo (or vv)
     if isinstance(dimNo, int):
-        dim = grid.v('grid', 'dimensions')[dimNo]
+        dim = grid.v(gridname, 'dimensions')[dimNo]
     else: # else assume dimNo is a string with dimension name
         dim = dimNo
-        dimNo = grid.v('grid', 'dimensions').index(dim)
+        dimNo = grid.v(gridname, 'dimensions').index(dim)
 
     # preparation: determine the size of u and the maximum index along the axis of derivation
     # if this maximum index does not exist or is zero, then return a zero array
@@ -62,8 +62,8 @@ def primitive(u, dimNo, low, high, grid, *args, **kwargs):
             downInds[dimNo] = list(range(high+1, low+1)) + [low]
 
         # take grid axis at the grid points required
-        upaxis = np.multiply(grid.v('grid', 'axis', dim, *upInds, copy = 'all'), (grid.v('grid', 'high', dim, *upInds, copy = 'all')-grid.v('grid', 'low', dim, *upInds, copy = 'all')))+grid.v('grid', 'low', dim, *upInds, copy = 'all')
-        downaxis = np.multiply(grid.v('grid', 'axis', dim, *downInds, copy = 'all'), (grid.v('grid', 'high', dim, *downInds, copy = 'all')-grid.v('grid', 'low', dim, *downInds, copy = 'all')))+grid.v('grid', 'low', dim, *downInds, copy = 'all')
+        upaxis = np.multiply(grid.v(gridname, 'axis', dim, *upInds, copy = 'all'), (grid.v(gridname, 'high', dim, *upInds, copy = 'all')-grid.v(gridname, 'low', dim, *upInds, copy = 'all')))+grid.v(gridname, 'low', dim, *upInds, copy = 'all')
+        downaxis = np.multiply(grid.v(gridname, 'axis', dim, *downInds, copy = 'all'), (grid.v(gridname, 'high', dim, *downInds, copy = 'all')-grid.v(gridname, 'low', dim, *downInds, copy = 'all')))+grid.v(gridname, 'low', dim, *downInds, copy = 'all')
 
         Ju = 0.5*(upaxis-downaxis)*(u[np.ix_(*upInds)]+u[np.ix_(*downInds)])
 
@@ -72,7 +72,7 @@ def primitive(u, dimNo, low, high, grid, *args, **kwargs):
         upInds = inds
         downInds = inds[:]
 
-        axis = grid.v('grid', 'axis', dim)
+        axis = grid.v(gridname, 'axis', dim)
         axis = axis.reshape(np.product(axis.shape))
         axis_mid = np.zeros(axis.shape)
         if high > low:
@@ -86,8 +86,8 @@ def primitive(u, dimNo, low, high, grid, *args, **kwargs):
 
 
         # take grid axis at the grid points required
-        upaxis = np.multiply(grid.v('grid', 'axis', dim, *upInds, copy = 'all'), (grid.v('grid', 'high', dim, *upInds, copy = 'all')-grid.v('grid', 'low', dim, *upInds, copy = 'all')))+grid.v('grid', 'low', dim, *upInds, copy = 'all')
-        downaxis = np.multiply(grid.v('grid', 'axis', dim, *downInds, copy = 'all'), (grid.v('grid', 'high', dim, *downInds, copy = 'all')-grid.v('grid', 'low', dim, *downInds, copy = 'all')))+grid.v('grid', 'low', dim, *downInds, copy = 'all')
+        upaxis = np.multiply(grid.v(gridname, 'axis', dim, *upInds, copy = 'all'), (grid.v(gridname, 'high', dim, *upInds, copy = 'all')-grid.v(gridname, 'low', dim, *upInds, copy = 'all')))+grid.v(gridname, 'low', dim, *upInds, copy = 'all')
+        downaxis = np.multiply(grid.v(gridname, 'axis', dim, *downInds, copy = 'all'), (grid.v(gridname, 'high', dim, *downInds, copy = 'all')-grid.v(gridname, 'low', dim, *downInds, copy = 'all')))+grid.v(gridname, 'low', dim, *downInds, copy = 'all')
 
         uquad = scipy.interpolate.interp1d(axis, u, 'quadratic', axis=dimNo)
         Ju = 1./6*(upaxis-downaxis)*(u[np.ix_(*upInds)]+4.*uquad(axis_mid)+u[np.ix_(*downInds)])

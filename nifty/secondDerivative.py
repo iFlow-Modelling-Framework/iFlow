@@ -12,7 +12,7 @@ from .derivative import derivative
 from .derivative import axisDerivative
 
 
-def secondDerivative(u, dimNo, grid, *args):
+def secondDerivative(u, dimNo, grid, *args, gridname='grid'):
     """Compute the 2nd derivative of numerical array. This implements now only the 2nd derivative over the same dimenion
     The method of taking the derivative is specified in src.config (SECONDDERMETHOD)
     NB. when requesting a shape that has more dimensions that the data, this method fails. Needs fixing (TODO)
@@ -32,36 +32,36 @@ def secondDerivative(u, dimNo, grid, *args):
     """
     # find dimension name corresponding to dimNo (or vv)
     if isinstance(dimNo, int):
-        dim = grid.v('grid', 'dimensions')[dimNo]
+        dim = grid.v(gridname, 'dimensions')[dimNo]
     else: # else assume dimNo is a string with dimension name
         dim = dimNo
-        dimNo = grid.v('grid', 'dimensions').index(dim)
+        dimNo = grid.v(gridname, 'dimensions').index(dim)
 
     # take derivative along this axis, ignoring grid contraction
-    der = axisSecondDerivative(u, dim, dimNo, grid, *args)
+    der = axisSecondDerivative(u, dim, dimNo, grid, *args, gridname='grid')
 
     # add effects of grid contraction
-    contr = grid.v('grid', 'contraction')[:,dimNo]
+    contr = grid.v(gridname, 'contraction')[:,dimNo]
     for contrDimNo, i in enumerate(contr):
         if i == 1:
             # if u has less dimensions than the grid, ignore these dimensions in the axes
             axisrequest = {}
-            for j in grid.v('grid', 'dimensions')[len(u.shape):]:
+            for j in grid.v(gridname, 'dimensions')[len(u.shape):]:
                 axisrequest[j] = 0
             axis = ny.dimensionalAxis(grid, contrDimNo, **axisrequest)
             # take derivative of axis
             u_i = derivative(u, contrDimNo, grid, *args)    # first derivative wrt i
             u_di = derivative(derivative(u, contrDimNo, grid), dimNo, grid, *args)                                           # mixed derivative
-            u_ii = axisSecondDerivative(u, grid.v('grid', 'dimensions')[contrDimNo], contrDimNo, grid, *args)                                     # 2nd derivative wrt i
+            u_ii = axisSecondDerivative(u, grid.v(gridname, 'dimensions')[contrDimNo], contrDimNo, grid, *args, gridname='grid')                                     # 2nd derivative wrt i
             axis_d = axisDerivative(axis, dim, dimNo, grid, *args)
-            axis_dd = axisSecondDerivative(axis, dim, dimNo, grid, *args)
+            axis_dd = axisSecondDerivative(axis, dim, dimNo, grid, *args, gridname='grid')
 
             # grid contraction
             der = der - 2.*u_di*axis_d - u_ii*axis_d**2-u_i*axis_dd   # TODO does not work yet for arrays with more dimensions than the grid
 
     return der
 
-def axisSecondDerivative(u, dim, dimNo, grid, *args):
+def axisSecondDerivative(u, dim, dimNo, grid, *args, gridname='grid'):
     u = np.asarray(u)
     inds = [np.arange(0, n) for n in u.shape]
 
@@ -106,9 +106,9 @@ def axisSecondDerivative(u, dim, dimNo, grid, *args):
             downInd = np.asarray([0] + list(range(0, maxIndex-1))+[maxIndex-2])
         downInds[dimNo] = downInd
 
-        upaxis = np.multiply(grid.v('grid', 'axis', dim, *upInds, copy='all'), (grid.v('grid', 'high', dim, *upInds, copy='all')-grid.v('grid', 'low', dim, *upInds, copy='all')))+grid.v('grid', 'low', dim, *upInds, copy='all')
-        midaxis = np.multiply(grid.v('grid', 'axis', dim, *midInds, copy='all'), (grid.v('grid', 'high', dim, *midInds, copy='all')-grid.v('grid', 'low', dim, *midInds, copy='all')))+grid.v('grid', 'low', dim, *midInds, copy='all')
-        downaxis = np.multiply(grid.v('grid', 'axis', dim, *downInds, copy='all'), (grid.v('grid', 'high', dim, *downInds, copy='all')-grid.v('grid', 'low', dim, *downInds, copy='all')))+grid.v('grid', 'low', dim, *downInds, copy='all')
+        upaxis = np.multiply(grid.v(gridname, 'axis', dim, *upInds, copy='all'), (grid.v(gridname, 'high', dim, *upInds, copy='all')-grid.v(gridname, 'low', dim, *upInds, copy='all')))+grid.v(gridname, 'low', dim, *upInds, copy='all')
+        midaxis = np.multiply(grid.v(gridname, 'axis', dim, *midInds, copy='all'), (grid.v(gridname, 'high', dim, *midInds, copy='all')-grid.v(gridname, 'low', dim, *midInds, copy='all')))+grid.v(gridname, 'low', dim, *midInds, copy='all')
+        downaxis = np.multiply(grid.v(gridname, 'axis', dim, *downInds, copy='all'), (grid.v(gridname, 'high', dim, *downInds, copy='all')-grid.v(gridname, 'low', dim, *downInds, copy='all')))+grid.v(gridname, 'low', dim, *downInds, copy='all')
         dxup = upaxis-midaxis
         dxdown = midaxis-downaxis
         dxav = .5*(dxup+dxdown)

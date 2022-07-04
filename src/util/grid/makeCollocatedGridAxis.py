@@ -6,6 +6,7 @@ Authors: Y.M. Dijkstra
 """
 import numpy as np
 import numpy.polynomial.legendre as lg
+from src.util.diagnostics.KnownError import KnownError
 
 
 def makeCollocatedGridAxis(method, *args):
@@ -38,12 +39,12 @@ def makeCollocatedGridAxis(method, *args):
         nPoints = args[0]
         grid = np.linspace(0, 1, nPoints+1)
 
-    if method=='logarithmic':
+    elif method=='logarithmic':
         nPoints = args[0]
         steepness = args[1]
         grid = (np.exp(steepness*np.linspace(0, 1, nPoints+1))-1.)/(np.exp(steepness)-1.)
 
-    if method=='loglin':
+    elif method=='loglin':
         nPoints = args[0]           # args[0]: number of grid points
         dzlog = args[1][0]          # args[1]: dimensionless thickness of the logarithmic layer
         steepness = args[1][1]      # args[2]: steepness (negative results in refinement near upper part of axis)
@@ -91,6 +92,9 @@ def makeCollocatedGridAxis(method, *args):
             for line in f:
                 grid[i] = line
                 i += 1
+
+    else:
+        raise KnownError('Grid axis type %s unknown'%(method))
 
     return grid
 

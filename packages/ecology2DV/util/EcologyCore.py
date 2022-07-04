@@ -167,8 +167,8 @@ class EcologyCore:
             for j in range(0, len(Gamma[i])):
                 d['Geco'][comp_name].update(Gamma[i][j])
             #      d['Geco'][comp_name] = mergeDicts(d['Geco'][comp_name], Gamma[i][j])
-            d['Teco'][comp_name] = dc.data[comp_name]['T']
-            d['Feco'][comp_name] = dc.data[comp_name]['F']
+            d['Teco'][comp_name] = dc._data[comp_name]['T']
+            d['Feco'][comp_name] = dc._data[comp_name]['F']
 
         return d
 

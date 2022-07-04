@@ -6,6 +6,7 @@ Therefore it requires a DataContainer that contains a regular grid, i.e. variabl
 in this list a 'grid' (single axis) and optional enclosure consisting of keys 'low' and 'high'
 
 Date: 23-05-15
+Updated: 04-01-22
 Authors: Y.M. Dijkstra
 """
 import logging
@@ -45,8 +46,10 @@ class RegularGridInterpolator:
 
         return result
 
-    def interpolate(self, value, dataContainer, **kwargs):
-        """Compute/find values from an array by coordinates in kwargs on a grid contained in the dataContainer.
+    def interpolate(self, value, griddict, **kwargs):
+        """Compute/find values from an array by coordinates in kwargs on a grid contained in griddict (i.e. dict without
+        the grid name as key, but with all subkeys).
+
         The method will only interpolate if the data is compatible with the grid, i.e. has dimensions equal to
         the grid axis dimension or a dimension of 1.
 
@@ -57,14 +60,13 @@ class RegularGridInterpolator:
             convert the coordinates in kwargs to points on the [0, 1] axes for all enclosed axes
         3. interpolate
         """
-        data = dataContainer.data
-        dimensionList = data['grid']['dimensions']  # list of dimensions in registry
+        dimensionList = griddict['dimensions']  # list of dimensions in registry
 
         # 1. check dimensions. Stop interpolating if the dimensions are not fit
         for i, v in enumerate(value.shape):
             if i < len(dimensionList):
                 dim = dimensionList[i]
-                if not (v == 1 or v == data['grid']['axis'][dim].shape[i]):
+                if not (v == 1 or v == griddict['axis'][dim].shape[i]):
                     raise KnownError('Tried to interpolate data that is not conform the dimensions of the grid')
 
         # 2. retrieve kwargs arguments and convert to numbers on the [0,1] axes if enclosures are provided
@@ -86,13 +88,13 @@ class RegularGridInterpolator:
                 # read argument and axis
                 dim = dimensionList[i]
                 argument = kwargs.get(dim)
-                grid = data['grid']['axis'][dim]
+                grid = griddict['axis'][dim]
                 axis.append(grid.reshape(grid.shape[i]))    # NB. only works for a single grid axis
-                if 'low' in data['grid'] and dim in data['grid']['low'] and data['grid']['low'][dim] is not None:
+                if 'low' in griddict and dim in griddict['low'] and griddict['low'][dim] is not None:
                     lo.append(0.)
                 else:
                     lo.append(axis[-1][0])
-                if 'high' in data['grid'] and dim in data['grid']['high'] and data['grid']['high'][dim] is not None:
+                if 'high' in griddict and dim in griddict['high'] and griddict['high'][dim] is not None:
                     hi.append(1.)
                 else:
                     hi.append(axis[-1][-1])

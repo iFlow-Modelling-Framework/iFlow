@@ -1,9 +1,11 @@
 """
-Output Writer
+Class Output
 Saves output as a numpy structure to the output location on the output grid
 
-Date: 12-11-15
-Authors: Y.M. Dijkstra, R.L. Brouwer
+Original date: 12-11-15
+Updated: 04-02-22
+Original authors: Y.M. Dijkstra, R.L. Brouwer
+Update authors: Y.M. Dijkstra
 """
 import os
 import src.config_menu as cfm
@@ -13,22 +15,24 @@ import numbers
 from src.util.grid import callDataOnGrid
 from src.DataContainer import DataContainer
 from nifty import toList
-import nifty as ny
-from copy import deepcopy
 import types
 from src.Reader import Reader
 import numpy as np
+from copy import deepcopy
 
 
 class Output:
     # Variables
     logger = logging.getLogger(__name__)
-    ext = '.p'      # file extension
-    outputgridName = 'outputgrid'
 
     # Methods
     def __init__(self, input):
         self.input = input
+        self.ext = '.p'      # file extension
+        if self.input.has('outputgrid'):
+            self.outputgridName = self.input.v('outputgrid')
+        else:
+            self.outputgridName = 'outputgrid'
         return
 
     def run(self):
@@ -39,77 +43,81 @@ class Output:
         """
         self.logger.info('Saving output')
 
+        saveData = self.prepData()
+        d = self.saveData(saveData)
+        return d
+
+    def prepData(self):
         ################################################################################################################
-        # Make all variables from config, input and modules available (note, config not available in output module, see Program.py)
+        # Get all variables from input, config and modules
+        #   config and input variables are saved always (since iFlow3 also when overwritten by data of different type in modules)
+        #   data from modules are first all merged and then filtered for 'requirements'
         ################################################################################################################
-        # read input file
+        # read input file and load to inputVars
         reader = Reader()
         reader.open(self.input.v('inputFile'))
         data = reader.read('module')
         reader.close()
-
-        # merge the datacontainers of all modules & make the module tags into a list of modules
         inputvars = DataContainer()
+
+        # make the module tags into a list of modules
         module = []
         for d in data:
             module.append(d.v('module'))
             inputvars.merge(d)
         inputvars.addData('module', module)
 
-        # merge input vars with self.input in hierarchy config, input, input for this module, vars calculated in other modules (low - high)
-        # + make a list of all keys of input and config vars; these are saved always and later appended by selected module calc. vars.
-        data = self.__loadConfig()
-        data.merge(inputvars)
-        outputKeys = self.__checkInputOverrides(data) # checks if input is overwritten and provides the keys of not or correctly overwritten input vars
-        data.merge(self.input)
-        del inputvars, reader
-        # now all variables from config, input and modules are in 'data'
+        # read config vars and merge with input (config vars are overwritten if needed)
+        allVars = self.__loadConfig()
+        allVars.merge(inputvars)
+        configInputKeys = allVars.getAllKeys()
+
+        # merge data from the modules (overwrite input/config data)
+        self.__checkInputOverrides(allVars, self.input)  # check if there is overwritten data and write warning if overwritten with different data type. May signal unexpected behaviour.
+        allVars.merge(self.input)
+        del inputvars, reader, data
 
         ################################################################################################################
         # Isolate part of DC to write; put this in saveData
         ################################################################################################################
         saveData = DataContainer()
 
-        # vars to save
-        outputVariables = toList(self.input.v('requirements'))
-        outputKeys = list(set(outputKeys + self.__getSubmoduleRequirements(outputVariables)))        # convert the requested output variables to key tuples including submodule requirements
-        for key in outputKeys:
-            if len(key)>1:
-                saveData.merge({key[0]: data.slice(*key).data})
-            else:
-                saveData.merge(data.slice(*key))
+        # make list of vars to save
+        outputVariables = [i for i in allVars.getAllKeys() if i[0] in toList(self.input.v('requirements'))]
+        outputVariables = outputVariables + configInputKeys
+        derKeys = [i for i in allVars.getAllKeys() if i[0]=='__derivative']
+        derKeysUpd = [i for i in derKeys if any([j for j in outputVariables if i[2:min(len(i)-2,len(j))+2]==j[:min(len(i)-2,len(j))]])]
+        outputVariables = outputVariables + derKeysUpd
 
-        # add grid and outputgrid if available; needed for interpolating data to outputgrid later
-        saveData.merge(self.input.slice('grid'))
-        saveData.merge(self.input.slice(self.outputgridName))
+        # add data from the list outputVariables to saveData
+        for key in outputVariables:
+            saveData.merge(self._buildDicts(key, allVars.v(*key)))
+
+        # add __variableOnGrid
+        saveData.merge(self.input.slice('__variableOnGrid'))
+
+        # add all grids (incl grid and outputgrid) if available to saveData and to a dedicated DC
+        grids = DataContainer()
+        gridslist = ['grid', self.outputgridName]
+        gridsRegister = [i for i in self.input.getAllKeys() if '__variableOnGrid' in i]
+        for i in gridsRegister:
+            gridslist.append(self.input.v(*i))
+        for i in list(set(gridslist)):
+            grids.merge(self.input.slice(i))
+            saveData.merge(self.input.slice(i))
 
         # add reference level to outputgrid
-        if self.input.v('R') is not None:
-            self.input.merge({self.outputgridName:{'low':{'z':self.input.v('R', x=self.input.v(self.outputgridName, 'axis', 'x'))}}})     # add reference level to outputgrid
-
-        # make a deepcopy of the data to be saved
-        # NB. very memory inefficient, but needed not to overwrite existing data
-        saveData = deepcopy(saveData)
+        if allVars.v('R') is not None:
+            allVars.merge({self.outputgridName:{'low':{'z':saveData.v('R', x=saveData.v(self.outputgridName, 'axis', 'x'))}}})     # add reference level to outputgrid
 
         ################################################################################################################
         # Convert data using output grid (if this is provided)
         ################################################################################################################
-        grid = saveData.slice('grid')
-        outputgrid = saveData.slice(self.outputgridName)
-        saveAnalytical = toList(self.input.v('saveAnalytical')) or []
-        dontConvert = toList(self.input.v('dontConvert')) or []
-        if 'all' in saveAnalytical:
-            saveAnalytical = outputVariables
-        if 'all' in dontConvert:
-            dontConvert = outputVariables
-        # dontConvert.append('grid')
-        # dontConvert.append('outputgrid')
-        self._convertData(saveData, grid, outputgrid, saveAnalytical, dontConvert)
+        convertedSaveData = self._convertData(saveData, grids)
 
-        # rename the outputgrid to grid and replace the original grid in saveData
-        saveData.addData('grid', saveData.data[self.outputgridName])
-        saveData.data.pop(self.outputgridName)
+        return convertedSaveData
 
+    def saveData(self, saveData):
         ################################################################################################################
         # Make the output directory if it doesnt exist
         ################################################################################################################
@@ -129,7 +137,7 @@ class Output:
         filepath = (self.path + filename + self.ext)
         try:
             with open(filepath, 'wb') as fp:
-                pickle.dump(saveData.data, fp, protocol=pickle.HIGHEST_PROTOCOL)
+                pickle.dump(saveData._data, fp, protocol=pickle.HIGHEST_PROTOCOL)
         except:
             raise
 
@@ -140,93 +148,76 @@ class Output:
         d['outputDirectory'] = self.path
         return d
 
-    def __getSubmoduleRequirements(self, outputVariables):
-        # refactor output requirements to key tuples to check against dataContainer keys. Load this into reqKeys
-        reqKeys = []
-        for var in toList(outputVariables):
-            submoduleRequirements = self.input.v('submodules', var)
-            if submoduleRequirements == None or submoduleRequirements == 'all':
-                reqKeys.append((var,))
-            else:
-                for submod in toList(submoduleRequirements):
-                    reqKeys.append((var,submod))
-        return reqKeys
-
-    def _convertData(self, saveData, grid, outputgrid, saveAnalytical, dontConvert, convertGrid = False):
+    def _convertData(self, saveData, grids):
         """
         """
-        # merge grids into one DC
-        grid.merge(outputgrid)
+        convertedData = DataContainer()
 
-        # take all subkeys
-        subkeys = saveData.getAllKeys()
+        # take all subkeys except for those included in grids and the key '__variableOnGrid'
+        subkeys = [i for i in saveData.getAllKeys() if i[0][:2]!='__'] + [i for i in saveData.getAllKeys() if i[0][:2]=='__'] # make sure underscored variables are at the end
+        gridkeys = [i for i in subkeys if i[0] in grids._data.keys() and i[0][:2]!='__']
+        variableOnGrid = DataContainer()
 
-        for keys in subkeys:
-           # check saving method for different instance types
+        # check keywords saveAnalytical and dontConvert
+        saveAnalytical = toList(self.input.v('saveAnalytical')) or []
+        dontConvert = toList(self.input.v('dontConvert')) or []
+        if 'all' in saveAnalytical:
+            saveAnalytical = subkeys
+        elif len(saveAnalytical)>0:
+            saveAnalytical = [i for i in saveData.getAllKeys() if i[0] in saveAnalytical] + [i for i in saveData.getAllKeys() if i[0]=='__derivative' and i[2] in saveAnalytical]
+        if 'all' in dontConvert:
+            dontConvert = subkeys
+        elif len(dontConvert)>0:
+            dontConvert = [i for i in saveData.getAllKeys() if i[0] in saveAnalytical] + [i for i in saveData.getAllKeys() if i[0]=='__derivative' and i[2] in saveAnalytical]
+
+        for keys in subkeys:     # reverse sort to make sure underscored keys are at the end and hence not overwritten.
+            # check saving method for different instance types
             value = saveData.v(*keys)
 
-            #   a. Numerical function
-            if isinstance(value, types.MethodType) and isinstance(value.__self__, ny.functionTemplates.NumericalFunctionBase) and not keys[0] in ['grid', 'outputgrid']:
-                data = value.__self__       # save reference to instance
-                nfgrid = data.dataContainer.slice('grid')
-                if keys[0] in dontConvert:      # if in dontconvert, propagate that all underlying elements are not converted
-                    dontConvert_nf = list(set([i[0] for i in data.dataContainer.getAllKeys()]))
-                else:                           # else, add the output grid to the nf
-                    dontConvert_nf = []
-                    data.dataContainer.merge(deepcopy(outputgrid.data))
-                # dontConvert_nf.append('grid')
-                # dontConvert_nf.append('outputgrid')
-                self._convertData(data.dataContainer, nfgrid, outputgrid, [], dontConvert_nf, convertGrid = True) # recursively convert the data inside the numerical function
+            #   a. Function + saveAnalytical
+            #       From iFlow3: store function just as it is and don't convert underlying data.
+            #       One should not save too much data in a function or otherwise have it converted to numerical data
+            if isinstance(value, types.MethodType) and keys in saveAnalytical:
+                valuecopy = deepcopy(value)
 
-            #   b. Other function + saveAnalytical
-            elif isinstance(value, types.MethodType) and isinstance(value.__self__, ny.functionTemplates.FunctionBase) and keys[0] in saveAnalytical:
-                data = value.__self__       # save reference to instance
+                # remove private class variables from the copied data
+                classvars = [var for var in vars(valuecopy.__self__) if var[0]=='_'] # get private class vars
+                for var in classvars:
+                    valuecopy.__self__.__dict__.pop(var)
+                data = (valuecopy.__self__, valuecopy.__name__)
 
-                # convert all public data stored inside DCs inside the function
-                classvars = [var for var in vars(data) if not var[0]=='_'] # public class vars
-                for var in classvars:
-                    if isinstance(data.__dict__[var], DataContainer):
-                        # check for possible endless recursion, where the DC inside the function contains the function itself
-                        if data.__dict__[var].v(*keys) is None:
-                            self._convertData(data.__dict__[var], grid, outputgrid, saveAnalytical, dontConvert)
-                        else:
-                            self.logger.error('Could not save variable %s as analytical function; variable is not saved.\n'
-                                                'Reason: the function stores itself as class variable, leading to an endless recursion.\n'
-                                                'Please check the module that defines this function and make sure it saves only the minimum required amount of data in class variables.\n'
-                                                'Alternatively, save this variable as numerical data' % keys[0])
-                            data = None
-                            break
-                classvars = [var for var in vars(data) if var[0]=='_'] # private class vars
-                for var in classvars:
-                    data.__dict__.pop(var)                              # remove private class vars
+                for i in range(1,len(keys)+1)[::-1]:
+                    v = saveData.v('__variableOnGrid', *keys[:i])
+                    if v is not None:
+                        variableOnGrid.merge(self._buildDicts(keys[:i], v))
+
+            #   b. values not to convert
+            elif keys in dontConvert:
+                data = value
+                for i in range(1, len(keys)+1)[::-1]:
+                    v = saveData.v('__variableOnGrid', *keys[:i])
+                    if v is not None:
+                        variableOnGrid.merge(self._buildDicts(keys[:i], v))
 
             #   c. Arrays, functions + not saveAnalytical and other
             else:
-                # Convert data to grid if key is in 'dontConvert', else convert to outputgrid
-                if keys[0] in dontConvert or keys[0] in ['grid']:
-                    gridname = 'grid'
+                if keys in gridkeys:
+                    gridname = keys[0]
                 else:
                     gridname = self.outputgridName
 
-                # call on grid 'gridname'
-                # if keys == ('outputgrid', 'axis', 'x'):
-                #     a=1
-                # data, _ = callDataOnGrid(saveData, keys, grid, gridname, False)
-                if not keys[0] == 'outputgrid':
-                    data, _ = callDataOnGrid(saveData, keys, grid, gridname, False)
-                else:
-                    saveData_temp = saveData.slice('outputgrid')
-                    saveData_temp.addData('grid', saveData_temp.data['outputgrid'])
-                    data, _ = callDataOnGrid(saveData_temp, keys, saveData_temp, gridname, False)
+                data, _ = callDataOnGrid(saveData, keys, gridname, False)
 
             # merge into saveData
-            saveData.merge(self._buildDicts(keys, data))
+            convertedData.merge(self._buildDicts(keys, data))
+            convertedData.addData('__variableOnGrid', variableOnGrid._data)
 
-        if convertGrid and saveData.v('grid') and 'grid' not in dontConvert:                      # if we are in a numerical function, the grid should be converted to the output grid
-            saveData.addData('grid', saveData.data[self.outputgridName])  # rename the outputgrid to grid and replace the original grid in saveData
-            saveData.data.pop(self.outputgridName)
+        # replace grid by outputgrid and merge into the dataset
+        d = {'grid':convertedData._data[self.outputgridName]}
+        convertedData._data.pop(self.outputgridName)
+        convertedData.merge(d)
 
-        return
+        return convertedData
 
     def _buildDicts(self, keys, data):
         """ """
@@ -241,7 +232,7 @@ class Output:
         return d1
 
     def __loadConfig(self):
-        import src.config as cf
+        from src import config as cf
         configvars = [var for var in dir(cf) if not var.startswith('__')]
         d = {}
         for var in configvars:
@@ -285,34 +276,32 @@ class Output:
 
         return filename
 
-    def __checkInputOverrides(self, inputData):
+    def __checkInputOverrides(self, inputData, modInput):
         # check that sub-vars of input vars are not removed by module calculated variables.
         # This is often a sign of overwriting a variable with a different data type
-        modKeys = self.input.getAllKeys()
+        modKeys = modInput.getAllKeys()
         inputKeys = inputData.getAllKeys()
-        inputKeysCopy = inputData.getAllKeys()
         warnings = [] # list of variables that already have warnings, prevents multiple warnings per variable
 
-        for inkey in inputKeysCopy:
+        for inkey in inputKeys:
             check = True
-            # if the same key+subkeys exists in self.input, check that they are the same datatype
+            # if the same key+subkeys exists in modInput, check that they are the same datatype
             if inkey in modKeys:
-                if isinstance(self.input.v(inkey), types.MethodType) or isinstance(inputData.v(inkey), types.MethodType):
-                    check = isinstance(self.input.v(inkey), types.MethodType) and isinstance(inputData.v(inkey), types.MethodType)  # True if both are functions
+                if isinstance(modInput.v(inkey), types.MethodType) or isinstance(inputData.v(inkey), types.MethodType):
+                    check = isinstance(modInput.v(inkey), types.MethodType) and isinstance(inputData.v(inkey), types.MethodType)  # True if both are functions
                 else:
-                    check = np.asarray(self.input.v(inkey)).shape == np.asarray(inputData.v(inkey)).shape
+                    check = np.asarray(modInput.v(inkey)).shape == np.asarray(inputData.v(inkey)).shape
             # elseif only the first element of the key corresponds, the input must have been overwritten by a different datatype
             elif inkey[0] in [key[0] for key in modKeys]:
                 check = False
 
             if not check:
-                inputKeys.remove(inkey)
                 if not inkey[0] in warnings:
                     warnings.append(inkey[0])
-                    self.logger.warning('Input/config variable %s has been overwritten by a different data type or differently shaped data. '
-                                    'This variable is now only written to output if explicitly requested in input file. '
-                                    'It is advised to change the name of the input/config variable.' % inkey[0])
-        return inputKeys
+                    self.logger.warning('Input/config variable %s has been overwritten by a different data type or differently shaped data in the modules. '
+                                    'This variable is written to output but may take more disk space than anticipated.'
+                                    'It is advised to change the name of the input/config variable to prevent this.' % inkey[0])
+        return
 
     def __tryint(self, i):
         try:

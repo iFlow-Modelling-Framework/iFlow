@@ -7,7 +7,7 @@ Authors: Y.M. Dijkstra
 import matplotlib as mpl
 from . import step_config as cf
 from cycler import cycler
-import matplotlib.font_manager
+
 
 def configure(axislimits=3):
     """Configures font and dpi for saving of all plots.

@@ -31,6 +31,5 @@ from .primitive import primitive
 from .secondDerivative import secondDerivative
 from .splitModuleName import splitModuleName
 from .toMatrix import toMatrix
-from .scalemax import scalemax
 from .invfft2 import invfft2
 from .savitzky_golay import savitzky_golay

@@ -2,14 +2,12 @@
 iFlow Textual User Interface (TUI)
 Asks user input and starts program selection
 
-Date: 02-11-15
-Authors: Y.M. Dijkstra, R.L. Brouwer
+Original date: 02-11-15
+Updated: 04-01-22
+Original authors: Y.M. Dijkstra, R.L. Brouwer
+Update authors: Y.M. Dijkstra
 """
 import logging
-from .Program import Program
-from src.util.diagnostics.NoInputFileException import NoInputFileException
-import time
-from nifty.Timer import Timer
 import os
 import importlib
 
@@ -34,25 +32,7 @@ class iFlowTUI:
         while not filePath:
             cwdpath, filePath = self.displayMenu(version)
 
-        # merge working directory and file path
-        totalPath = os.path.join(cwdpath, filePath)
-
-        # call program selector
-        program = Program(cwdpath, totalPath)
-        timer = Timer()
-        timer.tic()
-        try:
-            program.run()
-        except NoInputFileException as e:
-            print(e.message)
-        timer.toc()
-        self.logger.info(timer.string('\n'
-                                      'iFlow run time'))
-
-        # upon closing, ask input before ending. This to keep plot windows open.
-        # self.askClose()
-
-        return
+        return cwdpath, filePath
 
     def displayMenu(self, version):
         """Display version and ask for input file path.
@@ -68,12 +48,12 @@ class iFlowTUI:
         """
         # import the self.config_menu file or create
         try:
-            from . import config_menu
+            from src import config_menu
         except:
             with open('src/config_menu.py', 'w') as file:
                 file.write('LASTINPUTFILES = []\n')
                 file.write('CWD = ""')
-            from . import config_menu
+            from src import config_menu
         self.config_menu = config_menu
 
         # get last files and cwd
@@ -134,13 +114,6 @@ class iFlowTUI:
 
         return cwdpath, filePath
 
-    def askClose(self):
-        """Flush all loggers and notify user that the computation is done and wait until any key is entered.
-        """
-        logging.shutdown()
-        time.sleep(0.05)    # short pause to make sure that log is indeed flushed before final statement
-        input("Done. Press enter to close all windows and end the program.")
-        return
 
     def __getRecentFiles(self):
         """Get list containing the paths to up to the last five used input files from the config file.

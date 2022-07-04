@@ -5,7 +5,7 @@
 
 
 ## Geometry ############################################################################################################
-module  analytical2DV.Geometry2DV
+module  hydrodynamics2DV.Geometry2DV
 L       160000
 B0      type    functions.ExpRationalFunc
  	    C1      -0.02742e-3 1.8973
@@ -15,7 +15,7 @@ H0      type    functions.PolynomialLinear
         XL      1.33728131e+05
 
 ## Method ##############################################################################################################
-module	    numerical2DV.RegularGrid
+module	    hydrodynamics2DV.RegularGrid
 xgrid		equidistant     100
 zgrid	    equidistant     50
 fgrid		integer         2
@@ -25,7 +25,7 @@ zoutputgrid    equidistant     50
 foutputgrid    integer         2
 
 ## Hydrodynamics #######################################################################################################
-module      semi_analytical2DV.HydroLead semi_analytical2DV.HydroFirst numerical2DV.KEFittedLead
+module      hydrodynamics2DV.HydroLead hydrodynamics2DV.HydroFirst turbulence2DV.KEFittedLead
 submodules  river baroc tide nostress stokes adv
 A0			0 1.77 0
 A1			0 0 0.14
@@ -45,17 +45,17 @@ ignoreSubmodule
 referenceLevel      False
 truncationOrder     1
 
-module      numerical2DV.DiffusivityUndamped
+module      turbulence2DV.DiffusivityUndamped
 sigma_rho   1.
 
 ## Salinity - summer conditions ########################################################################################
-module      analytical2DV.SaltHyperbolicTangent
+module      salinity2DV.SaltHyperbolicTangent
 ssea        30.3296
 xc          60.6140e3
 xl          27.1020e3
 
 ## Sediment ############################################################################################################
-module      semi_analytical2DV.EquilibriumAvailability semi_analytical2DV.SedimentCapacity
+module      sediment2DV.EquilibriumAvailability sediment2DV.SedimentCapacity
 submodules  sedadv erosion noflux
 erosion_formulation     Chernetsky
 finf            1.

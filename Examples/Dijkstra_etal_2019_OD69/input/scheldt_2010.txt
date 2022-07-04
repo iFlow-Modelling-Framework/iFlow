@@ -6,8 +6,7 @@
 # Date: October 2018
 # Author: Y.M. Dijkstra
 
-module       general.Iterator
-modules      numerical2DV.KEFittedMAW semi_analytical2DV.HinderedSettling_bed
+iterator    turbulence2DV.KEFittedMAW sediment2DV.HinderedSettling_bed
 
 ## Sensitivity ##
 ## Sensitivity study only over the discharge
@@ -29,7 +28,7 @@ Qsource                 [[63, 11], [36, 4], [91, 18]]
 #uzmin                   0.005 0.01 0.02 0.03
 
 ## Geometry ##
-module  analytical2DV.Geometry2DV
+module  hydrodynamics2DV.Geometry2DV
 L       161.e3
 B0      type    functions.ExpRationalFunc
  	    C1      -0.02742e-3 1.8973
@@ -39,7 +38,7 @@ H0      type    functions.PolynomialLinear
         XL      1.29069757e+05
 
 ## Method ##
-module	    numerical2DV.RegularGrid
+module	    hydrodynamics2DV.RegularGrid
 xgrid		equidistant     250
 zgrid	    equidistant     50
 fgrid		integer         2
@@ -49,7 +48,7 @@ zoutputgrid    equidistant     30
 foutputgrid    integer         2
 
 ## Hydrodynamics ##
-module      semi_analytical2DV.HydroLead numerical2DV.HydroFirst numerical2DV.KEFittedMAW semi_analytical2DV.SedimentSource modulesOD69.SaltDischarge
+module      hydrodynamics2DV.HydroLead hydrodynamics2DV.HydroFirst turbulence2DV.KEFittedMAW sediment2DV.SedimentSource modulesOD69.SaltDischarge
 submodules  tide river baroc adv nostress stokes source #mixing
 A0			0 1.81 0 0
 A1			0 0 0.164 0
@@ -81,12 +80,12 @@ sigma_rho           1.
 Ribedmax            2.
 
 ## Salinity ##
-module      analytical2DV.SaltHyperbolicTangent
+module      salinity2DV.SaltHyperbolicTangent
 ssea        31.
 xl          32000.
 
 ## Sediment ##
-module      semi_analytical2DV.SedimentCapacity semi_analytical2DV.EquilibriumAvailability semi_analytical2DV.HinderedSettling_bed
+module      sediment2DV.SedimentCapacity sediment2DV.EquilibriumAvailability sediment2DV.HinderedSettling_bed
 submodules  erosion noflux sedadv
 finf        7.e-4
 Kh          100
@@ -108,4 +107,4 @@ filename        out_2010_Q@{'Q1'}
 #filename        out_2010_Q@{'Q1'}_M@{'finf'}_ws@{'ws00'}_csea@{'csea'}_uzmin@{'uzmin'}
 iteratesWith    general.Sensitivity
 
-requirements    Av Roughness zeta0 zeta1 u0 u1 B H c0 c1 c2 T F a f Kv R Ri skin_friction s0 BottomBC ws0 converged
+requirements    Av Roughness zeta0 zeta1 u0 u1 B H c0 c1 c2 T F a f Kv R Ri skin_friction s0 BottomBC ws0

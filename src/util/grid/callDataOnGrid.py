@@ -1,7 +1,8 @@
 """
 callDataOnGrid
 
-Date: 15-12-15
+Original date: 15-12-15
+Updated: 04-02-22
 Authors: Y.M. Dijkstra
 """
 import logging
@@ -9,14 +10,12 @@ import nifty as ny
 from functools import reduce
 
 
-def callDataOnGrid(dataContainer, keys, grid, gridname, reshape):
+def callDataOnGrid(dataContainer, keys, gridname, reshape):
     """Call data corresponding to keys from dataContainer on a certain grid
 
     Parameters:
-        dataContainer (DataContainer) - contains all data
+        dataContainer (DataContainer) - contains all data (incl grid)
         keys (tuple of str or str) - single (!) key plus optional subkeys
-        grid (DataContainer) - a data container containing a grid satisfying grid conventions.
-                               This function currently only supports 'Regular' grid types
         gridname (str) - key under which the grid can be found in the grid DataContainer
         reshape (bool) - reshape the requested data to grid size or keep in original format?
 
@@ -26,14 +25,13 @@ def callDataOnGrid(dataContainer, keys, grid, gridname, reshape):
                 0: warning: could not convert, returned original data
                 1: conversion succesful
     """
-    axes = {}
-    if grid.v(gridname, 'gridtype') == 'Regular':
-        axes = {}
-        for dim in ny.toList(grid.v(gridname, 'dimensions')):
-            axes[dim] = grid.v(gridname, 'axis', dim)
-            axes[dim] = axes[dim].reshape(reduce(lambda x, y: x*y, axes[dim].shape))
+    coordinates = {}
+    if dataContainer.v(gridname, 'gridtype') == 'Regular':
+        for dim in ny.toList(dataContainer.v(gridname, 'dimensions')):
+            coordinates[dim] = dataContainer.v(gridname, 'axis', dim)
+            coordinates[dim] = coordinates[dim].reshape(reduce(lambda x, y: x*y, coordinates[dim].shape))
     try:
-        data = dataContainer.v(*keys, reshape=reshape, **axes)
+        data = dataContainer.v(*keys, reshape=reshape, **coordinates)
         flag = 1
     except:
         data = dataContainer.v(*keys)

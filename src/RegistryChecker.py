@@ -9,8 +9,10 @@ Checks whether:
 - the registry entry of the module can be found and is unique
 Throws a KnownError exception with intructions whenever these conditions are not met
 
-Date: 03-11-15
-Authors: Y.M. Dijkstra, R.L. Brouwer
+Original date: 03-11-15
+Updated: 03-02-22
+Original authors: Y.M. Dijkstra, R.L. Brouwer
+Update authors: Y.M. Dijkstra
 """
 import sys
 from . import Reader
@@ -114,7 +116,7 @@ class RegistryChecker:
             reg (DataContainer) - entry from registry
             kwargs (dict of DataContainers, optional) - additional source to search for replacing @ symbols using method 2. above
         """
-        for tag in ['input', 'output', 'inputInit']:
+        for tag in ['input', 'output', 'inputInit', 'controls', 'prepares']:
             # tags for whole module
             inputList = toList(reg.v(tag))
             inputList = self.__refactorUtil(inputList, data, **kwargs)

@@ -78,11 +78,11 @@ def importModulePackages(cwd, imports):
         loggingpath.append(packages.__path__[0] + slash2 + modname)
 
     # add handlers to loggers in all paths
-    for pth in loggingpath:
-        p = pth.split('/')
-        p = p[-1].split('\\')
-        p = p[-1]
-        # make logger
-        logConf = LogConfigurator(p)                                 # logger
-        logConf.makeConsoleLog()
+    # for pth in loggingpath:
+    #     p = pth.split('/')
+    #     p = p[-1].split('\\')
+    #     p = p[-1]
+    #     # make logger
+    #     logConf = LogConfigurator(p)                                 # logger
+    #     logConf.makeConsoleLog()
     return

@@ -6,22 +6,25 @@ Requires parameters 'C': list/array of coefficient of the polynomial ranging fro
                          The length of the list determines the order of the polynomial
                     'L': length of system
 
-Date: 23-07-15
+Original date: 23-07-15
+Update: 04-02-22
 Authors: Y.M. Dijkstra, R.L. Brouwer
 """
 import numpy as np
-from nifty.functionTemplates import FunctionBase
 import nifty as ny
+from .checkVariables import checkVariables
 
-class Polynomial(FunctionBase):
+
+class Polynomial():
     #Variables
         
     #Methods
     def __init__(self, dimNames, data):
-        FunctionBase.__init__(self, dimNames)
         self.L = float(data.v('L'))
         self.C = np.array(ny.toList(data.v('C')))
-        FunctionBase.checkVariables(self, ('C', self.C), ('L', self.L))
+        self.dimNames = dimNames
+
+        checkVariables(self.__class__.__name__, ('C', self.C), ('L', self.L))
         return
 
     def value(self, x, **kwargs):
@@ -39,11 +42,14 @@ class Polynomial(FunctionBase):
         """
         x = x*self.L
         Cx = np.polyder(self.C)
-        if kwargs['dim'] == 'x':
-            return np.polyval(Cx, x)
-        elif kwargs['dim'] == 'xx':
-            Cxx = np.polyder(Cx)
-            return np.polyval(Cxx, x)
-        else:
-            FunctionBase.derivative(self)
-            return
+        return np.polyval(Cx, x)
+
+    def secondDerivative(self, x, **kwargs):
+        """
+        Parameters:
+            x - value between 0 and 1
+        """
+        x = x*self.L
+        Cx = np.polyder(self.C)
+        Cxx = np.polyder(Cx)
+        return np.polyval(Cxx, x)

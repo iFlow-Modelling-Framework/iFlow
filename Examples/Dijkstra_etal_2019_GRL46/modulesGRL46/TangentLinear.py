@@ -7,8 +7,9 @@ Requires parameters: alpha, beta, gamma, xc and xl
 Date: September 2018
 Authors: Y.M. Dijkstra
 """
-from nifty.functionTemplates import FunctionBase
+from src.old.functionTemplates import FunctionBase
 import numpy as np
+from packages.functions.checkVariables import checkVariables
 
 
 class TangentLinear(FunctionBase):
@@ -23,7 +24,9 @@ class TangentLinear(FunctionBase):
         self.gamma = float(data.v('gamma'))
         self.xc = float(data.v('xc'))
         self.xl = float(data.v('xl'))
-        FunctionBase.checkVariables(self, ('alpha', self.alpha), ('beta', self.beta), ('xc', self.xc), ('xl', self.xl), ('L', self.L))
+        self.dimNames = dimNames
+
+        checkVariables(self.__class__.__name__, ('alpha', self.alpha), ('beta', self.beta), ('xc', self.xc), ('xl', self.xl), ('L', self.L))
         return
 
     def value(self, x, **kwargs):
@@ -42,12 +45,17 @@ class TangentLinear(FunctionBase):
         """
         L = self.L
         x = x * L
-        if kwargs['dim'] == 'x':
-            return (0.5*self.beta*x*self.sech((x-self.xc)/self.xl)**2)/self.xl+(0.5*self.alpha*self.sech((x-self.xc)/self.xl)**2)/self.xl+0.5*self.beta*(np.tanh((x-self.xc)/self.xl)+1)
-        if kwargs['dim'] == 'xx':
-            return (1.0*self.beta*self.sech((x-self.xc)/self.xl)**2)/self.xl-(1.0*self.beta*x*self.sech((x-self.xc)/self.xl)**2*np.tanh((x-self.xc)/self.xl))/self.xl**2-(1.0*self.alpha*self.sech((x-self.xc)/self.xl)**2*np.tanh((x-self.xc)/self.xl))/self.xl**2
-        else:
-            return 0.
+        return (0.5*self.beta*x*self.sech((x-self.xc)/self.xl)**2)/self.xl+(0.5*self.alpha*self.sech((x-self.xc)/self.xl)**2)/self.xl+0.5*self.beta*(np.tanh((x-self.xc)/self.xl)+1)
+
+    def secondDerivative(self, x, **kwargs):
+        """
+        Parameters:
+            x - value between 0 and 1
+        """
+        L = self.L
+        x = x * L
+        return (1.0*self.beta*self.sech((x-self.xc)/self.xl)**2)/self.xl-(1.0*self.beta*x*self.sech((x-self.xc)/self.xl)**2*np.tanh((x-self.xc)/self.xl))/self.xl**2-(1.0*self.alpha*self.sech((x-self.xc)/self.xl)**2*np.tanh((x-self.xc)/self.xl))/self.xl**2
+
     def sech(self, x):
         return 1./np.cosh(x)
 

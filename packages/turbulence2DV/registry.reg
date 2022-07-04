@@ -1,0 +1,56 @@
+# Registry for package turbulence2DV
+#
+# date: 	15-02-2022
+# authors: 	Y.M.Dijkstra
+
+
+########################################################################################################################
+# diagnostic
+########################################################################################################################
+module      TurbulenceUniform
+packagePath
+input       grid Av0amp Av0phase sf0 m n
+output		Av Roughness BottomBC
+
+module      TurbulenceParabolic
+packagePath
+input       grid Av0amp Av0phase z0* m n
+output		Av Roughness BottomBC
+
+module          DiffusivityUndamped
+packagePath
+input           sigma_rho Av grid
+output          Kv skin_friction
+
+########################################################################################################################
+# k-epsilon fitted models
+########################################################################################################################
+module      KEFittedLead
+inputInit	if{grid,@{referenceLevel}==0} if{Q0,@{referenceLevel}==1} if{Q1,@{referenceLevel}==1} G B H profile roughnessParameter @roughnessParameter n Avmin  lambda referenceLevel ignoreSubmodule
+input       grid u0
+output		Av Roughness BottomBC if{grid,@{referenceLevel}==1}
+iterative	True
+
+module      KEFittedTruncated
+inputInit	truncationOrder if{grid,@{referenceLevel}==0} if{Q0,@{referenceLevel}==1} if{Q1,@{referenceLevel}==1} G B H profile roughnessParameter @roughnessParameter n Avmin  lambda referenceLevel ignoreSubmodule
+input       truncationOrder grid u+{0,@{truncationOrder}+1} zeta+{0,@{truncationOrder}+1}
+output		Av Roughness BottomBC if{grid,@{referenceLevel}==1}
+iterative	True
+
+module      KEFittedFirst
+inputInit	grid H profile roughnessParameter @roughnessParameter n lambda ignoreSubmodule u0
+input       grid u0 zeta0  u1
+output		Av1 Roughness1
+iterative	True
+
+module      KEFittedHigher
+inputInit	grid H profile roughnessParameter @roughnessParameter n lambda ignoreSubmodule order u0 u1 zeta0
+input       grid order maxOrder u+{0,@{maxOrder}+1} zeta+{0,@{maxOrder}+1}
+output		Av+{2,@{maxOrder}+1} Roughness+{2,@{maxOrder}+1}
+iterative	True
+
+module          KEFittedMAW
+inputInit       G RHO0 BETAC uzmin sigma_rho n referenceLevel if{grid,@{referenceLevel}==0} if{Q0,@{referenceLevel}==1} if{Q1,@{referenceLevel}==1} G B H profile roughnessParameter @roughnessParameter n Avmin  lambda ignoreSubmodule Ribedmax
+input           grid c0 u0 u1 c1 zeta0 H
+output          Kv Av Roughness BottomBC Av1 Kv1 skin_friction if{R,@{referenceLevel}==1} Ri
+iterative       True

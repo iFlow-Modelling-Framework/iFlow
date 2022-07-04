@@ -7,7 +7,7 @@ doi: [10.1175/JPO-D-17-0183.1](https://doi.org/10.1175/JPO-D-17-0183.1)
 Freely available at the TU Delft repository: [Brouwer et al (2018)](http://resolver.tudelft.nl/uuid:cec3e8f6-b728-4605-888e-e632272f61d1)
 
 # iFlow version
-Works with iFlow version 2.5
+Originally developed with iFlow version 2.5. Updated for iFlow v3.x.
 
 # Input files  
 Input file for Section 4 

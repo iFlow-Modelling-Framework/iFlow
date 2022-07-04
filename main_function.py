@@ -1,21 +1,42 @@
 from src import iFlow
-
+import os
 
 ## Init ##
 iflow = iFlow.iFlow()       # Initialise iFlow
-cwd = r'[ABSOLUTE PATH TO FOLDER]\iflow_DA_Scheldt'  # Set working directory
-inputfile = r'input/Scheldt.txt'    # Set inputfile
+cwd = r'D:\Work\PhD\iFlow\iFlow3\Examples\Tutorial'  # Set working directory
+inputfile = r'input\inputEMS.txt'    # Set inputfile
 
 ## Add additional variables ##
-Depthcoefficients = [-2.9013e-24,1.4030e-18,-2.4218e-13,1.7490e-8,-5.2141e-4, 15.332]    # polynomial coefficients for the depth profile
-Widthcoefficients1 = [-0.02742e-3, 1.8973]    # coefficients set 1 for the width profile
-Widthcoefficients2 = [4.9788e-11, -9.213e-6, 1] # coefficients set 2 for the width profile
-sf00 = [0.004,0.005,0.008]     # friction coefficient; automatically splits the domain in equal pieces with these roughness coefficients
+Depthcoefficients1 = [8.09495397e-19, -6.92278797e-14, 2.34165496e-09, -1.86980848e-04, 1.05000000e+01]    # polynomial coefficients for the depth profile
+Depthcoefficients2 = 50332    # xl
+Widthcoefficients = [-2.05001187e-20, 3.26623360e-15, -1.77496965e-10, 3.82812572e-06, -4.18442587e-02, 7.62139923e+02]    # coefficients set 1 for the width profile
 
 ## Prepare dictionary
-input = {'H0':{'type': 'functions.Polynomial', 'C': Depthcoefficients},
-         'B0':{'type': 'functions.ExpRationalFunc', 'C1': Widthcoefficients1, 'C2':Widthcoefficients2},
-         'sf00': sf00}        # dictionary with additional input parameters
+input = {'H0':{'type': 'functions.PolynomialLinear', 'C': Depthcoefficients1, 'XL': Depthcoefficients2},
+         'B0':{'type': 'functions.Polynomial', 'C': Widthcoefficients}}        # dictionary with additional input parameters
+
 
 ## Run iFlow ##
-output = iflow.StartFUI(inputfile, cwd, input)
+iFlowBlock = iflow.initialise(inputfile, cwd, input)
+iFlowBlock.instantiateModule()
+iFlowBlock.run()
+out1 = iFlowBlock.getOutput()
+# profiler = iFlowBlock.getProfiler()     # optional
+
+
+## Run iFlow again ##
+# profiler.snapshot('before copy')
+iFlowBlock2,_ = iFlowBlock.deepcopy()
+# profiler.snapshot('after copy')
+input2 = {'L':100e3}
+iFlowBlock2.addInputData(input2)
+iFlowBlock2.instantiateModule()
+iFlowBlock2.run()
+out2 = iFlowBlock2.getOutput()
+
+profiler = iFlowBlock2.getProfiler()
+if profiler is not None:
+    profiler.plot()
+else:
+    print('No profiler set')
+# output = iFlowBlock.getOutput()

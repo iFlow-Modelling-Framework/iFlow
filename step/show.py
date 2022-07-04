@@ -4,7 +4,6 @@ show
 Date: 21-Feb-16
 Authors: Y.M. Dijkstra
 """
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 from . import step_config as cf
 

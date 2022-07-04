@@ -1,7 +1,8 @@
 """
 pickleload
 
-Date: 29-Feb-16
+Original date: 29-Feb-16
+Update: 04-02-22
 Authors: Y.M. Dijkstra
 """
 import pickle as pickle
@@ -50,13 +51,15 @@ def __convertfunction(data, variables):
         # if dict, go a level deeper
         if isinstance(data[key], dict):
             __convertfunction(data[key], data[key].keys())
-        # if instance, make it a function
-        elif hasattr(data[key], 'function'):
+
+        # if tuple with the first argument having 'dimNames', assume this is a class with an analytical function
+        elif isinstance(data[key], tuple) and hasattr(data[key][0], 'dimNames'):
             # a. also change instances in datacontainers within the instance
-            classvars = vars(data[key])
+            classinst = data[key][0]
+            classvars = vars(classinst)
             for var in classvars:
-                if isinstance(data[key].__dict__[var], src.DataContainer.DataContainer):
-                    __convertfunction(data[key].__dict__[var].data, data[key].__dict__[var].data.keys())
+                if isinstance(classinst.__dict__[var], src.DataContainer.DataContainer):
+                    __convertfunction(classinst.__dict__[var]._data, classinst.__dict__[var]._data.keys())
             # b. convert to function
-            data[key] = data[key].function
+            data[key] = eval('classinst.'+data[key][1])
     return

@@ -5,7 +5,7 @@ Dijkstra et al (2019). Journal of Geophysical Research - Oceans 124:1-17 \
 doi: [10.1029/2018JC014367](https://doi.org/10.1029/2018JC014367) (Open Access) 
 
 # iFlow version
-Works with iFlow version 2.6
+Originally developed with iFlow version 2.6. Updated for iFlow v3.x.
 
 # Input files  
 Input files for Ems cases 1965 and 2005

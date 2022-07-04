@@ -7,7 +7,7 @@ Dijkstra et al (2019). Ocean Dynamics 69:809-827 \
 doi: [10.1007/s10236-019-01277-z](https://doi.org/10.1007/s10236-019-01277-z) (Open Access) 
 
 # iFlow version
-Works with iFlow version 2.7
+Originally developed with iFlow version 2.7. Updated for iFlow v3.x.
 
 # Input files  
 Input files for basic cases without and with dumping (scheldt_2010, scheldt_2010_nodumping) - Figures 6, 7 8

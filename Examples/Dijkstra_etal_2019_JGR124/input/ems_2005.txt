@@ -6,12 +6,11 @@
 # Date: September 2018
 # Author: Y.M. Dijkstra
 
-module       general.Iterator
-modules      numerical2DV.KEFittedMAW semi_analytical2DV.HinderedSettling_bed
+iterator    turbulence2DV.KEFittedMAW sediment2DV.HinderedSettling_bed
 
 ## Geometry ##
-module  analytical2DV.Geometry2DV
-L       64.e3                                                                                                           # Length of the domain (in m)
+module  hydrodynamics2DV.Geometry2DV
+L       64.e3
 B0 	    type    functions.Polynomial
  	    C       -2.05001187e-20   3.26623360e-15  -1.77496965e-10   3.82812572e-06 -4.18442587e-02   7.62139923e+02     # polynomial coefficients for the width profile -2.05001187e-20*x^5 + 3.26623360e-15*x^4 -1.77496965e-10*x^3+3.82812572e-06*x^2-4.18442587e-02*x+7.62139923e+02 (with x in m)
 H0      type    modulesJGR124.TangentLinear                                                                             # Formula for the depth profile 0.5*alpha*(1+tanh((x-xc)/xl) + 0.5*beta*x*(1+tanh((x-xc)/xl) + gamma
@@ -22,9 +21,9 @@ H0      type    modulesJGR124.TangentLinear                                     
         xc          13000.
 
 ## Grid ##
-module	    numerical2DV.RegularGrid
-xgrid		equidistant     250                                                                                         # number of grid points horizontal
-zgrid	    equidistant     50                                                                                          # number of grid points vertical
+module	    hydrodynamics2DV.RegularGrid
+xgrid		equidistant     250
+zgrid	    equidistant     50
 fgrid		integer         2
 
 xoutputgrid    equidistant     100
@@ -32,7 +31,7 @@ zoutputgrid    equidistant     50
 foutputgrid    integer         2
 
 ## Hydrodynamics ##
-module      semi_analytical2DV.HydroLead semi_analytical2DV.HydroFirst numerical2DV.KEFittedMAW modulesJGR124.SalinityCoefficients
+module      hydrodynamics2DV.HydroLead hydrodynamics2DV.HydroFirst turbulence2DV.KEFittedMAW modulesJGR124.SalinityCoefficients
 submodules  tide river baroc adv nostress stokes #mixing
 A0			0 1.40 0                                                                                                    # Tidal amplitude at x=0 - M2 component (in m)
 A1			0 0 0.21                                                                                                    # Tidal amplitude at x=0 - M4 component (in m)
@@ -55,11 +54,11 @@ Ribedmax            2.
 
 ## Salinity ##
 #conditions Ems
-module      analytical2DV.SaltHyperbolicTangent                                                                         # salinity profile ssea/2*(1-tanh((x-xc)/xl)); parameters are coded separately for each discharge in folder modulesJGR124/SalinityCoefficients.py: for Q=80 xc=34900 xl=11500, for Q=40 xc=38700 xl=12700
+module      salinity2DV.SaltHyperbolicTangent
 ssea        30
 
 ## Sediment ##
-module      semi_analytical2DV.SedimentCapacity semi_analytical2DV.EquilibriumAvailability semi_analytical2DV.HinderedSettling_bed
+module      sediment2DV.SedimentCapacity sediment2DV.EquilibriumAvailability sediment2DV.HinderedSettling_bed
 submodules  erosion noflux sedadv   # mixing
 finf        0.02                                                                                                        # Erosion parameter (s/m, Partheniades formula: Erosion=M|tau_bed|; no critical shear stress)
 Kh          100                                                                                                         # Horizontal dispersion parameter (m2/s)

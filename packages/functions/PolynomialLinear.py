@@ -8,23 +8,25 @@ Requires parameters 'C': list/array of coefficient of the polynomial ranging fro
                     'XL': end point of the polynomial part
                     'L': length of system
 
-Date: 01-07-15
+Original date: 01-07-15
+Update: 04-02-22
 Authors: Y.M. Dijkstra
 """
 import numpy as np
-from nifty.functionTemplates import FunctionBase
+from .checkVariables import checkVariables
 
 
-class PolynomialLinear(FunctionBase):
+class PolynomialLinear():
     #Variables
         
     #Methods
     def __init__(self, dimNames, data):
-        FunctionBase.__init__(self, dimNames)
         self.L = float(data.v('L'))
         self.C = np.array(data.v('C'))
         self.XL = float(np.array(data.v('XL')))
-        FunctionBase.checkVariables(self, ('C', self.C), ('XL', self.XL), ('L', self.L))
+        self.dimNames = dimNames
+
+        checkVariables(self.__class__.__name__, ('C', self.C), ('XL', self.XL), ('L', self.L))
 
         # coefficients for the linear function
         self.C_lin = np.asarray([np.polyval(np.polyder(self.C), self.XL), np.polyval(self.C, self.XL)])
@@ -50,14 +52,19 @@ class PolynomialLinear(FunctionBase):
         Cx = np.polyder(self.C)
         Cx_lin = np.polyder(self.C_lin)
         p = np.zeros(len(x))
-        if kwargs['dim'] == 'x':
-            p[np.where(x<=self.XL)] = np.polyval(Cx, x[np.where(x<=self.XL)])
-            p[np.where(x>self.XL)] = np.polyval(Cx_lin, x[np.where(x>self.XL)]-self.XL)
-            return p
-        elif kwargs['dim'] == 'xx':
-            Cxx = np.polyder(Cx)
-            p[np.where(x<=self.XL)] = np.polyval(Cxx, x[np.where(x<=self.XL)])
-            return p
-        else:
-            FunctionBase.derivative(self)
-            return
+        p[np.where(x<=self.XL)] = np.polyval(Cx, x[np.where(x<=self.XL)])
+        p[np.where(x>self.XL)] = np.polyval(Cx_lin, x[np.where(x>self.XL)]-self.XL)
+        return p
+
+    def secondDerivative(self, x, **kwargs):
+        """
+        Parameters:
+            x - value between 0 and 1
+        """
+        x = x*self.L
+        Cx = np.polyder(self.C)
+        Cx_lin = np.polyder(self.C_lin)
+        p = np.zeros(len(x))
+        Cxx = np.polyder(Cx)
+        p[np.where(x<=self.XL)] = np.polyval(Cxx, x[np.where(x<=self.XL)])
+        return p

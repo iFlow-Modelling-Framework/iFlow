@@ -5,10 +5,7 @@ Date: 07-03-2017
 Authors: Y.M. Dijkstra
 """
 import logging
-import numpy as np
 import nifty as ny
-import step as st
-import matplotlib.pyplot as plt
 
 
 class CombinedDepth:
@@ -104,24 +101,19 @@ class CombinedDepth:
         Hax = (1 - alpha_rel) * Hx[indlow] + alpha_rel * Hx[indhigh]
         Haxx = (1 - alpha_rel) * Hxx[indlow] + alpha_rel * Hxx[indhigh]
 
-        # print alpha_rel, alpha_lim[indlow], alpha_lim[indhigh], Ha[-1]
-
-        nf = ny.functionTemplates.NumericalFunctionWrapper(Ha, grid)
-        nf.addDerivative(Hax, 'x')
-        nf.addDerivative(Haxx, 'xx')
-
         ################################################################################################################
         ## Dictionary
         ################################################################################################################
         d = {}
-        d['H'] = nf.function
-        d['B'] = width.function
+        d['B'] = width.value
+        d['H'] = Ha
+        d['__derivative'] = {}
+        d['__derivative']['x'] = {}
+        d['__derivative']['x']['B'] = width.derivative
+        d['__derivative']['x']['H'] = Hax
+        d['__derivative']['xx'] = {}
+        d['__derivative']['xx']['B'] = width.secondDerivative
+        d['__derivative']['xx']['H'] = Haxx
         d['L'] = self.input.v('L')
-
-        # st.configure()
-        # plt.figure(1, figsize=(1,2))
-        # plt.plot(x, -Ha)
-
-        # st.show()
 
         return d

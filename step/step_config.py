@@ -1,15 +1,29 @@
 savedpi = 300       # dpi for saving (only relevant for non-vector images)
 
 # Normal
-dpi = 120           # dpi for visualisation
-wunit = 3.5         # single width unit (inch)
-hunit = 2.8        # single height unit (inch)
-markersize = 6.0    # markersize for all markers
-fontsize = 11       # font size for title and axis labels
-fontsize2 = 9      # font size for tick labels and legends
-fontsize3 = 8      # font size for tick labels and legends
-fontfamily = 'sans-serif'
-font = {}           #       optionally add a line font['sans-serif'] = 'fontname' or font['serif'] = 'fontname'
+# dpi = 120           # dpi for visualisation
+# wunit = 3.5         # single width unit (inch)
+# hunit = 2.8        # single height unit (inch)
+# markersize = 6.0    # markersize for all markers
+# fontsize = 11       # font size for title and axis labels
+# fontsize2 = 9      # font size for tick labels and legends
+# fontsize3 = 8      # font size for tick labels and legends
+# fontfamily = 'sans-serif'
+# font = {}           #       optionally add a line font['sans-serif'] = 'fontname' or font['serif'] = 'fontname'
+# forcefontsize = False        # force the above fontsizes
+
+# Thesis
+dpi = 170               # dpi for visualisation
+wunit = 2.51            # single width unit (inch)
+hunit = 2.0             # single height unit (inch)
+markersize = 4.0        # markersize for all markers
+fontsize = 8.2          # font size for title and axis labels
+fontsize2 = 7.2         # font size for tick labels and legends
+fontsize3 = 6.2
+fontfamily = 'serif'
+font = {}
+font['serif'] = u'Utopia'
+# forcefontsize = True        # force the above fontsizes
 forcefontsize = False        # force the above fontsizes
 
 names = {

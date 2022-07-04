@@ -6,8 +6,7 @@
 # Date: September 2018
 # Author: Y.M. Dijkstra
 
-module       general.Iterator
-modules      numerical2DV.KEFittedMAW semi_analytical2DV.HinderedSettling_bed
+iterator      turbulence2DV.KEFittedMAW sediment2DV.HinderedSettling_bed
 
 ## Sensitivity
 module      general.Sensitivity
@@ -40,7 +39,7 @@ H2      type    modulesGRL46.TangentLinear
         xc          13000.
 
 ## Method ##
-module	    numerical2DV.RegularGrid
+module	    hydrodynamics2DV.RegularGrid
 xgrid		equidistant     250
 zgrid	    equidistant     50
 fgrid		integer         2
@@ -50,7 +49,7 @@ zoutputgrid    equidistant     20
 foutputgrid    integer         2
 
 ## Hydrodynamics ##
-module      semi_analytical2DV.HydroLead semi_analytical2DV.HydroFirst numerical2DV.KEFittedMAW modulesGRL46.SalinityCoefficients
+module      hydrodynamics2DV.HydroLead hydrodynamics2DV.HydroFirst turbulence2DV.KEFittedMAW modulesGRL46.SalinityCoefficients
 submodules  tide river baroc adv nostress stokes #mixing
 A0			0 1.40 0
 A1			0 0 0.21
@@ -72,11 +71,11 @@ Ribedmax            2.
 
 ## Salinity ##
 #conditions Ems
-module      analytical2DV.SaltHyperbolicTangent
+module      salinity2DV.SaltHyperbolicTangent
 ssea        30
 
 ## Sediment ##
-module      semi_analytical2DV.SedimentCapacity semi_analytical2DV.EquilibriumAvailability semi_analytical2DV.HinderedSettling_bed
+module      sediment2DV.SedimentCapacity sediment2DV.EquilibriumAvailability sediment2DV.HinderedSettling_bed
 submodules  erosion noflux sedadv# mixing
 finf        0.02
 Kh          100
@@ -96,4 +95,4 @@ path	        output/down
 filename        out_alpha@{'alpha'}_Q@{'Q1'}
 iteratesWith    general.Sensitivity
 
-requirements    Av Roughness zeta0 zeta1 u0 u1 B H c0 c1 c2 T F a f Kv R Ri skin_friction s0 BottomBC ws0 converged
+requirements    Av Roughness zeta0 zeta1 u0 u1 B H c0 c1 c2 T F a f Kv R Ri skin_friction s0 BottomBC ws0

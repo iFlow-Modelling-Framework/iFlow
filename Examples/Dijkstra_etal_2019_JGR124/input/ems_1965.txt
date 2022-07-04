@@ -6,11 +6,10 @@
 # Date: September 2018
 # Author: Y.M. Dijkstra
 
-module       general.Iterator
-modules      numerical2DV.KEFittedMAW semi_analytical2DV.HinderedSettling_bed
+iterator    turbulence2DV.KEFittedMAW sediment2DV.HinderedSettling_bed
 
 ## Geometry ##
-module  analytical2DV.Geometry2DV
+module  hydrodynamics2DV.Geometry2DV
 L       64.e3
 B0 	    type    functions.Polynomial
  	    C       -2.05001187e-20   3.26623360e-15  -1.77496965e-10   3.82812572e-06 -4.18442587e-02   7.62139923e+02
@@ -22,7 +21,7 @@ H0      type    modulesJGR124.TangentLinear
         xc          13000.
 
 ## Grid ##
-module	    numerical2DV.RegularGrid
+module	    hydrodynamics2DV.RegularGrid
 xgrid		equidistant     250
 zgrid	    equidistant     50
 fgrid		integer         2
@@ -32,7 +31,7 @@ zoutputgrid    equidistant     50
 foutputgrid    integer         2
 
 ## Hydrodynamics ##
-module      semi_analytical2DV.HydroLead semi_analytical2DV.HydroFirst numerical2DV.KEFittedMAW modulesJGR124.SalinityCoefficients
+module      hydrodynamics2DV.HydroLead hydrodynamics2DV.HydroFirst turbulence2DV.KEFittedMAW modulesJGR124.SalinityCoefficients
 submodules  tide river baroc adv nostress stokes #mixing
 A0			0 1.34 0
 A1			0 0 0.18
@@ -55,11 +54,11 @@ Ribedmax            2.
 
 ## Salinity ##
 #conditions Ems
-module      analytical2DV.SaltHyperbolicTangent
+module      salinity2DV.SaltHyperbolicTangent
 ssea        30
 
 ## Sediment ##
-module      semi_analytical2DV.SedimentCapacity semi_analytical2DV.EquilibriumAvailability semi_analytical2DV.HinderedSettling_bed
+module      sediment2DV.SedimentCapacity sediment2DV.EquilibriumAvailability sediment2DV.HinderedSettling_bed
 submodules  erosion noflux sedadv   # mixing
 finf        0.02
 Kh          100
@@ -78,4 +77,4 @@ module          general.Output
 path	        output
 filename        out_ems_1965
 
-requirements    Av Roughness zeta0 zeta1 u0 u1 B H c0 c1 c2 T F a f Kv R Ri skin_friction s0 BottomBC ws0 converged
+requirements    Av Roughness zeta0 zeta1 u0 u1 B H c0 c1 c2 T F a f Kv R Ri skin_friction s0 BottomBC ws0 #converged

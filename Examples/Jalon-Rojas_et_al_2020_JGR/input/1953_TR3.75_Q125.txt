@@ -1,0 +1,87 @@
+# Chapters of the input file start with ##. The chapters to be included are 'Program' and the chapter names required by the chosen program, see the program registry
+# The input required in each chapter depends on the chosen modules and methods, please consult the manual and respective registries
+# The keyword 'type' indicates a name that exists in a registry.
+# The 'Output' chapter specifies the output that is written to file per module and submodule.
+#   The data is written on an output grid ('xgrid', 'zgrid') at location 'path'
+#   The tag 'modules' specifies the modules to be written to file. The keyword 'all' following the tag outputs all specified modules.
+#   (optional) The output per module can be specified by providing the submodules and frequencies. Omission of the specification outputs the full modules. The keyword 'all' following the tag 'submodules' or 'frequencies' outputs all specified submodules or frequencies
+#
+# Date: 22-05-16
+# Authors: I.Jalón Rojas (from Y.M. Dijkstra, R.L. Brouwer input file)
+
+## Scenario ##
+module modules.Scenario
+year 1953
+Q 125
+TRm 3.75
+
+
+## Geometry ##
+module  modules.Geometry2DV_Flat
+Le   90000.
+L  135000.  #(Le+Lf)
+B0      type    modules.ExpRationalFunc_Flat
+ 	    C1      -0.002122 -6.042
+ 	    C2      0.0004639  50.03
+H0      type    functions.Polynomial
+        C     	1.09249451591646e-46	-7.46840337172479e-41	2.16452124997029e-35	-3.46366066664883e-30	3.33839949367792e-25	-1.98208908771541e-20	7.10175889808216e-16	-1.43176788427969e-11	1.36717932063414e-07	-0.000371296857326342	5.69913408206847
+
+## Method ##
+module	    hydrodynamics2DV.RegularGrid
+xgrid		equidistant     500
+zgrid	    equidistant     50
+fgrid		integer         2
+
+xoutputgrid    equidistant     500
+zoutputgrid    equidistant     50
+foutputgrid    integer         2
+
+## Hydrodynamics ##
+module      hydrodynamics2DV.HydroLead hydrodynamics2DV.HydroFirst hydrodynamics2DV.ReferenceLevel
+submodules  river tide adv nostress stokes
+A0		    0 2. 0 0
+A1		    0 0 0.3 0
+phase0		0 12 0 0
+phase1		0 0 -41.3 0
+Q0		    0
+Q1          125
+
+## Turbulence ##
+module		modules.Uniform_VaryingSfAv
+sf0a        0.0022
+sf0b        0.075
+option      tanh  #tanh or exponential or linear
+Lend_sf0a   32000.
+Lini_sf0b   80000.
+m           0
+n           0
+
+module      turbulence2DV.DiffusivityUndamped
+sigma_rho   1.                                      # Prandt-Schmidt number
+
+## Sediment ############################################################################################################
+module      	sediment2DV.EquilibriumAvailability sediment2DV.SedimentCapacity
+submodules      erosion noflux sedadv
+erosion_formulation     Chernetsky
+friction        skin_friction
+finf            1.
+sedbc           astar
+astar       	1.2e-3                              # Measure for total sediment availability in the system
+ws0          	0.0007                             # settling velocity
+Kh          	50.                                # Horizontal eddy diffusivity
+
+## Load measurements ##
+module          measurements.Gironde_v1
+module          plottingIsabel.Plot
+
+## Output ##
+#module          general.OutputMat
+path	        output/1953
+filename        out_year@{'year'}_Q@{'Q'}_TRm@{'TRm'}_new                            #_L@{'L'}_H@{'H', x=0}
+iteratesWith    general.Sensitivity
+
+requirements    Av u0 zeta0 u1 zeta1 year Q TRm Roughness T F a c0 c1 c2 R
+
+## End ##
+
+

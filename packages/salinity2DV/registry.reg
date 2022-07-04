@@ -1,0 +1,31 @@
+# Registry for package Salinity2DV
+#
+# date: 	04-02-22
+# authors: 	Y.M.Dijkstra
+
+########################################################################################################################
+# Subpackage diagnostic
+########################################################################################################################
+module      SaltHyperbolicTangent
+packagePath	diagnostic/
+input       L ssea xc xl
+output      s0
+
+module      SaltExponential
+packagePath	diagnostic/
+input       L ssea Ls
+output      s0
+
+########################################################################################################################
+# Subpackage perturbation
+########################################################################################################################
+module      SalinityLead
+packagePath	perturbation/
+input       grid ssea Kh B H u0 Q1
+output      s0 s1var
+
+module      SalinityFirst
+packagePath	perturbation/
+input       grid Kh B H u0 u1 s0 s1var Q1
+output      s1 s2var
+submodules	advection diffusion nostress

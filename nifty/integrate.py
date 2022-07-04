@@ -8,11 +8,11 @@ import numpy as np
 from .toList import toList
 from .primitive import primitive
 from src.util.diagnostics import KnownError
-import src.config as cf
+from src import config as cf
 import scipy.integrate
 import nifty as ny
 
-def integrate(u, dimNo, low, high, grid, *args, **kwargs):
+def integrate(u, dimNo, low, high, grid, *args, gridname='grid', **kwargs):
     """Compute the integral of numerical array between low and high. The method is specified in src.config (INTMETHOD)
     NB. 'indices' now only as indices (not as coordinates)
     NB. when requesting a shape that has more dimensions that the data, this method fails. Needs fixing (TODO)
@@ -37,7 +37,7 @@ def integrate(u, dimNo, low, high, grid, *args, **kwargs):
     INTMETHOD = kwargs.get('INTMETHOD') or cf.INTMETHOD
     # if string of dimension is provided, convert to number of axis
     if isinstance(dimNo, str):
-        dimNo = grid.v('grid', 'dimensions').index(dimNo)
+        dimNo = grid.v(gridname, 'dimensions').index(dimNo)
 
     if INTMETHOD == 'TRAPEZOIDAL' or INTMETHOD == 'INTERPOLSIMPSON':
         # determine 'maximum' of high, i.e. that value furthest from low
@@ -70,7 +70,7 @@ def integrate(u, dimNo, low, high, grid, *args, **kwargs):
         # make z the same shape as u
         #   if u has less dimensions or length-1 dimensions, remove them from z
         axisrequest = {}
-        for num, j in enumerate(grid.v('grid', 'dimensions')):
+        for num, j in enumerate(grid.v(gridname, 'dimensions')):
             if num >= len(u.shape):
                 axisrequest[j] = 0
             elif u.shape[num] == 1:

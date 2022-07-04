@@ -1,0 +1,6 @@
+# Registry for package measurements
+
+module          Gironde_v1 #IJR
+input           year
+output			Gironde_measurements grid_stations_Garonne #IJR
+packagePath

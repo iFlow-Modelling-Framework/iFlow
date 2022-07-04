@@ -1,0 +1,131 @@
+# Registry for package hydrodynamics2DV
+#
+# date: 	04-02-22
+# authors: 	Y.M.Dijkstra
+
+########################################################################################################################
+# General
+########################################################################################################################
+module      Geometry2DV
+packagePath
+input       L B0 H0
+output      L B H
+
+module          RegularGrid
+packagePath
+input           L B H xgrid zgrid fgrid xoutputgrid zoutputgrid foutputgrid# R
+output          grid outputgrid
+
+module      Calibration
+packagePath
+inputInit   calibrationParameter changeFactor measurementset @calibrationParameter @measurementset
+input       zeta0
+output      @calibrationParameter
+iterative   True
+
+module          HigherOrderIterator
+packagePath
+inputInit		maxOrder variables @{variables}+{1,2}
+input			maxOrder variables @{variables}+{2,@{maxOrder}+1}
+output			order maxOrder
+iterative		True
+
+module      Calibration
+packagePath
+inputInit   calibrationParameter changeFactor measurementset @calibrationParameter @measurementset
+input       zeta0
+output      @calibrationParameter
+iterative   True
+
+########################################################################################################################
+# Perturbation
+########################################################################################################################
+module          ReferenceLevel
+inputInit		H if{Q0,@{Q1}==None}  if{Q1,@{Q0}==None}
+input			grid G H B Av Roughness BottomBC
+output			R
+packagePath		perturbation/
+iterative		True
+
+## Module HydroLead: semi-analytical2DV perturbation model - leading order ##
+module          HydroLead
+packagePath		perturbation/
+input 			grid Av Roughness OMEGA G
+output			u0 zeta0 w0
+submodules		tide river
+tide  	input   A0 phase0
+		output
+
+river	input   Q0
+		output
+
+## Module HydroFirst: semi-analytical2DV perturbation model - first order ##
+module          HydroFirst
+packagePath		perturbation/
+input 			grid Av Roughness OMEGA G
+output			u1 zeta1        # NB. does not compute w1 - use numerical modules if w1 is needed
+submodules		tide river baroc stokes nostress adv
+tide	    input   A1  phase1
+		    output
+river	    input   Q1
+		    output
+baroc	    input	s0 BETA
+		    output
+stokes	    input   u0 zeta0
+		    output
+nostress	input	u0 zeta0
+			output
+adv		    input	u0
+		    output
+
+## Module HydroLeadNumerical: numerical coupled frequency perturbation model - leading order ##
+module          HydroLeadNumerical
+input			BottomBC grid Av Roughness OMEGA G
+output			u0 zeta0 w0
+packagePath		perturbation/
+submodules		tide river
+tide            input A0 phase0
+                output
+river           input Q0
+                output
+
+## Module HydroFirstNumerical numerical coupled frequency perturbation model - first order ##
+module          HydroFirstNumerical
+input			BottomBC grid Av Roughness OMEGA G BETA
+output			u1 zeta1 w1
+packagePath		perturbation/
+submodules		tide river baroc stokes nostress adv mixing source
+tide            input       A1 phase1
+                output
+river           input       Q1
+                output
+baroc			input		s0
+				output
+stokes			input		u0 zeta0
+				output
+nostress		input		u0 zeta0
+				output
+adv				input		u0 w0
+				output
+mixing			input		u0 Av1
+				output
+source          input       xsource Qsource
+                output
+
+module          HydroHigherNumerical
+packagePath		perturbation/
+input			grid BottomBC Av Roughness maxOrder maxContributions OMEGA G BETA order
+output			surfder surfstress u+{2,@{maxOrder}+1} zeta+{2,@{maxOrder}+1} w+{2,@{maxOrder}+1}
+submodules		baroc stokes nostress adv densitydrift mixing
+baroc			input		s+{1,@{maxOrder}}
+                output
+stokes			input		u0 zeta0 u1 zeta1
+                output
+nostress		input		u0 zeta0 u1 zeta1
+                output
+adv				input		u0 u1 w0
+                output
+densitydrift	input		u0 zeta0 u1 zeta1 s+{0,@{maxOrder}-1}
+                output
+mixing      	input		u0 zeta0 u1 zeta1 Av+{2,@{maxOrder}+1}
+                output
