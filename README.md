@@ -13,11 +13,12 @@ Several options are provided to learn to work with iFlow:
 * A getting started tutorial - see folder 'Examples/Tutorial'
 * Example input files linked to (scientific) publications or other applications of the model - see folder 'Examples'
 * Extensive manuals for iFlow containing an in-depth description of the core of iFlow and the modules included - see folder 'Manuals'. 
+NB. The manuals and tutorial documents have not yet been adapted for iFlow v3.*
 
 Our paper "The iFlow Modelling Framework v2.4. A modular idealized process-based model for flow and transport in estuaries" is published and freely available via [this link](https://doi.org/10.5194/gmd-10-2691-2017).
 
 # Programming language, installation and prerequisites
-iFlow is written in Python 2.7. To install, make sure python and common required packages are installed. We recommend installing Anaconda, which includes Python and all packages needed to run iFlow. For more on installation, read the manual or the tutorial.
+iFlow v3.* works in Python 3.7, 3.8 and 3.9 (older versions iFlow v2.* work in Python 2.7). To install, make sure python and common required packages are installed. We recommend installing Anaconda, which includes Python and all packages needed to run iFlow. For more on installation, read the manual or the tutorial.
 
 Running iFlow requires no or very little knowledge of Python or programming in general. Users will however quickly find themselves wanting to make custom visualisations (figures/tables), requiring basic knowledge of Python. 
 
