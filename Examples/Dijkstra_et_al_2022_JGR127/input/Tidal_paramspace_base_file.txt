@@ -1,0 +1,61 @@
+iterator     general.Sensitivity modules_parameterspace.SetLength
+
+## Sensitivity ##
+module              general.Sensitivity
+variables           Q1 QM2 OMEGA H Kh sf0 continuationGoal
+Q1                  10**np.linspace(1,4.64,50)
+QM2                 [0,10000,20000]
+OMEGA               1.4056343e-4
+H                   20
+Kh                  [25,150,500]
+sf0                 [0.73, 0.12, 0.037]
+continuationGoal    [0.0007, 0.0001, 3.5E-05]
+loopstyle           e d b c a a a
+
+
+## Method ##
+module	    hydrodynamics2DV.RegularGrid
+xgrid		equidistant     200
+zgrid	    equidistant     50
+fgrid		integer         3
+
+xoutputgrid    equidistant     100
+zoutputgrid    equidistant     10
+foutputgrid    integer         3
+
+## Hydrodynamics ##
+module      turbulence2DV.KEFittedLead salinity2DV.SalinityTruncationNewton modules_parameterspace.PresetLength
+ssea        30.
+zeta0       0
+H0          20
+B0          1000
+
+M                   12
+continuationParam   Av
+stepsize            -0.1
+gridadaptation      semi
+init                True
+
+## Turbulence ##
+roughnessParameter  sf0
+n                   0.
+profile             uniform
+ignoreSubmodule
+referenceLevel      False
+Avmin               1.e-6
+lambda              0
+
+module              turbulence2DV.DiffusivityUndamped
+sigma_rho           2.2
+
+## Output
+module          modules_parameterspace.OutputGrid
+iteratesWith    salinity2DV.SalinityTruncationNewton
+
+module          general.Output
+path	        output/tide_parameterspace/
+filename        out_Om@{OMEGA}_Q@{Q1}_Av@{Av,0,0,0}_H@{H,0,0,0}_U@{QM2}_Kh@{Kh}
+saveNumerical   H B adaptive_grid
+iteratesWith    salinity2DV.SalinityTruncationNewton
+
+requirements    grid Av Kv Roughness H B s u0 w0 alpha beta zeta T adaptive_grid outputgrid

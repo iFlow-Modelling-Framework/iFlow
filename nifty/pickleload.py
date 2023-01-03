@@ -6,7 +6,6 @@ Update: 04-02-22
 Authors: Y.M. Dijkstra
 """
 import pickle as pickle
-import types
 from src.util.diagnostics.KnownError import KnownError
 import src.DataContainer
 

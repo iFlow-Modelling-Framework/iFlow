@@ -29,3 +29,13 @@ packagePath	perturbation/
 input       grid Kh B H u0 u1 s0 s1var Q1
 output      s1 s2var
 submodules	advection diffusion nostress
+
+########################################################################################################################
+# Subpackage truncation
+########################################################################################################################
+module                  SalinityTruncationNewton
+packagePath	            truncation/
+inputInit               Q1 QM2 B H grid G ssea BETA Kh M Kv Av Roughness continuationParam stepsize continuationGoal
+input                   Q1     B H grid G ssea BETA Kh M
+iterative               True
+output                  s u0 w0 alpha beta zeta T adaptive_grid      #Av Kv Roughness

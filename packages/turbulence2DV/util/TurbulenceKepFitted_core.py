@@ -132,7 +132,7 @@ class TurbulenceKepFitted_core:
         ################################################################################################################
         # 4. Reference level (non-initial)
         ################################################################################################################
-        if self.referenceLevel == 'True' and not init and order < 1:
+        if self.referenceLevel == 'True' and not init and (order is None or order < 1):
             self.input.merge({'Av': Av, 'Roughness': roughness})
             oldR = self.input.v('R', range(0, jmax+1))
             R = self.RL.run()['R']
@@ -395,7 +395,7 @@ class TurbulenceKepFitted_core:
                 Av0[:, :] = 0.49 * roughness.v('Roughness', range(0, jmax + 1)).reshape((jmax+1, 1)) * self.input.v('zeta'+str(order-1), range(0, jmax+1), 0, range(0, fmax+1))
 
             #   background eddy viscosity
-            if order < 1:       # i.e. None or 0
+            if order is None or order < 1:       # i.e. None or 0
                 Av0[:, 0] = np.maximum(Av0[:, 0], Avmin)
 
             #   adjust time dependence (NB no risk of negative eddy viscosity if zeta < H+R)

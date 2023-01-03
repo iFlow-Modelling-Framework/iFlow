@@ -1,0 +1,8 @@
+module                  PresetLength
+input                   ssea G BETA Q1
+output                  L H B
+
+module                  OutputGrid
+input                   adaptive_grid outputgrid
+output                  outputgrid
+outputModule            True

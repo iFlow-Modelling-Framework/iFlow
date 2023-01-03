@@ -23,13 +23,13 @@ class IterativeBlock(iFlowBlock):
     ####################################################################################################################
     ## Public methods
     ####################################################################################################################
-    def run(self, init=True):
+    def run(self, init=True, interrupt=False, startnumber=0):
         self.timer.tic()
         iteration = 0
         runloop = True
         while runloop and iteration < MAXITERATIONS:
             # Run the block
-            super().run(init=(not bool(iteration)))
+            super().run(init=(not bool(iteration)), interrupt=interrupt, startnumber=startnumber)
 
             # Update iteration and check stopping criterion
             iteration += 1

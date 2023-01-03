@@ -34,17 +34,29 @@ class iFlowBlock:
             mod.instantiateModule()
         return
 
-    def run(self,init=True):
-        self.timer.tic()
-        for mod in self.callStack:
+    def run(self,init=True, interrupt=False, startnumber=0):
+        """ run this block
+
+        Args:
+            init (boolean): initial run or not
+            interrupt (bool): interrupt and return after running of each module
+            startnumber (int): module number in callStck to start running
+        """
+        for mod in self.callStack[startnumber:]:
+            self.timer.tic()
             mod.run(init=init)
 
             # handle result
-            result = mod.getOutput()        # get result from the module
+            self.result = mod.getOutput()        # get result from the module
 
-            self._output.merge(result)       # merge with block's result
-            self.addInputData(result)       # distribute over elements of the block's moduleList
-        self.timer.toc()
+            self._output.merge(self.result)       # merge with block's result
+            self.addInputData(self.result)       # distribute over elements of the block's moduleList
+
+            self.timer.toc()
+            # Interrupt running if needed
+            if interrupt:
+                return
+            del self.result
         return
 
     def reset(self):

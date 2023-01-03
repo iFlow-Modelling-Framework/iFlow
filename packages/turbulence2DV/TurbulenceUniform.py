@@ -51,8 +51,8 @@ class TurbulenceUniform:
         d['__derivative']['xx']['Roughness'] = sf.secondDerivative
 
         d['Av'] = Av.value
-        d['__derivative']['x']['Roughness'] = Av.derivative
-        d['__derivative']['xx']['Roughness'] = Av.secondDerivative
+        d['__derivative']['x']['Av'] = Av.derivative
+        d['__derivative']['xx']['Av'] = Av.secondDerivative
 
         d['BottomBC'] = 'PartialSlip'
         return d

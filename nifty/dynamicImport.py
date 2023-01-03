@@ -46,7 +46,7 @@ def dynamicImport(path, name):
                 else:
                     modpack = imp.find_module(workpath[i], [modpack[1]])
             except ImportError as e:
-                raise KnownError('Error while loading module ' + '.'.join(workpath)+'.\nPlease check if '+str(workpath[-1]+' exists in package '+'.'.join(workpath[:-1]))+'.\nError given is: '+str(e))
+                raise KnownError('Error while loading module ' + '.'.join(workpath)+'.\nPlease check if '+str(workpath[-1]+' exists in package '+'.'.join(workpath[:-1]))+'.\nAlso check if there is a file __init__.py in the folder '+'.'.join(workpath[:-1])+'\n\nError given is: '+str(e))
             imp.load_module('.'.join(workpath[:i+1]), *modpack)
             i += 1
         # find and load the module

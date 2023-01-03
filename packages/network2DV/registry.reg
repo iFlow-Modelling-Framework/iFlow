@@ -1,0 +1,20 @@
+module          NetworkController
+controller      True
+controls        H B L u0 w0 zeta0 u0_reverse w0_reverse zeta0_reverse zeta1 zeta1_reverse Av Roughness hatc0
+prepares        ssea xl xc L H0 B0 xgrid zgrid fgrid xoutputgrid zoutputgrid foutputgrid A0 A1 phase0 phase1 Q0 Q1 Av0amp Av0phase sf0 m n finf ws0 erosion_formulation Kh
+input           file
+output          network_output network_settings
+
+module          NetworkEquilibriumAvailability
+input           network_settings network_output
+output          network_output
+
+module          HydroLead_reverse
+packagePath
+input 		    BottomBC grid Av Roughness OMEGA G A0 phase0
+output		    u0_reverse zeta0_reverse w0_reverse
+
+module          HydroFirst_reverse
+packagePath
+input           grid Av Roughness OMEGA G A1 phase1
+output          u1_reverse zeta1_reverse

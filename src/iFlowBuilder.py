@@ -326,7 +326,7 @@ class iFlowBuilder:
 
                     if mod.isControllerModule():
                         controlledBlock = mod.getControlledBlock()
-                        self.__printBlockCallStackToConsole(controlledBlock, self.callStackCounter, depth+'\t'+'||', depth+'\t'+'||', depth+'\t'+'||')
+                        self.__printBlockCallStackToConsole(controlledBlock, self.callStackCounter, depth+'\t'+' # ', depth+'\t'+' # ', depth+'\t'+' # ')
 
                 if isinstance(mod, IterativeBlock):
                     if i==0:
@@ -358,7 +358,7 @@ class iFlowBuilder:
 
             # 2. place modules that can be placed according to their input requirements
             for i, mod in enumerate(unplacedList):
-                if not [j for j in inputMods[mod] if j in unplacedList]:       # if a module does not require initial input that is not already in outList
+                if not [j for j in inputMods[mod]]:       # if a module does not require initial input that is not already in outList
 
                     # Check if the module is iterative or a controller: make a new block or put mod in call stack
                     if mod.isIterative():               # for iterative module: create a new block that includes the iterative module and put the block in the call stack
@@ -370,13 +370,15 @@ class iFlowBuilder:
                     elif mod.isControllerModule():      # for controller: put the controller in the call stack but not the controlled block; this will be passed to the controller to instantiate and run manually.
                         callStack.append(mod)
                         unplacedList.pop(i)
-                        newblock, unplacedList, outputListAdd = self.__buildControlledBlock(unplacedList, inputMods, mod)
-                        outputListAdd = outputListAdd + mod.getOutputVariables()
+                        self.updateInputMods(inputMods, mod)
+                        newblock, unplacedList, outputListControlledModules = self.__buildControlledBlock(unplacedList, inputMods, mod)
+                        outputListAdd = mod.getOutputVariables() # Do not include the output of the controlled modules in the output of this block.
                         mod.addControlledBlock(newblock)
 
                     else:
                         callStack.append(mod)                                           # place in call stack
                         unplacedList.pop(i)                                             # remove from list of unplaced modules
+                        self.updateInputMods(inputMods, mod)
                         outputListAdd = mod.getOutputVariables()
                     outputList = list(set(outputList + outputListAdd))                  # add output of the added module/block to the list of calculated output variables
 
@@ -411,6 +413,7 @@ class iFlowBuilder:
         for mod in mods:
             callStack.append(mod)
             unplacedList.remove(mod)                                             # remove from list of unplaced modules
+            self.updateInputMods(inputMods, mod)
             outputList = mod.getOutputVariables()
             requiredModules = list(set(requiredModules + dependence[mod]))
 
@@ -428,7 +431,7 @@ class iFlowBuilder:
 
             # 2. place modules that can be placed according to their input requirements
             for i, mod in enumerate(unplacedList):
-                if not [j for j in inputMods[mod] if j in unplacedList]:       # if a module does not require initial input that is not already in outList
+                if not [j for j in inputMods[mod]]:       # if a module does not require initial input that is not already in outList
 
                     # Check if the module is iterative or a controller: make a new block or put mod in call stack
                     if mod.isIterative():         # for iterative module: create a new block that includes the iterative module and put the block in the call stack
@@ -440,13 +443,15 @@ class iFlowBuilder:
                     elif mod.isControllerModule():      # for controller: put the controller in the call stack but not the controlled block; this will be passed to the controller to instantiate and run manually.
                         callStack.append(mod)
                         unplacedList.pop(i)
-                        newblock, unplacedList, outputListAdd = self.__buildControlledBlock(unplacedList, inputMods, mod)
-                        outputListAdd = outputListAdd + mod.getOutputVariables()
+                        self.updateInputMods(inputMods, mod)
+                        newblock, unplacedList, outputListControlledModules = self.__buildControlledBlock(unplacedList, inputMods, mod)
+                        outputListAdd = mod.getOutputVariables() # Do not include the output of the controlled modules in the output of this block.
                         mod.addControlledBlock(newblock)
 
                     else:
                         callStack.append(mod)                                           # place in call stack
                         unplacedList.pop(i)                                             # remove from list of unplaced modules
+                        self.updateInputMods(inputMods, mod)
                         outputListAdd = mod.getOutputVariables()
 
                     outputList = list(set(outputList + outputListAdd))                  # add output of the added module/block to the list of calculated output variables
@@ -466,6 +471,7 @@ class iFlowBuilder:
             if mod.getIteratesWith() in [i.getName() for i in mods]:
                 callStack.append(mod)
                 unplacedList.remove(mod)
+                self.updateInputMods(inputMods, mod)
                 outputListAdd = mod.getOutputVariables()
                 outputList = list(set(outputList + outputListAdd))
 
@@ -489,6 +495,7 @@ class iFlowBuilder:
 
         """
         callStack = []
+        inputMods = {key: copy(inputMods[key]) for key in inputMods.keys()} # inputMods list should only be updated inside the controlled block, not propagated to parent blocks.
 
         ## Place iterative module(s) and check their requirements
         dependence, sortingList = self.__iterativeDependence(unplacedList+[controller])
@@ -509,7 +516,7 @@ class iFlowBuilder:
 
             # 2. place modules that can be placed according to their input requirements
             for i, mod in enumerate(unplacedList):
-                if not [j for j in inputMods[mod] if j in unplacedList]:       # if a module does not require initial input that is not already in outList
+                if not [j for j in inputMods[mod]]:       # if a module does not require initial input that is not already in outList
 
                     # Check if the module is iterative or a controller: make a new block or put mod in call stack
                     if mod.isIterative():         # for iterative module: create a new block that includes the iterative module and put the block in the call stack
@@ -521,13 +528,15 @@ class iFlowBuilder:
                     elif mod.isControllerModule():      # for controller: put the controller in the call stack but not the controlled block; this will be passed to the controller to instantiate and run manually.
                         callStack.append(mod)
                         unplacedList.pop(i)
-                        newblock, unplacedList, outputListAdd = self.__buildControlledBlock(unplacedList, inputMods, mod)
-                        outputListAdd = outputListAdd + mod.getOutputVariables()
+                        self.updateInputMods(inputMods, mod)
+                        newblock, unplacedList, outputListControlledModules = self.__buildControlledBlock(unplacedList, inputMods, mod)
+                        outputListAdd = mod.getOutputVariables() # Do not include the output of the controlled modules in the output of this block.
                         mod.addControlledBlock(newblock)
 
                     else:
                         callStack.append(mod)                                           # place in call stack
                         unplacedList.pop(i)                                             # remove from list of unplaced modules
+                        self.updateInputMods(inputMods, mod)
                         outputListAdd = mod.getOutputVariables()
 
                     outputList = list(set(outputList + outputListAdd))                  # add output of the added module/block to the list of calculated output variables
@@ -547,6 +556,7 @@ class iFlowBuilder:
             if mod.getIteratesWith() == controller.getName():
                 callStack.append(mod)
                 unplacedList.remove(mod)
+                self.updateInputMods(inputMods, mod)
                 outputListAdd = mod.getOutputVariables()
                 outputList = list(set(outputList + outputListAdd))
 
@@ -633,7 +643,10 @@ class iFlowBuilder:
                     if not any([mod in inp for inp in dependence_tmp.values()]):
                         sortingList[j] = levelIter
                         tmp.append(mod)
-            [dependence_tmp.pop(i) for i in tmp]
+            try:
+                [dependence_tmp.pop(i) for i in tmp]
+            except:
+                pass
             levelIter -= 1
 
         ################################################################################################################
@@ -671,3 +684,11 @@ class iFlowBuilder:
         # merge to dependency dicts
         dependenceIter.update(dependenceController)
         return dependenceIter, sortingList
+
+    def updateInputMods(self, inputMods, mod):
+        for q in inputMods.keys():
+            try:
+                inputMods[q].remove(mod)
+            except:
+                pass
+        return

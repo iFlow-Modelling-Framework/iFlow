@@ -20,8 +20,8 @@ class StandardBlock(iFlowBlock):
     ####################################################################################################################
     ## Public methods
     ####################################################################################################################
-    def run(self,init=True):
-        super().run(init=init)
+    def run(self, init=True, interrupt=False, startnumber=0):
+        super().run(init=init, interrupt=interrupt, startnumber=startnumber)
         # Do a memory profile if profiler is set
         if self._memProfiler is not None:
             self._memProfiler.snapshot('Run %s'%self.getName(short=True))

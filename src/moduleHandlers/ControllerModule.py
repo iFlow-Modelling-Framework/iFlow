@@ -72,6 +72,10 @@ class ControllerModule(Module):
             d - (dict or DataContainer) data to append
         """
         self._input.merge(d)
+        try:
+            d.pop('submodules') # do not copy 'submodules' to controlled modules
+        except:
+            pass
         self.__controlledBlock.addInputData(d)
 
         return

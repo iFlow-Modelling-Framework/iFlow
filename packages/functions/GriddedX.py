@@ -39,7 +39,11 @@ class GriddedX():
 
     def __readtxt(self):
         # read preamble
-        data = np.loadtxt(self.__file)
+        try:
+            data = np.loadtxt(self.__file)
+        except:
+            data = np.loadtxt(self.__file,dtype=np.complex_)
+
         x = data[:, 0]
 
         # reshape x with L
@@ -47,12 +51,15 @@ class GriddedX():
             raise KnownError('Depth file does not specify depth over the full length of the system.')
         var = scipy.interpolate.interp1d(data[:, 0]/self.L, data[:, 1])
         try:
-            varx = scipy.interpolate.interp1d(data[:, 0]/self.L, data[:, 2])
+            varx_orig = data[:, 2]
+            varx = scipy.interpolate.interp1d(data[:, 0]/self.L, varx_orig)
         except:
-            varx = None
+            varx_orig = np.gradient(data[:, 1], x, edge_order=2)
+            varx = scipy.interpolate.interp1d(data[:, 0]/self.L, varx_orig)
         try:
             varxx = scipy.interpolate.interp1d(data[:, 0]/self.L, data[:, 3])
         except:
-            varxx = None
+            varxx = np.gradient(varx_orig, x, edge_order=2)
+            varxx = scipy.interpolate.interp1d(data[:, 0]/self.L, varxx)
 
         return var, varx, varxx

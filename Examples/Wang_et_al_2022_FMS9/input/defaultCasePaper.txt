@@ -1,0 +1,29 @@
+module      network2DV.NetworkController
+file        input.defaultCasePaper          # the python class file with estuary settings
+
+## Geometry ##
+module      hydrodynamics2DV.Geometry2DV
+
+## Grid ##
+module	    hydrodynamics2DV.RegularGrid
+
+## Hydrodynamics ##
+module      hydrodynamics2DV.HydroLead hydrodynamics2DV.HydroFirst network2DV.HydroLead_reverse network2DV.HydroFirst_reverse
+submodules  tide river adv baroc nostress stokes
+
+## Salinity ##
+module      salinity2DV.SaltHyperbolicTangent
+
+## Turbulence ##
+module		turbulence2DV.TurbulenceUniform
+module		turbulence2DV.DiffusivityUndamped
+
+## Sediment ##
+module       sediment2DV.SedimentCapacity network2DV.NetworkEquilibriumAvailability
+submodules   erosion noflux sedadv
+
+## Plot ##
+plot      	    plot_network.Plot
+
+requirements    network_output
+

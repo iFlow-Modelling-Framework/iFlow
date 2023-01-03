@@ -109,6 +109,8 @@ class Output:
         # add reference level to outputgrid
         if allVars.v('R') is not None:
             allVars.merge({self.outputgridName:{'low':{'z':saveData.v('R', x=saveData.v(self.outputgridName, 'axis', 'x'))}}})     # add reference level to outputgrid
+            saveData.merge({self.outputgridName:{'low':{'z':saveData.v('R', x=saveData.v(self.outputgridName, 'axis', 'x'))}}})     # add reference level to outputgrid
+            grids.merge({self.outputgridName:{'low':{'z':saveData.v('R', x=saveData.v(self.outputgridName, 'axis', 'x'))}}})     # add reference level to outputgrid
 
         ################################################################################################################
         # Convert data using output grid (if this is provided)

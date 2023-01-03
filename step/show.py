@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from . import step_config as cf
 
 
-def show(block=True, fname=None, hspace=0.6, wspace=0.4):   #, facecolor=(0.9765, 0.953, 0.9176)):
+def show(block=True, fname=None, hspace=None, wspace=None):   #, facecolor=(0.9765, 0.953, 0.9176)):
     """Replaces matplotlib.pyplot show().
     Corrects figure size, backgroundcolor and tightlayout
 
@@ -58,6 +58,10 @@ def show(block=True, fname=None, hspace=0.6, wspace=0.4):   #, facecolor=(0.9765
             fig.set_tight_layout({'rect':[0, 0, 1, 0.95]})
         else:
             fig.set_tight_layout(True)
+        if hspace is not None:
+            fig.subplots_adjust(hspace=hspace)
+        if wspace is not None:
+            fig.subplots_adjust(wspace=wspace)
 
     if fname != None:
         plt.savefig(fname, bbox_inches='tight', pad_inches=0.1, dpi=cf.savedpi)

@@ -77,7 +77,7 @@ class HydroFirst:
 
             # save in dictionary
             d['zeta1'][mod] = zeta[0]
-            d['__derivative']['x']['zeta1']['mod'] = zeta[1]
+            d['__derivative']['x']['zeta1'][mod] = zeta[1]
             d['u1'][mod] = u[0]
 
         self.input.merge(d)
