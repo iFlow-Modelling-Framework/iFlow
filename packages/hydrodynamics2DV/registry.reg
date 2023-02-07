@@ -30,12 +30,6 @@ input			maxOrder variables @{variables}+{2,@{maxOrder}+1}
 output			order maxOrder
 iterative		True
 
-module      Calibration
-packagePath
-inputInit   calibrationParameter changeFactor measurementset @calibrationParameter @measurementset
-input       zeta0
-output      @calibrationParameter
-iterative   True
 
 ########################################################################################################################
 # Perturbation
