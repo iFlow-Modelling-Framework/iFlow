@@ -414,7 +414,7 @@ class iFlowBuilder:
             callStack.append(mod)
             unplacedList.remove(mod)                                             # remove from list of unplaced modules
             self.updateInputMods(inputMods, mod)
-            outputList = mod.getOutputVariables()
+            outputList = list(set(outputList + mod.getOutputVariables()))
             requiredModules = list(set(requiredModules + dependence[mod]))
 
         while unplacedList and requiredModules:

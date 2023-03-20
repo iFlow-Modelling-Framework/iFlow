@@ -11,7 +11,8 @@ Iterative procedure:
     First allow KEFittedTructated to converge, then add damping functions and converge
 
 From version: 2.6
-Date: December 2018
+Original date: December 2018
+Update: 20-03-2023
 Authors: Y.M. Dijkstra
 """
 import numpy as np
@@ -57,6 +58,12 @@ class KEFittedMAW:
 
     def run_init(self):
         self.logger.info('Running MAW turbulence model - init')
+        reset = self.input.v('resetiFlow')
+        if reset == 'True':
+            reset = True
+            print('resetting MAW model')
+        else:
+            reset = False
         self.difference = np.inf
 
         d = {}
@@ -75,11 +82,11 @@ class KEFittedMAW:
         fmax = self.input.v('grid', 'maxIndex', 'f')
 
         # Initialisation uses data that might be available, or starts clean
-        if Av is None or Roughness is None:
+        if Av is None or Roughness is None or reset:
             d.update(dkem)                      # use input from initial k-eps fitted run - contains Av and Roughness
             self.input.merge(d)
 
-        if Ri is None or skin_friction is None:
+        if Ri is None or skin_friction is None or reset:
             self.betac = 0                      # start without density effect, first allow KEFitted to converge
             self.Rida = 0.
 
@@ -90,7 +97,7 @@ class KEFittedMAW:
             d['skin_friction'] = ss
 
 
-        if Kv is None:
+        if Kv is None or reset:
             # make eddy diffusivity
             Av = self.input.v('Av', range(0, jmax+1), 0, range(0, fmax+1))
             data = self.input.slice('grid')
@@ -163,6 +170,9 @@ class KEFittedMAW:
         else:
             ## Load data
             # self.timers[2].tic()
+            includeSalinity = self.input.v('includeSalinity')
+            beta = self.input.v('BETA')
+
             cz = self.input.d('c0', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1), dim='z') + self.input.d('c1', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1), dim='z') + self.input.d('c2', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1), dim='z')
             uz = self.input.d('u0', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1), dim='z') + self.input.d('u1', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1), dim='z')
             zeta0 = self.input.v('zeta0', range(0, jmax+1), [0], range(0, fmax+1))
@@ -182,6 +192,10 @@ class KEFittedMAW:
 
             ## Compute Richardson number
             Ri = -G*self.betac/rho0*cz/(uz**2+uzmin**2)
+            if includeSalinity=='True':
+                sz = self.input.d('s0', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1), dim='z')
+                sz = ny.invfft2(sz, 2, 90)
+                Ri += -G*beta*sz/(uz**2+uzmin**2)
 
             Rida = 1./H.reshape((jmax+1, 1, 1))*ny.integrate(Ri.reshape((jmax+1, kmax+1, 1, Ri.shape[-1])), 'z', kmax, 0, self.input.slice('grid')).reshape((jmax+1, 1, Ri.shape[-1]))  # depth-average
             Rida += zeta0*(Ri[:, [0], :]-Rida)/H.reshape((jmax+1, 1, 1))        # depth average continued
@@ -245,7 +259,10 @@ class KEFittedMAW:
         ################################################################################################################
         ## Compute difference
         ################################################################################################################
-        Av0s = ny.savitzky_golay(Av0[:, 0], self.filterlength, 1)
+        if self.input.v('no_smoothing') is not None:
+            Av0s = Av0[:, 0]
+        else:
+            Av0s = ny.savitzky_golay(Av0[:, 0], self.filterlength, 1)
         difference = np.max(abs(Av0s-Avold[:, 0, 0])/abs(Av0s+10**-4))
         self.difference = copy.copy(difference)
 
@@ -289,13 +306,22 @@ class KEFittedMAW:
         d['__derivative']['xx'] = {}
 
         x = ny.dimensionalAxis(self.input.slice('grid'),'x')[:, 0,0]
-        d['Av'] = ny.savitzky_golay(Av0[:, 0], self.filterlength, 1).reshape((jmax+1, 1))
-        d['__derivative']['x']['Av'] = ny.savitzky_golay(ny.derivative(Av0[:, 0], 'x', self.input), self.filterlength, 1).reshape((jmax+1, 1))
-        d['__derivative']['xx']['Av'] = ny.savitzky_golay(ny.secondDerivative(Av0[:, 0], 'x', self.input), self.filterlength, 1).reshape((jmax+1, 1))
+        if self.input.v('no_smoothing') is not None:
+            d['Av'] = Av0[:, 0]
+            d['__derivative']['x']['Av'] = ny.derivative(Av0[:, 0], 'x', self.input)
+            d['__derivative']['xx']['Av'] = ny.secondDerivative(Av0[:, 0], 'x', self.input)
 
-        d['Kv'] = ny.savitzky_golay(Kv0[:, 0], self.filterlength, 1).reshape((jmax+1, 1))
-        d['__derivative']['x']['Kv'] = ny.savitzky_golay(ny.derivative(Kv0[:, 0], 'x', self.input), self.filterlength, 1).reshape((jmax+1, 1))
-        d['__derivative']['xx']['Kv'] = ny.savitzky_golay(ny.secondDerivative(Kv0[:, 0], 'x', self.input), self.filterlength, 1).reshape((jmax+1, 1))
+            d['Kv'] = Kv0[:, 0]
+            d['__derivative']['x']['Kv'] = ny.derivative(Kv0[:, 0], 'x', self.input)
+            d['__derivative']['xx']['Kv'] = ny.secondDerivative(Kv0[:, 0], 'x', self.input)
+        else:
+            d['Av'] = ny.savitzky_golay(Av0[:, 0], self.filterlength, 1).reshape((jmax+1, 1))
+            d['__derivative']['x']['Av'] = ny.savitzky_golay(ny.derivative(Av0[:, 0], 'x', self.input), self.filterlength, 1).reshape((jmax+1, 1))
+            d['__derivative']['xx']['Av'] = ny.savitzky_golay(ny.secondDerivative(Av0[:, 0], 'x', self.input), self.filterlength, 1).reshape((jmax+1, 1))
+
+            d['Kv'] = ny.savitzky_golay(Kv0[:, 0], self.filterlength, 1).reshape((jmax+1, 1))
+            d['__derivative']['x']['Kv'] = ny.savitzky_golay(ny.derivative(Kv0[:, 0], 'x', self.input), self.filterlength, 1).reshape((jmax+1, 1))
+            d['__derivative']['xx']['Kv'] = ny.savitzky_golay(ny.secondDerivative(Kv0[:, 0], 'x', self.input), self.filterlength, 1).reshape((jmax+1, 1))
 
         d['Roughness'] = sf
         d['skin_friction'] = sfmid

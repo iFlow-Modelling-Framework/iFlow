@@ -27,7 +27,7 @@ class UniformX():
         return
 
     def value(self, x, **kwargs):
-        coef = self.data.v('coef', x=x)
+        coef = self.data.v('coef', x=x, z=0, f=0)
         if self.m != 0:
             H = self.data.v('grid', 'low', 'z', x=x) - self.data.v('grid', 'high', 'z', x=x)
             depthdep = (H/self.H0)**self.m
@@ -38,9 +38,9 @@ class UniformX():
 
     def derivative(self, x, **kwargs):
         """Derivative in x"""
-        coef = self.data.v('coef', x=x)
+        coef = self.data.v('coef', x=x, z=0, f=0)
         H = self.data.v('grid', 'low', 'z', x=x) - self.data.v('grid', 'high', 'z', x=x)
-        coefx = self.data.d('coef', x=x, dim='x')
+        coefx = self.data.d('coef', x=x, z=0, f=0, dim='x')
         Hx = self.data.d('grid', 'low', 'z', x=x, dim='x') - self.data.d('grid', 'high', 'z', x=x, dim='x')
 
         val = coefx * ((H / self.H0) ** self.m) + coef * (self.m * Hx * (H / self.H0) ** self.m / H)
@@ -48,11 +48,11 @@ class UniformX():
 
     def secondDerivative(self, x, **kwargs):
         """Second derivative in x"""
-        coef = self.data.v('coef', x=x)
+        coef = self.data.v('coef', x=x, z=0, f=0)
         H = self.data.v('grid', 'low', 'z', x=x) - self.data.v('grid', 'high', 'z', x=x)
-        coefx = self.data.d('coef', x=x, dim='x')
+        coefx = self.data.d('coef', x=x, z=0, f=0, dim='x')
         Hx = self.data.d('grid', 'low', 'z', x=x, dim='x') - self.data.d('grid', 'high', 'z', x=x, dim='x')
-        coefxx = self.data.d('coef', x=x, dim='xx')
+        coefxx = self.data.d('coef', x=x, z=0, f=0, dim='xx')
         Hxx = self.data.d('grid', 'low', 'z', x=x, dim='xx') - self.data.d('grid', 'high', 'z', x=x, dim='xx')
 
         val = coefxx * (H / self.H0) ** self.m + 2. * coefx * self.m * Hx * H ** (

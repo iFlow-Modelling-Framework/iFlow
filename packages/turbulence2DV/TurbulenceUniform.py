@@ -23,9 +23,10 @@ class TurbulenceUniform:
         self.logger.info('Running turbulence model Uniform')
 
         # Determine complex amplitudes of the eddy viscosity and roughness parameter
+        jmax = self.input.v('grid', 'maxIndex', 'x')
         fmax = self.input.v('grid', 'maxIndex', 'f')
         Av0 = ny.amp_phase_input(self.input.v('Av0amp'), self.input.v('Av0phase'), (1, fmax+1))
-        sf0 = ny.amp_phase_input(self.input.v('sf0'), 0, (1, fmax+1))
+        sf0 = self.input.v('sf0', range(0, jmax+1), 0, range(0, fmax+1))
 
         # prepare the smaller datacontainers used in the functions UniformXF. These functions will be called when calling
         #   Av and sf0. These functions require the grid and complex amplitudes above

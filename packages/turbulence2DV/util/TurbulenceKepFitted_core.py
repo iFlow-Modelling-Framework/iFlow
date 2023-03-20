@@ -29,7 +29,7 @@ Options:
         The time dependent eddy viscosity has no minimum value
 
 Original date: 20-11-2015)
-Update: 15-02-2022
+Update: 20-03-2023
 Authors: Y.M. Dijkstra
 """
 import numpy as np
@@ -75,7 +75,13 @@ class TurbulenceKepFitted_core:
         """
         # Init - read input variables
         d = {}
+
         if init:
+            self.reset = self.input.v('resetiFlow')
+            if self.reset == 'True':
+                self.reset = True
+            else:
+                self.reset = False
             self.roughnessParameter = self.input.v('roughnessParameter')
             self.n = self.input.v('n')
             self.timedependence = self.input.v('lambda')
@@ -98,7 +104,7 @@ class TurbulenceKepFitted_core:
             self.RL = ReferenceLevel(self.input)
             R = self.RL.run_init()['R']
             jmax = self.input.v('grid', 'maxIndex', 'x')
-            if np.linalg.norm(self.input.v('R', range(0, jmax+1)), np.inf)>0:      # instead take from DC R if it exists already. In all cases generate and init RL above.
+            if not self.reset and np.linalg.norm(self.input.v('R', range(0, jmax+1)), np.inf)>0:      # instead take from DC R if it exists already. In all cases generate and init RL above.
                 R = self.input.v('R', range(0, jmax+1))
             self.input.merge({'R': R})
             self.input._data['grid']['low']['z'] = R # add R to grid to be used in next iteration
@@ -177,7 +183,7 @@ class TurbulenceKepFitted_core:
             zeta = 0
             u = 0
             comp = 0
-            while self.input.has('zeta'+str(comp)) and self.input.has('u'+str(comp)) and comp <= self.truncationorder and not no_u:
+            while not self.reset and self.input.has('zeta'+str(comp)) and self.input.has('u'+str(comp)) and comp <= self.truncationorder and not no_u:
                 zeta += self.input.v('zeta'+str(comp), range(0, jmax + 1), [0], range(0, fmax + 1))
                 u += self.input.v('u'+str(comp), range(0, jmax + 1), range(0, kmax + 1), range(0, fmax + 1))
                 for submod in self.ignoreSubmodule:     # remove submodules to be ignored
@@ -233,7 +239,7 @@ class TurbulenceKepFitted_core:
             u = []
             usurf = []
             for comp in range(0, order+1):
-                if self.input.has('zeta'+str(comp)) and self.input.has('u'+str(comp)) and not no_u:
+                if not self.reset and self.input.has('zeta'+str(comp)) and self.input.has('u'+str(comp)) and not no_u:
                     zetatemp = self.input.v('zeta'+str(comp), range(0, jmax + 1), [0], range(0, fmax + 1))
                     utemp = self.input.v('u'+str(comp), range(0, jmax + 1), range(0, kmax + 1), range(0, fmax + 1))
                     for submod in self.ignoreSubmodule:     # remove submodules to be ignored
@@ -368,7 +374,7 @@ class TurbulenceKepFitted_core:
                 depth = np.zeros((jmax+1, fmax+1), dtype=complex)
                 depth[:, 0] = self.input.v('grid', 'low', 'z', range(0,jmax+1)) - self.input.v('grid', 'high', 'z', range(0,jmax+1))
                 i = 0
-                while self.input.v('zeta'+str(i)) and i <= self.truncationorder:
+                while self.input.v('zeta'+str(i)) is not None and i <= self.truncationorder:
                     depth += self.input.v('zeta'+str(i), range(0, jmax+1), 0, range(0, fmax+1))
                     for submod in self.ignoreSubmodule:
                         try:
@@ -410,7 +416,7 @@ class TurbulenceKepFitted_core:
                 Av = UniformXF(data, 0.).value
 
             ## 2. Roughness
-            if order == 0 or order==None:
+            if order == None or order == 0:
                 sf0 = np.zeros((jmax + 1, fmax + 1))
                 sf0[:, 0] = roughness.v('Roughness', range(0, jmax+1))
 

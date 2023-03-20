@@ -35,6 +35,7 @@ def uFunctionMomentumConservative(Av, F, Fsurf, Fbed, data, hasMatrix = False):
         bandwidth = max(bandwidth, (Sf.shape[1]-1)/2) # set bandwidth as max of bandwidth of Av and cf|u|
 
     # Init Ctd
+    bandwidth = int(bandwidth)
     nRHS = F.shape[-1]
     velocityMatrix = np.empty([jmax+1, 2*ftot+2*bandwidth+1, ftot*(kmax+1)], dtype=complex)
     uzCoef = np.zeros([jmax+1, kmax+1, 1, ftot, ftot], dtype=complex)

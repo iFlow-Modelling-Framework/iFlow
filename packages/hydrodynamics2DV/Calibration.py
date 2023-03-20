@@ -73,6 +73,12 @@ class Calibration:
         x_ext[-1] = 1
         zeta_obs = self.input.v(measurementset, 'zeta', x=x_obs, z=0, f=1)
 
+        obs_subset = self.input.obs_subset('observations_subset')
+        if obs_subset is None:
+            zeta_obs = self.input.v(measurementset, 'zeta', x=x_obs, z=0, f=1)
+        else:
+            zeta_obs = self.input.v(measurementset, 'zeta', obs_subset, x=x_obs, z=0, f=1)
+
         zeta = self.input.v('zeta0', x=x_obs, z=0, f=1)
 
         self.cost[self.pos] = cost_function_DJ96(x_ext, zeta_obs, zeta, ignorePhase=self.ignorePhase)     # Calibrate only on M2

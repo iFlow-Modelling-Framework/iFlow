@@ -173,8 +173,10 @@ class Module:
         for mod in self.submoduleList[0]:
             if self._register.v(mod,'inputInit') is not None:
                 inputReq = list(set(toList(self._register.v(mod,'input')) + toList(self._register.v(mod,'inputInit'))))
+                inputReq = list(set(inputReq + self._register.v('input')+ toList(self._register.v('inputInit'))))
             else:
                 inputReq = toList(self._register.v(mod,'input'))
+                inputReq = list(set(inputReq + toList(self._register.v('input'))))
 
             overlap = [i for i in outputList if i in inputReq]
             if len(overlap)>0:
