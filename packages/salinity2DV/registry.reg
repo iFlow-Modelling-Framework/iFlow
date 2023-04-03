@@ -30,6 +30,10 @@ input       grid Kh B H u0 u1 s0 s1var Q1
 output      s1 s2var
 submodules	advection diffusion nostress
 
+module      MacCreadyModel
+input       Kh Av Kv grid H B G BETA ssea sigrho_sal
+output      s0
+
 ########################################################################################################################
 # Subpackage truncation
 ########################################################################################################################
