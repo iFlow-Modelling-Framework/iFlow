@@ -77,7 +77,10 @@ class ReferenceLevel:
         self.xaxis = self.input.v('grid', 'axis', 'x', x=np.linspace(0, 1, jmax+1))
         self.Av = np.real(self.input.v('Av', x=self.xaxis, z=self.z, f=0))
         self.H = self.input.v('H', x=self.xaxis)
+
         self.sf = np.real(self.input.v('Roughness', x=self.xaxis, z=0, f=0))
+        if self.bottomBC == 'QuasiQuadraticSlip' and (self.input.v('Q0') is None or (self.input.v('Q0') == 0)):   #NB. since the river discharge is first order, add a multiplier for sf
+            self.sf = 2*self.sf
         B = self.input.v('B', x=self.xaxis)
 
         # Construct reference level by stepping from x=0 towards x=L
@@ -113,7 +116,7 @@ class ReferenceLevel:
         dz = (z[0]-z[1])
         f = self.quickInt(((R-z)/self.Av[j, :])[::-1], dz, cumulative=True)[::-1]
 
-        if self.bottomBC == 'PartialSlip':
+        if self.bottomBC in ['PartialSlip', 'QuasiQuadraticSlip']:
             f += ((R+self.H[j])/self.sf[j])
         f = -self.G*self.quickInt(f, dz)
         return f
@@ -125,7 +128,7 @@ class ReferenceLevel:
         f = self.quickInt((1./self.Av[j, :])[::-1], dz, cumulative=True)[::-1]
         f += (R-z)/self.Av[j, :]
 
-        if self.bottomBC == 'PartialSlip':
+        if self.bottomBC in ['PartialSlip', 'QuasiQuadraticSlip']:
             f +=  2./self.sf[j]
         f = -self.G*self.quickInt(f, dz)
         return f
@@ -136,7 +139,7 @@ class ReferenceLevel:
         dz = (z[0]-z[1])
         f = self.quickInt(1./self.Av[j,:], dz)
 
-        if self.bottomBC == 'PartialSlip':
+        if self.bottomBC in ['PartialSlip', 'QuasiQuadraticSlip']:
             f +=  1./self.sf[j]
         f = -self.G*f
         return f

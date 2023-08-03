@@ -31,6 +31,7 @@ output      s1 s2var
 submodules	advection diffusion nostress
 
 module      MacCreadyModel
+packagePath	perturbation/
 input       Kh Av Kv grid H B G BETA ssea sigrho_sal
 output      s0
 

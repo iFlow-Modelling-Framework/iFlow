@@ -13,7 +13,7 @@ module  hydrodynamics2DV.Geometry2DV
 L       64.e3
 B0 	    type    functions.Polynomial
  	    C       -2.05001187e-20   3.26623360e-15  -1.77496965e-10   3.82812572e-06 -4.18442587e-02   7.62139923e+02
-H0      type    modulesJGR124.TangentLinear
+H0      type    functions.TangentLinear
         alpha      -2.78
         beta       -7.13e-5
         gamma       10.

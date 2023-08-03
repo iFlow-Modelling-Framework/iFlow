@@ -13,7 +13,7 @@ module  hydrodynamics2DV.Geometry2DV
 L       64.e3
 B0 	    type    functions.Polynomial
  	    C       -2.05001187e-20   3.26623360e-15  -1.77496965e-10   3.82812572e-06 -4.18442587e-02   7.62139923e+02     # polynomial coefficients for the width profile -2.05001187e-20*x^5 + 3.26623360e-15*x^4 -1.77496965e-10*x^3+3.82812572e-06*x^2-4.18442587e-02*x+7.62139923e+02 (with x in m)
-H0      type    modulesJGR124.TangentLinear                                                                             # Formula for the depth profile 0.5*alpha*(1+tanh((x-xc)/xl) + 0.5*beta*x*(1+tanh((x-xc)/xl) + gamma
+H0      type    functions.TangentLinear                                                                             # Formula for the depth profile 0.5*alpha*(1+tanh((x-xc)/xl) + 0.5*beta*x*(1+tanh((x-xc)/xl) + gamma
         alpha      -1.2
         beta       -5.1e-05
         gamma       10.

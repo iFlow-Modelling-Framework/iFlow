@@ -27,7 +27,7 @@ H0      type    functions.Polynomial
         C     	1.09249451591646e-46	-7.46840337172479e-41	2.16452124997029e-35	-3.46366066664883e-30	3.33839949367792e-25	-1.98208908771541e-20	7.10175889808216e-16	-1.43176788427969e-11	1.36717932063414e-07	-0.000371296857326342	5.69913408206847
 
 ## Method ##
-module	    hydrodynamics2DV.RegularGrid
+module	    modules.RegularGrid
 xgrid		equidistant     500
 zgrid	    equidistant     50
 fgrid		integer         2

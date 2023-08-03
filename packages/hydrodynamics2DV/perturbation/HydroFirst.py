@@ -328,6 +328,7 @@ class HydroFirst:
                         self.input.d('u0', 'tide', range(0, len(self.x)), range(0, len(self.z)), 1, dim='x') +
                         self.input.v('w0', 'tide', range(0, len(self.x)), range(0, len(self.z)), 1) *
                         self.input.d('u0', 'tide', range(0, len(self.x)), range(0, len(self.z)), 1, dim='z'))
+        # etaM4 = np.ones(etaM4.shape)
         eta = np.zeros((etaM0.shape[0], etaM0.shape[1], 3), dtype=complex)
         eta[:, :, 0] = etaM0[:]
         eta[:, :, 2] = etaM4[:]
@@ -375,8 +376,17 @@ class HydroFirst:
               np.trapz(etaM4 * np.exp(self.r * self.zarr), x=-self.zarr, axis=1))
 
         # calculating the advective forcing term for the water level and save it to the data container
+        # Fadv1 = (G2.reshape(len(self.x), 1) * (1. - self.alpha) / (self.Av0 * self.r**2.) -
+        #          np.trapz(G1, x=-self.zarr, axis=1).reshape(len(self.x), 1) / (self.Av0 * self.r))      # Integration of G1 is potentially very inaccurate. The code below is numerically better
+        # kmax = etaM4.shape[-1]-1
+        # G1_int = ny.integrate(G1, 'z', kmax, 0, self.input, INTMETHOD='INTERPOLSIMPSON')
+        G1r = G1 + 1e-16
+        G1_int = np.sum(-(self.zarr[:,1:]-self.zarr[:,:-1])/np.log(G1r[:,1:]/G1r[:,:-1])*(G1r[:,1:]-G1r[:,:-1]), axis=1, keepdims=True)
+        G1_int[-1,:] = 0
+        # G1_int -= -(self.zarr[:,[-1]]-self.zarr[:,[0]])*G1[:,[1]]/10
         Fadv1 = (G2.reshape(len(self.x), 1) * (1. - self.alpha) / (self.Av0 * self.r**2.) -
-                 np.trapz(G1, x=-self.zarr, axis=1).reshape(len(self.x), 1) / (self.Av0 * self.r))
+                 G1_int / (self.Av0 * self.r))
+
         Fadv2 = np.zeros((len(self.x), 1), dtype=complex)
         Fadv2[0, 0] = (-3. * Fadv1[0, 0] / 2. + 2. * Fadv1[1, 0] - Fadv1[2, 0] / 2.) / self.dx[0]
         Fadv2[-1, 0] = (3. * Fadv1[-1, 0] / 2. - 2. * Fadv1[-2, 0] + Fadv1[-3, 0] / 2.) / self.dx[-1]
@@ -407,7 +417,7 @@ class HydroFirst:
         zeta = np.zeros((2, len(self.x), 1, 3), dtype=complex)
         u = np.zeros((1, len(self.x), len(self.z), 3), dtype=complex)
 
-        sx = self.input.d('s0', x=self.x / self.L, z=0, f=0, dim='x').reshape(len(self.x), 1)
+        sx = np.mean(self.input.d('s0', x=self.x / self.L, z=self.z, f=0, dim='x').reshape(len(self.x), len(self.z)), axis=1, keepdims=True)
 
         ################################################################################################################
         # M0 contribution

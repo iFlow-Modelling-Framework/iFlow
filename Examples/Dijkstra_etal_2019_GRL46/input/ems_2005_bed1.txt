@@ -23,7 +23,7 @@ B0 	        type    functions.Polynomial
  	        C       -2.05001187e-20   3.26623360e-15  -1.77496965e-10   3.82812572e-06 -4.18442587e-02   7.62139923e+02
 
 alpha1  0
-H1      type    modulesGRL46.TangentLinear
+H1      type    functions.TangentLinear
         alpha      -2.8
         beta       -7.1e-5
         gamma       10.
@@ -31,7 +31,7 @@ H1      type    modulesGRL46.TangentLinear
         xc          13000.
 
 alpha2  1
-H2      type    modulesGRL46.TangentLinear
+H2      type    functions.TangentLinear
         alpha      -1.2
         beta       -5.1e-05
         gamma       10.

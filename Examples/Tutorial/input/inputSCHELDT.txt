@@ -73,7 +73,7 @@ measurementset          Scheldt_measurements
 module          measurements.Scheldt
 
 ## Calibration #########################################################################################################
-module                  general.Calibration
+module                  hydrodynamics2DV.Calibration
 measurementset          Scheldt_measurements
 calibrationParameter    z0*
 z0*                    	0.001

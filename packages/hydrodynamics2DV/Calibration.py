@@ -71,9 +71,8 @@ class Calibration:
         x_ext[1:-1] = x_obs
         x_ext[0] = 0
         x_ext[-1] = 1
-        zeta_obs = self.input.v(measurementset, 'zeta', x=x_obs, z=0, f=1)
 
-        obs_subset = self.input.obs_subset('observations_subset')
+        obs_subset = self.input.v('observations_subset')
         if obs_subset is None:
             zeta_obs = self.input.v(measurementset, 'zeta', x=x_obs, z=0, f=1)
         else:

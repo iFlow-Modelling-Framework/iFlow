@@ -55,7 +55,7 @@ class Flocculation:
         fmax = self.input.v('grid', 'maxIndex', 'f')
         kappa = self.input.v('KAPPA') # Karman constant
         nu = 1.e-6 # Dynamic water viscocity
-        z0 = self.input.v('Roughness').im_self.data.data['coef'][0, 0]
+        z0 = self.input.v('Roughness', x=self.input.v('grid', 'axis', 'x'), z=0, f=0)
 
         # Calculate M0 from abs(u0). u0 has M2 --> abs(u0) results in M0. Add M0 of u1_river.
         u0 = self.input.v('u0', x=x, z=1-zz, f=range(0, fmax + 1))

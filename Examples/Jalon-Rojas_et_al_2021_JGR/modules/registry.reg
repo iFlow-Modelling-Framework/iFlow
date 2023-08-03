@@ -11,3 +11,8 @@ module      Uniform_VaryingSfAv
 packagePath
 input       grid sf0a sf0b Lend_sf0a Lini_sf0b m n option
 output		Av Roughness BottomBC skin_friction
+
+module          RegularGrid
+packagePath
+input           L B H xgrid zgrid fgrid xoutputgrid zoutputgrid foutputgrid R
+output          grid outputgrid

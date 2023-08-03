@@ -6,8 +6,7 @@ Authors: Y.M. Dijkstra
 """
 import numpy as np
 import copy
-from src.DataContainer import DataContainer
-import src.old.functionTemplates
+import os.path
 
 
 class Scheldt:
@@ -71,7 +70,7 @@ class Scheldt:
         ################################################################################################################
         grid = {}
         grid['gridtype'] = 'Regular'
-        grid['dimensions'] = ['x', 'f']
+        grid['dimensions'] = ['x', 'z', 'f']
         grid['axis'] = {}
         grid['maxIndex'] = {}
         grid['low'] = {}
@@ -80,10 +79,14 @@ class Scheldt:
 
         grid['high']['x'] = L
         grid['low']['x'] = 0.
+        grid['high']['z'] = 1
+        grid['low']['z'] = 0.
         grid['high']['f'] = None
         grid['low']['f'] = None
-        grid['axis']['f'] = np.asarray([0, 1, 2]).reshape((1,3))
+        grid['axis']['f'] = np.asarray([0, 1, 2]).reshape((1,1,3))
+        grid['axis']['z'] = np.asarray([0,1]).reshape((1,2))
         grid['maxIndex']['f'] = 2
+        grid['maxIndex']['z'] = 1
 
         grid_waterlevel = grid
         grid_velocity = copy.deepcopy(grid)
@@ -93,25 +96,34 @@ class Scheldt:
         grid_velocity['axis']['x'] = x_station_vel/grid['high']['x']
         grid_velocity['maxIndex']['x'] = len(x_station_vel)-1
 
-        grid_waterlevel = DataContainer({'grid':grid_waterlevel})
-        grid_velocity = DataContainer({'grid':grid_velocity})
+        d['grid_waterlevel_Scheldt'] = grid_waterlevel
+        d['grid_velocity_Scheldt'] = grid_velocity
 
         ################################################################################################################
         # load to dictionary
         ################################################################################################################
+        # geometry
+        d['__variableOnGrid'] = {}
+        d['__variableOnGrid']['Scheldt_measurements'] = {}
+        d['__variableOnGrid']['Scheldt_measurements']['H_measurements'] = 'grid_geometry_Scheldt'
+        d['__variableOnGrid']['Scheldt_measurements']['B_measurements'] = 'grid_geometry_Scheldt'
+        d['__variableOnGrid']['Scheldt_measurements']['H'] = 'grid_geometry_Scheldt'
+        d['__variableOnGrid']['Scheldt_measurements']['B'] = 'grid_geometry_Scheldt'
+
+
         # stations
         d['Scheldt_measurements']['x_stations'] = x_station
         d['Scheldt_measurements']['stations'] = station_names
         d['Scheldt_measurements']['sections'] = river_sections
 
         # water level
-        nf = src.old.functionTemplates.NumericalFunctionWrapper(water_level, grid_waterlevel)
-        d['Scheldt_measurements']['zeta'] = nf.function
+        d['Scheldt_measurements']['zeta'] = water_level.reshape((len(x_waterlevel), 1, 3))
         d['Scheldt_measurements']['x_waterlevel'] = x_waterlevel
+        d['__variableOnGrid']['Scheldt_measurements']['zeta'] = 'grid_waterlevel_Scheldt'
 
         # velocity
-        nfu2 = src.old.functionTemplates.NumericalFunctionWrapper(u_comp, grid_velocity)       # now saved without phase data
         d['Scheldt_measurements']['x_velocity'] = x_station_vel
-        d['Scheldt_measurements']['u_comp'] = nfu2.function
+        d['Scheldt_measurements']['u_comp'] = u_comp.reshape((len(x_station_vel), 1, 3))
+        d['__variableOnGrid']['Scheldt_measurements']['u_comp'] = 'grid_velocity_Scheldt'
 
         return d

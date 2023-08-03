@@ -221,6 +221,8 @@ class KEFittedMAW:
             MA_av = (1+10*Rida)**(-0.5)
             dAv = ny.fft(Avmid*MA_av, 2)[:, :, :fmax+1] - Avold
             Av = Avold + (1-self.RELAX)*(self.LOCAL*dAv + .5*(1-self.LOCAL)*dAv[[0]+list(range(0, jmax)), :, :] + .5*(1-self.LOCAL)*dAv[list(range(1, jmax+1))+[jmax], :, :])
+            if includeSalinity=='True':
+                Av[0,:,:] = 0.5*Av[0,:,:] + 0.3*Av[1,:,:] + 0.2*Av[2,:,:]
             # Av = Avold + dAv
             Av0 = Av[:, :, 0]
 
@@ -228,6 +230,8 @@ class KEFittedMAW:
             MA_kv = (1+3.33*Rida)**(-1.5)
             dKv = ny.fft(Kvmid*MA_kv, 2)[:, :, :fmax+1] - Kvold
             Kv = Kvold + (1-self.RELAX)*(self.LOCAL*dKv + .5*(1-self.LOCAL)*dKv[[0]+list(range(0, jmax)), :, :] + .5*(1-self.LOCAL)*dKv[list(range(1, jmax+1))+[jmax], :, :])
+            if includeSalinity=='True':
+                Kv[0,:,:] = 0.5*Kv[0,:,:] + 0.3*Kv[1,:,:] + 0.2*Kv[2,:,:]
             # Kv = Kvold + dKv
             Kv0 = Kv[:, :, 0]
 
