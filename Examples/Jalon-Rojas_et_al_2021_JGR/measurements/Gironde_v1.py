@@ -31,6 +31,7 @@ class Gironde_v1:
         #datatide = np.loadtxt(root_meas + '\meas_v1_' + str(year) + '_TRm' + str(TRm) + '_Q' + str(Qmeas) + '.txt')
 
         root_meas = 'Examples/Jalon-Rojas_et_al_2020_JGR/measurements/observations/' + str(year) + '/'
+        root_meas = r'D:\Work\PhD\iFlow\iFlow3\Examples\Jalon-Rojas_et_al_2021_JGR\measurements\observations\1953/'
         datatide = np.loadtxt(root_meas + 'obs_' + str(year) + '_TRm' + str(TRm) + '_Q' + str(Qmeas) + '.txt')
 
 
@@ -77,7 +78,7 @@ class Gironde_v1:
         d['grid_stations_Garonne'] = grid_stations
 
         # load to dictionary
-        d['Gironde_measurements']['zeta'] = water_level
+        d['Gironde_measurements']['zeta'] = water_level.reshape((len(x_station), 1, 3))
         d['Gironde_measurements']['x_stations'] = x_station
         d['Gironde_measurements']['stations'] = station_names
         d['__variableOnGrid'] = {}

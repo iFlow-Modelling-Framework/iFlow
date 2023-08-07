@@ -44,14 +44,12 @@ class Plot_measurements:
         c = self.input.v('c0', x=x, z=z, f=range(0, fmax+1)) + self.input.v('c1', x=x, z=z, f=range(0, fmax+1)) + self.input.v('c2', x=x, z=z, f=range(0, fmax+1))  # concentration (jmax+1, kmax+1, fmax+1)
 
         StotalB = ny.integrate(ny.integrate(B*c, 'z', kmax, 0, self.input.slice('grid')), 'x', 0, jmax, self.input.slice('grid'))   # compute total sediment stock
-        print 'Total sediment stock in domain (mln kg): '+str(np.real(StotalB[0,0,0])/1.e6)
+        print('Total sediment stock in domain (mln kg): '+str(np.real(StotalB[0,0,0])/1.e6))
 
         # use data from measurements
         measurementset = self.input.v('measurementset')
-        x_waterlevel = self.input.v(measurementset, 'x_waterlevel')
-        x_velocity = self.input.v(measurementset, 'x_velocity')
+        x_waterlevel = self.input.v(measurementset, 'x_stations')
         zeta_meas = self.input.v(measurementset, 'zeta', x=x_waterlevel/L, z=0, f=range(0, 3))
-        ucomp_meas = self.input.v(measurementset, 'u_comp', x=x_velocity/L, z=0, f=range(0, 3))
 
         ################################################################################################################
         ## Plot
@@ -93,7 +91,6 @@ class Plot_measurements:
         # velocity components
         for n in range(0, 3):
             p = plt.plot(x_km/1000., abs(u[:, 0, n]), label='$M_'+str(2*n)+'$')
-            plt.plot(x_velocity/1000., abs(ucomp_meas[:, n]), 'o', color=p[0].get_color())
         plt.ylabel('$|\hat{u}|$ $(m/s)$')
         plt.xlabel('x (km)')
         plt.title('Surface velocity amplitude')

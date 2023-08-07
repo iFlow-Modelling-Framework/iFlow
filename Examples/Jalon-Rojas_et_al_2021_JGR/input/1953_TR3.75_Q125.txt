@@ -74,6 +74,9 @@ Kh          	50.                                # Horizontal eddy diffusivity
 module          measurements.Gironde_v1
 module          plottingIsabel.Plot
 
+#module          plottingIsabel.Plot_measurements
+#measurementset  Gironde_measurements
+
 ## Output ##
 module          general.Output
 path	        output/1953
