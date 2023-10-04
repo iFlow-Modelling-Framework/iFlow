@@ -89,9 +89,9 @@ class ReferenceLevel:
         dx = x[1:]-x[0:-1]
         R[0] = 0.
         for j in range(0, jmax):
-            c = self.uSolver(j, R[j])*B[j]
-            b = self.uSolver2(j, R[j])*B[j]*dx[j]
-            a = self.uSolver3(j, R[j])*B[j]*(dx[j]**2)
+            c = self.uSolver(j+1, R[j])*B[j+1]
+            b = self.uSolver2(j+1, R[j])*B[j+1]*dx[j]
+            a = self.uSolver3(j+1, R[j])*B[j+1]*(dx[j]**2)
             Rx_all = np.roots([a, b, c, self.Q])
             for Rx in Rx_all:
                 if np.imag(Rx)==0:
@@ -103,10 +103,11 @@ class ReferenceLevel:
         #     R = R+self.input.v('zeta1', range(0, jmax+1), 0, 0)-self.input.v('zeta1','river', range(0, jmax+1), 0, 0)
 
         # Compute convergence
+        R = np.maximum(R, -self.H+0.01)
         self.difference = np.linalg.norm(R - self.input.v('R', range(0, jmax+1)), np.inf)
 
         d = {}
-        d['R'] = np.maximum(R, -self.H+0.2)
+        d['R'] = R
 
         return d
 

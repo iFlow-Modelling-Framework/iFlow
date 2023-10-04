@@ -1,27 +1,52 @@
 """
-DynamicAvailability
+Dynamic erodibility computation integrating numerically over the long time scale.
+This routine only allows variation of the first-order river discharge over the long time scale. NB. variations of the
+tide and sediment boundary conditions or sources are not included (also not Qsed ~ Q). The loop over time is enclosed,
+so it cannot be used together with time variations in other modules.
 
-Date: 10/08/16
-Authors: R.L. Brouwer
+Options on input
+    sedbc: type of horizontal boundary condition; only 'csea' for seaward concentration is implemented.
+    initial: initial condition type 'erodibility', 'stock' for specifying initial f or S. 'equilibrium' for starting in
+                equilibrium using Q1 in hydrodynamics modules
+    finit: initial f, only used if 'initial' = 'erodibility'
+    Sinit: initial S, only used if 'initial' = 'stock'
+
+Optional input parameters
+    Qsed: sediment inflow from upstream
+    sedsource: other sediment sources
+
+From version: 2.5
+Date: 23-01-2019
+Authors: Y.M. Dijkstra, R.L. Brouwer
+
+REGISTRY ENTRY
+module		DynamicAvailability
+packagePath sediment/
+input       grid hatc0 hatc1 hatc2 u0 zeta0 u1 Kh B sedbc @sedbc t toutput Q1 initial if{finit,@{initial}=='erodibility'} if{Sinit,@{initial}=='stock'}        #optional: Qsed sedsource
+output		c0 c1 c2 a f F T t
 """
+
 import logging
 import numpy as np
-from scipy import integrate
-import scipy.sparse as sps
-import scipy.linalg as linalg
+import scipy.linalg
 import nifty as ny
 from src.util.diagnostics import KnownError
 import sys
 from nifty import toList
-import numbers
 from copy import copy
 from .EquilibriumAvailability import EquilibriumAvailability
 from src.DataContainer import DataContainer
+
+## TODO: first iteration Told is not properly set. This is a problem in a repeated 2-step experiment with theta!=1.
 
 
 class DynamicAvailability(EquilibriumAvailability):
     # Variables
     logger = logging.getLogger(__name__)
+    theta = 1.              # theta=0 is Forward Euler, theta=1 is Backward Euler and theta=0.5 is Crank-Nicolson
+    TOL = 1.e-10
+    MAXITER = 100
+    timer = ny.Timer()
 
     # Methods
     def __init__(self, input):
@@ -30,228 +55,190 @@ class DynamicAvailability(EquilibriumAvailability):
         return
 
     def run(self):
-        """Run function to initiate the calculation of the sediment concentration based on dynamic erodibility. Hereby,
-        we solve the following three equations:
+        """         """
+        self.logger.info('Running module DynamicAvailability_upwind')
 
-        S_t = - [Flux_x + Flux * (B_x/B)]                    (1)
-
-        Flux = T*f + F*f_x                                   (2)
-
-        f = f(Stilde)                                        (3)
-
-        with:
-
-        S      = sediment stock, which is the total amount of sediment in the water column and the erodible bottom
-        Flux   = sediment transport
-        f      = relative sediment erodibility
-        B      = estuary width
-        T      = transport function
-        F      = diffusion function
-        Stilde = S / Chat, with Chat is the subtidal carrying capacity
-
-         Returns:
-             Dictionary with results. At least contains the variables listed as output in the registry
-         """
-        self.logger.info('Running module DynamicAvailability')
-
-        ## Initiate variables
-        # general variables
-        self.RHOS = self.input.v('RHOS')
-        self.DS = self.input.v('DS')
-        self.WS = self.input.v('ws0')
-        self.GPRIME = self.input.v('G') * (self.RHOS - self.input.v('RHO0')) / self.input.v('RHO0')
-        self.Mhat = self.input.v('Mhat')
-        self.CSEA = self.input.v('csea')
-        self.FCAP = self.input.v('fcap')
-        self.P = self.input.v('p')
-        self.TOL = self.input.v('tol')
-        self.ASTAR = self.input.v('astar')
-        self.Kh = self.input.v('Kh')
-        self.L = self.input.v('L')
-        self.x = self.input.v('grid', 'axis', 'x') * self.L
-        self.dx = (self.x[1:]-self.x[:-1]).reshape(len(self.x)-1, 1)
+        ################################################################################################################
+        # Init
+        ################################################################################################################
         jmax = self.input.v('grid', 'maxIndex', 'x')
         kmax = self.input.v('grid', 'maxIndex', 'z')
         fmax = self.input.v('grid', 'maxIndex', 'f')
-        self.z = self.input.v('grid', 'axis', 'z', 0, range(0, kmax+1))
+        self.x = ny.dimensionalAxis(self.input.slice('grid'), 'x')[:, 0, 0]
+        self.dx = (self.x[1:]-self.x[:-1])
         self.zarr = ny.dimensionalAxis(self.input.slice('grid'), 'z')[:, :, 0]
-        self.H = (self.input.v('H', range(0, jmax+1)).reshape(jmax+1, 1) +
-                  self.input.v('R', range(0, jmax+1)).reshape(jmax+1, 1))
-        self.Hx = (self.input.d('H', range(0, jmax+1), dim='x').reshape(jmax+1, 1) +
-                   self.input.d('R', range(0, jmax+1), dim='x').reshape(jmax+1, 1))
-        self.B = self.input.v('B', range(0, jmax+1)).reshape(jmax+1, 1)
-        self.Bx = self.input.d('B', range(0, jmax+1), dim='x').reshape(jmax+1, 1)
-        self.sf = self.input.v('Roughness', range(0, jmax+1), 0, 0).reshape(jmax+1, 1)
-        self.Av0 = self.input.v('Av', range(0, jmax+1), 0, 0).reshape(jmax+1, 1)
 
-        # velocity
-        self.u1river = np.real(self.input.v('u1', 'river', range(0, jmax+1), range(0, kmax + 1), 0))
-        self.Q_fromhydro = -np.trapz(self.u1river[-1, :], x=-self.zarr[-1, :]) * self.B[-1]
+        self.B = self.input.v('B', range(0, jmax+1))
+        self.Bx = self.input.d('B', range(0, jmax+1), dim='x')
 
-        # c hat
-        self.c00 = np.real(self.input.v('hatc0', range(0, jmax+1), range(0, kmax+1), 0))
-        self.c04 = self.input.v('hatc0', range(0, jmax+1), range(0, kmax+1), 2)
+        self.Kh = self.input.v('Kh')
+        self.u0tide_bed = self.input.v('u0', 'tide', range(0, jmax+1), kmax, 1)
+        c00 = np.real(self.input.v('hatc0', range(0, jmax+1), range(0, kmax+1), 0))
 
-        ## Compute transport (in superclass)
+        c04 = np.abs(self.input.v('hatc0', range(0, jmax+1), range(0, kmax+1), 2))
+        c04_int = np.trapz(c04, x=-self.zarr)
+        hatc2 = np.abs(self.input.v('hatc2', range(0, jmax+1), range(0, kmax+1), 0))
+        alpha1 = np.trapz(c00 + hatc2, x=-self.zarr, axis=1)
+        if alpha1[-1] == 0:
+            alpha1[-1] = alpha1[-2]
+        alpha2 = c04_int/alpha1 + 1e-3
+
+        ## load time series Q
+        t = self.interpretValues(self.input.v('t'))
+        toutput = self.interpretValues(self.input.v('toutput'))
+        toutput[0] = t[0]                       # correct output time; first time level is always equal to initial computation time
+        Qarray = self.interpretValues(self.input.v('Q1'))
+        if len(Qarray)!=len(t):
+            from src.util.diagnostics.KnownError import KnownError
+            raise KnownError('Length of Q does not correspond to length of time array.')
+
+
+       ################################################################################################################
+        # Compute transport, source and BC
+        ################################################################################################################
+        ## Transport
         d = self.compute_transport()
         dc = DataContainer(d)
-        dc.merge(self.input.slice('grid'))
-        self.Fc = (dc.v('F', range(0, jmax+1)) -
-                   dc.v('F', 'diffusion_river', range(0, jmax+1))).reshape(jmax+1, 1)
-        self.Tc = (dc.v('T') - (dc.v('T', 'river', range(0, jmax+1)) +
-                                dc.v('T', 'river_river', range(0, jmax+1)) +
-                                dc.v('T', 'diffusion_river', range(0, jmax+1)))).reshape(len(self.x), 1)
-        self.TQ = dc.v('T', 'river', range(0, jmax+1)).reshape(jmax+1, 1) / self.Q_fromhydro
 
-        ## User input
-        #TODO: make a consistent and effective script that handles user input of the discharge time series or any other time-dependent variable
-        #load time serie Q
-        self.dt = self.interpretValues(self.input.v('dt'))
-        if self.input.v('t') is not None:
-            self.t = self.interpretValues(self.input.v('t'))
-        self.Q = self.interpretValues(self.input.v('Q'))
+        #       change size of those components that depend on the river discharge and put init value in first element
+        T_r = copy(dc.v('T', 'river', range(0, jmax+1)))
+        T_rr = copy(dc.v('T', 'river_river', range(0, jmax+1)))
+        T_dr = copy(dc.v('T', 'diffusion_river', range(0, jmax+1)))
+        F_dr = dc.v('F', 'diffusion_river', range(0, jmax+1))
 
-        ## Run
-        self.logger.info('Running time-integrator')
-        vars = self.implicit()
+        d['T']['river'] = np.zeros((jmax+1, 1, 1, len(toutput)))
+        d['T']['river'][:, 0, 0, 0] = T_r
+        d['T']['river_river'] = np.zeros((jmax+1, 1, 1, len(toutput)))
+        d['T']['river_river'][:, 0, 0, 0] = T_rr
+        d['T']['diffusion_river'] = np.zeros((jmax+1, 1, 1, len(toutput)))
+        d['T']['diffusion_river'][:, 0, 0, 0] = T_dr
+        d['F']['diffusion_river'] = np.zeros((jmax+1, 1, 1, len(toutput)))
+        d['F']['diffusion_river'][:, 0, 0, 0] = F_dr
 
-        ## Collect output
-        d = {}
-        for key in vars.keys():
-            d[key] = vars[key]
-        return d
+        T = dc.v('T', range(0, jmax+1), 0, 0, 0)
+        F = dc.v('F', range(0, jmax+1), 0, 0, 0)
 
-    def init_stock(self, T, F, Chat):
-        """Initiates the solution vector X = (S, Flux, f), when describing the amount of sediment in the system as a function
-        of the stock S
+        ## Source
+        G = self.compute_source()                                                                                       #NB does not change over long time scale
 
-        Parameters:
-            T - transport function
-            F - diffusion function
-            Chat - depth-integrated, tide-averaged concentration Mhat * int_-H^R <c> dz
-
-        Returns:
-            X - solution vector (S, Flux, f), with stock S, Flux and erodibility f
-        """
-        # initiate global variables alpha_2 and f_sea
-        if isinstance(self.input.v('alpha2'), numbers.Real):
-            self.ALPHA2 = self.input.v('alpha2')
+        ## Seaward boundary condition
+        if self.input.v('sedbc') == 'csea':
+            csea = self.input.v('csea')
+            fsea = csea / alpha1[0] * (self.input.v('grid', 'low', 'z', 0) - self.input.v('grid', 'high', 'z', 0))        #NB does not change over long time scale
         else:
-            self.ALPHA2 = (abs(self.Mhat * np.trapz(self.c04, x=-self.zarr, axis=1)) /
-                           (Chat[:, 0] + 1.e-15)).reshape(len(self.x), 1)
-            self.ALPHA2[-1] = 3 * (self.ALPHA2[-2]-self.ALPHA2[-3]) + self.ALPHA2[-4] #c04 and c00 are zero at x=L, but alpha2 remains finite based on backward euler and central differences
-        self.FSEA = self.CSEA / (np.mean(self.c00[0, :]) * self.Mhat)
-        # Initialize erodibility f
-        f = self.interpretValues(self.input.v('finit')).reshape(len(self.x), 1)
-        if self.input.v('concept')[1] == 'approximation':
-            # Initiate stock S with approximation S = alpha1 * Shat = alpha1 * f / beta * (1 - f)
-            Shat = f / (1. - f)
-        elif self.input.v('concept')[1] == 'exact':
-            # Initiate stock S with exact expression (see notes Yoeri)
-            Shat = f
-            test_fun = self.erodibility_stock_relation(self.ALPHA2, Shat) - f
-            # Newton-Raphson iteration towards actual Shat
-            while max(abs(test_fun)) > self.TOL:
-                dfdS = self.erodibility_stock_relation_der(self.ALPHA2, Shat)
-                Shat = Shat - test_fun / dfdS
-                test_fun = self.erodibility_stock_relation(self.ALPHA2, Shat) - f
-        # Initialize flux F
-        Flux = T * f + F * np.gradient(f, self.dx[0,0], axis=0, edge_order=2)
-        # Define solution vector X = (S, Flux, f)
-        X = np.concatenate((Shat, Flux, f)).reshape(3 * len(self.x), 1)
-        return X
+            from src.util.diagnostics.KnownError import KnownError
+            raise KnownError('incorrect seaward boundary type (sedbc) for sediment module')
 
-    def implicit(self):
-        """Calculates the time-evolution of the sediment distribution in an estuary using an implicit solution method
+        ## compute TQ, uQ, hatc2Q: quantities relative to the river discharge
+        u1river = np.real(self.input.v('u1', 'river', range(0, jmax+1), range(0, kmax + 1), 0))
+        Q_init = -np.trapz(u1river[-1, :], x=-self.zarr[-1, :]) * self.B[-1]    # initial discharge
+        self.TQ = T_r/Q_init            # river transport per discharge unit
+        self.uQ = u1river/Q_init        # river velocity per discharge unit
 
-        Returns:
-             Xt - solution vector X = (g, a) or X = (g, S) as a function of a time-dependent forcing variable, e.g. Q(t)
-             Ft - diffusion function F as a function of a time-dependent forcing variable, e.g. Q(t)
-             Tt - advection function T as a function of a time-dependent forcing variable, e.g. Q(t)
-             etc.
-        """
-        # Calculate transport functions F and T
-        T, F, __, C20 = self.transport_terms(self.Q[0])
-        Tt = []
-        Tt.append(T)
-        Ft = []
-        Ft.append(F)
+        ################################################################################################################
+        # Initialise X = (f, S)
+        ################################################################################################################
+        if self.input.v('initial') == 'erodibility':
+            finit = self.input.v('finit', range(0, jmax+1))
+            Sinit = self.init_stock(finit, alpha1, alpha2)
 
-        ##### Initialise solution vector X ######
-        Xt = []
-        if self.input.v('concept')[0] == 'stock':
-            Chat_old = self.Mhat * np.trapz(self.c00 + C20, x=-self.zarr, axis=1).reshape(len(self.x), 1)
-            # Solution matrix X = (S, Flux, f)
-            X = self.init_stock(T, F, Chat_old)
-            X_old = copy(X)
-            Xt.append(X_old * np.concatenate((Chat_old[:, 0], np.ones(len(self.x)), np.ones(len(self.x)))).reshape(3*len(self.x), 1))
+        elif self.input.v('initial') == 'stock':
+            Sinit = self.input.v('Sinit', range(0, jmax+1))
+            finit = self.erodibility_stock_relation(alpha2, Sinit/alpha1)
+
+        elif self.input.v('initial') == 'equilibrium':
+            _, finit, _ = self.availability(F, T, G, alpha1, alpha2)
+            Sinit = self.init_stock(finit, alpha1, alpha2)
+            
         else:
-            raise KnownError('Availability concept is not implemented in the upwind scheme. Use module DynamicAvailability.')
+            from src.util.diagnostics.KnownError import KnownError
+            raise KnownError('incorrect initial value for sediment module. Use erodibility, stock or equilibrium')
 
-        # Calculate tidally-averaged sediment concentration
-        #TODO: In this module, only the tidally-averaged concentration is returned. If we want full output of all concentration contribution, chat needs to be time-dependent!!
-        c0bar = []
-        c0bar.append(self.Mhat * (self.c00 + C20) * X_old[2*len(self.x):])
-        for i, q in enumerate(self.Q[1:]):
-            T, F, __, C20 = self.transport_terms(q)
+        X = np.concatenate((finit, Sinit))
+        f = np.zeros((jmax+1, 1, 1, len(toutput)))
+        S = np.zeros((jmax+1, 1, 1, len(toutput)))
+        f[:, 0, 0, 0] = finit
+        S[:, 0, 0, 0] = Sinit
 
-            if self.input.v('concept')[0] == 'stock':
-                Chat = self.Mhat * np.trapz(self.c00 + C20, x=-self.zarr, axis=1).reshape(len(self.x), 1)
-                Xvec, jac = self.jacvec_stock(T, F, X, X_old, Chat_old, Chat)
-            else:
-                raise KnownError('Availability concept is not implemented in the upwind scheme. Use module DynamicAvailability.')
+        ################################################################################################################
+        # Time integrator
+        ################################################################################################################
+        T_base = dc.v('T', range(0, jmax+1), 0, 0, 0) - dc.v('T', 'river', range(0, jmax+1), 0, 0, 0) - dc.v('T', 'river_river', range(0, jmax+1), 0, 0, 0) - dc.v('T', 'diffusion_river', range(0, jmax+1), 0, 0, 0)
+        F_base = dc.v('F', range(0, jmax+1), 0, 0, 0) - dc.v('F', 'diffusion_river', range(0, jmax+1), 0, 0, 0)
+        
+        #   loop
+        self.timer.tic()
+        qq = 1      # counter for saving
+        for i, Q in enumerate(Qarray[1:]):
+            # quantities at old time step
+            Told = copy(T)
+            Fold = copy(F)
+            alpha1old = copy(alpha1)
+            alpha2old = copy(alpha2)
 
-            while max(abs(Xvec)) > self.TOL:
-                dX = linalg.solve(jac, Xvec)
-                X = X - dX.reshape(len(X), 1)
-                if self.input.v('concept')[0] == 'stock':
-                    Xvec, jac = self.jacvec_stock(T, F, X, X_old, Chat_old, Chat)
-                else:
-                    raise KnownError('Availability concept is not implemented in the upwind scheme. Use module DynamicAvailability.')
+            # Update transport terms and hatc2 & load new transport terms
+            T_riv, T_rivriv, T_difriv, F_difriv = self.update_transport(Q)
+            ur = self.uQ[:, -1]*Q
+            hatc2 = self.update_hatc2(ur)
+            T = T_base + T_riv + T_rivriv + T_difriv
+            F = F_base + F_difriv
+            
+            # Make one time step and iterate over non-linearity
+            self.dt = t[i+1]-t[i]
 
-            X_old = copy(X)
-            if self.input.v('concept')[0] == 'stock':
-                Chat_old = copy(Chat)
-                Xt.append(X * np.concatenate((Chat_old[:, 0], np.ones(len(self.x)), np.ones(len(self.x)))).reshape(3*len(self.x), 1))
-            else:
-                raise KnownError('Availability concept is not implemented in the upwind scheme. Use module DynamicAvailability.')
-            c0barnew = self.Mhat * (self.c00 + C20) * X[2*len(self.x):].reshape(len(self.x), 1)
-            c0bar.append(c0barnew)
-            Tt.append(T)
-            Ft.append(F)
+            alpha1 = np.trapz(c00 + hatc2, x=-self.zarr, axis=1)
+            if alpha1[-1] == 0:
+                alpha1[-1] = alpha1[-2]
+            alpha2 = c04_int/alpha1 + 1e-3
+            X = self.timestepping(T, F, alpha1, alpha2, Told, Fold, alpha1old, alpha2old, X, fsea, G)
+
+            # save output on output timestep
+            if t[i+1]>=toutput[qq]:
+                toutput[qq] = t[i+1]        # correct output time to real time if time step and output time do not correspond
+                d['T']['river'][:, 0, 0, qq] = T_riv
+                d['T']['river_river'][:, 0, 0, qq] = T_rivriv
+                d['T']['diffusion_river'][:, 0, 0, qq] = T_difriv
+                d['F']['diffusion_river'][:, 0, 0, qq] = F_difriv
+                f[:, 0, 0, qq] = X[:jmax+1]
+                S[:, 0, 0, qq] = X[jmax+1:]
+                qq += 1
+                qq = np.minimum(qq, len(toutput)-1)
 
             # display progress
-            if i % np.floor(len(self.Q[1:]) / 10.) == 0:
-                percent = float(i) / len(self.Q[1:])
+            if i % np.floor(len(Qarray[1:]) / 100.) == 0:
+                percent = float(i) / len(Qarray[1:])
                 hashes = '#' * int(round(percent * 10))
                 spaces = ' ' * (10 - len(hashes))
                 sys.stdout.write("\rProgress: [{0}]{1}%".format(hashes + spaces, int(round(percent * 100))))
                 sys.stdout.flush()
-        #TODO: incorperate a 4th dimension in the output grid: x, z, f, t. Instead of this manual solution.
-        #Prepare variables for saving
-        if self.input.v('save_x') is not None:
-            dx = self.interpretValues(self.input.v('save_x'))[0]
-        else:
-            dx = 1
-        if self.input.v('save_t') is not None:
-            dt = self.interpretValues(self.input.v('save_t'))[0]
-        else:
-            dt = 1
-        St = np.array(Xt)[::dt, :len(self.x):dx, :]
-        flux = np.array(Xt)[::dt, len(self.x):2*len(self.x):dx, :]
-        ft = np.array(Xt)[::dt, 2*len(self.x)::dx, :]
-        Tt = np.array(Tt)[::dt, ::dx]
-        Ft = np.array(Ft)[::dt, ::dx]
-        Ft = np.array(Ft)[::dt, ::dx]
-        c0bar = np.array(c0bar)[::dt, ::dx]
-        return {'St': St, 'Flux': flux, 'Tt': Tt, 'Ft': Ft, 'ft': ft, 'c0bar': c0bar, 'alpha2': self.ALPHA2}
+        sys.stdout.write('\n')
+        self.timer.toc()
+        self.timer.disp('time integration time')
 
-    def transport_terms(self, q):
-        """Calculates the transport terms T, F and A and the second-order sediment concentration c20 based on the time-
-        dependent forcing variable, e.g. Q(t)
+        ################################################################################################################
+        # Prepare output
+        ################################################################################################################
+        d['f'] = f
+        d['a'] = S
+
+        fx = np.gradient(f, self.x, axis=0, edge_order=2)
+        hatc0 = self.input.v('hatc0', 'a', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1), [0])
+        hatc1 = self.input.v('hatc1', 'a', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1), [0])
+        hatc1x = self.input.v('hatc1', 'ax', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1), [0])
+        hatc2 = self.input.v('hatc2', 'a', range(0, jmax+1), range(0, kmax+1), range(0, fmax+1), [0])
+        d['c0'] = hatc0*f
+        d['c1'] = hatc1*f + hatc1x*fx
+        d['c2'] = hatc2*f
+
+        d['t'] = toutput
+
+        return d
+
+    def update_transport(self, Q):
+        """Update transport terms T and F for time dependent river discharge forcing Q.
 
         Parameters:
-            q - river discharge Q
+            Q - river discharge Q
 
         Returns:
             T - advection function
@@ -259,225 +246,174 @@ class DynamicAvailability(EquilibriumAvailability):
             A - variable appearing the the Exner equation, i.e. A = (BF)_x / B
             C20 - second-order sediment concentration
         """
-        Triver_river, C20 = self.river_river_interaction(q)
-        C20x, __ = np.gradient(C20, self.x[1], edge_order=2)
-        Tdiff_river = np.real(-np.trapz(self.Kh * C20x, x=-self.zarr, axis=1)).reshape(len(self.x), 1)
-        T = self.Tc + self.TQ * q + Triver_river + Tdiff_river
-        # Calculate and append diffusive coefficient F
-        Fdiff_river = np.real(-np.trapz(self.Kh * C20, x=-self.zarr, axis=1))
-        F = self.Fc + Fdiff_river.reshape(len(self.x), 1)
-        Fx = np.gradient(F, self.dx[0,0], axis=0, edge_order=2)
-        A = Fx + self.Bx * F / self.B
-        return T, F, A, C20
+        # T - river
+        T_riv = self.TQ * Q
 
-    def river_river_interaction(self, q):#TODO: make separate sript because this is also used in de SedDynamic module
-        """Calculates the transport and second-order sediment concentration due to the river-river interaction
+        # T - river_river
+        ur = self.uQ*Q
+        hatc2 = self.update_hatc2(ur[:, -1])
+        T_rivriv = np.real(np.trapz(ur * hatc2, x=-self.zarr, axis=1))
 
-        Parameters:
-            q - river discharge
+        # T - diffusion river
+        hatc2x = np.gradient(hatc2, self.x, axis=0, edge_order=2)
+        T_difriv = -self.Kh*np.real(np.trapz(hatc2x, x=-self.zarr, axis=1))
 
-        Returns:
-            Tr - transport due to river-river interaction
-            c20 - second-order sediment concentration due to river-river interaction
-        """
-        u0b = self.input.v('u0', 'tide', range(0, len(self.x)), len(self.z) - 1, 1)
-        ur = self.u1river * q / self.Q_fromhydro
-        u1b = ur[:, -1]
-        time = np.linspace(0, 2 * np.pi, 100)
-        utid = np.zeros((len(self.x), len(time))).astype('complex')
-        ucomb = np.zeros((len(self.x), len(time))).astype('complex')
-        for i, t in enumerate(time):
-            utid[:, i] = 0.5 * (u0b * np.exp(1j * t) + np.conj(u0b) * np.exp(-1j * t))  # YMD
-            ucomb[:, i] = u1b + 0.5 * (u0b * np.exp(1j * t) + np.conj(u0b) * np.exp(-1j * t))
+        # F - diffusion river
+        F_difriv = -self.Kh*np.real(np.trapz(hatc2, x=-self.zarr, axis=1))
+        return T_riv, T_rivriv, T_difriv, F_difriv
+
+    def update_hatc2(self, u_riv_bed):
+        """Update shear stress for hatc2 based on varying river discharge"""
+        jmax = self.input.v('grid', 'maxIndex', 'x')
+        RHOS = self.input.v('RHOS')
+        RHO0 = self.input.v('RHO0')
+        DS = self.input.v('DS')
+        GPRIME = self.input.v('G') * (RHOS - RHO0) / RHO0    #
+        HR = (self.input.v('H', range(0, jmax+1)).reshape(jmax+1, 1) +
+                  self.input.v('R', range(0, jmax+1)).reshape(jmax+1, 1))
+        WS = self.input.v('ws0', range(0, jmax+1), [0], 0)
+        Kv0 = self.input.v('Kv', range(0, jmax+1), 0, 0).reshape(jmax+1, 1)
+        if self.input.v('friction') is not None:
+            sf = self.input.v(self.input.v('friction'), range(0, jmax+1), 0, 0).reshape(jmax+1, 1)
+        else:
+            sf = self.input.v('Roughness', range(0, jmax+1), 0, 0).reshape(jmax+1, 1)
+        finf = self.input.v('finf')
+
+        # shear stress
+        T = np.linspace(0, 2*np.pi, 100)
+        utid = np.zeros((jmax+1, len(T)), dtype='complex')
+        ucomb = np.zeros((jmax+1, len(T)), dtype='complex')
+        for i, t in enumerate(T):
+            utid[:, i] = 0.5 * (self.u0tide_bed * np.exp(1j*t) + np.conj(self.u0tide_bed) * np.exp(-1j*t))
+            ucomb[:, i] = u_riv_bed + 0.5 * (self.u0tide_bed * np.exp(1j*t) + np.conj(self.u0tide_bed) * np.exp(-1j*t))
         uabs_tid = np.mean(np.abs(utid), axis=1)
         uabs_tot = np.mean(np.abs(ucomb), axis=1)
-        uabs_eps = uabs_tot.reshape(len(self.x), 1) - uabs_tid.reshape(len(self.x), 1)
-        c20 = np.real((self.RHOS / (self.GPRIME * self.DS)) * self.sf * uabs_eps *
-               np.exp(-self.WS * (self.H + self.zarr) / self.Av0))
+        uabs_eps = (uabs_tot - uabs_tid).reshape(jmax+1, 1)
 
-        Tr = np.real(np.trapz(ur * c20, x=-self.zarr, axis=1)).reshape(len(self.x), 1)
-        return Tr, c20
-
-    def availability(self, F, T, Q):
-        """Calculates the availability of sediment needed to derive the sediment concentration
-
-        Parameters:
-            F - diffusive coefficient in the availability equation that goes with a_x
-            T - coefficient (advective, diffusive and stokes) in the availability equation that goes with a
-
-        Returns:
-            a - availability of sediment throughout the estuary
-        """
-        # Exponent in the availability function.
-        if Q > 0:
-            exponent = np.exp(-integrate.cumtrapz(T / F, dx=self.dx, axis=0, initial=0))
+        # erosion
+        if self.input.v('erosion_formulation') == 'Partheniades':
+            Ehat = finf*sf*(uabs_eps)*RHO0
         else:
-            exponent = np.append(np.exp(-np.append(0, integrate.cumtrapz(T / F, dx=self.dx, axis=0)[:-1])), 0).reshape(len(self.x), 1)
-        A = (self.ASTAR * np.trapz(self.B, dx=self.dx, axis=0) /
-             np.trapz(self.B * exponent, dx=self.dx, axis=0))
-        a = A * exponent
-        return a
+            Ehat = (WS * finf*RHOS * sf / (GPRIME * DS))*(uabs_eps)
 
-    def jacvec_stock(self, T, F, X, X_old, Chat_old, Chat):
-        """Calculates the vector containing the Stock and Flux equation and the algebraic expression between S and f, and the
-        Jacobian matrix needed to solve for S, Flux and f:
-        
-        Stilde_t + Stilde * Chat_t / Chat= - (1/Chat) * [Flux_x + Flux * (B_x/B)]       (1)
-        
-        Flux = T*f + F*f_x                                                              (2)
-        
-        f = f(Stilde)                                                                   (3)
-        
+        hatc2 = np.real(Ehat/WS * np.exp(-WS * (HR + self.zarr) / Kv0))
+        return hatc2
 
-        Parameters:
-            T - transport function T on the current time step
-            F -  diffusion furnction F on the current time step
-            X, X_old - solution vector X = (Stilde, Flux, f) on the old and current time step
-            Chat, Chat_old - Chat on the current and old time step
-
-        Returns:
-             Xvec - vector containing the Eqs. (1)-(3)
-             jac - corresponding Jacobian matrix
+    def init_stock(self, f, alpha1, alpha2):
+        """Compute stock given f, alpha1 and alpha2.
+        For f=1, S equals Smax, which is S corresponding to f=0.999.
         """
-        # Initiate jacobian matrix, Xvec and local variable N
-        theta = self.input.v('theta') # theta=0 is Forward Euler, theta=1 is Backward Euler and theta=0.5 is Crank-Nicolson
-        jac = sps.csc_matrix((len(X), len(X)))
-        Xvec, N, N_old = np.zeros((len(X), 1)), np.zeros((len(self.x), 1)), np.zeros((len(self.x), 1))
-        # define length of xgrid
-        lx = len(self.x)
 
-        # Fill Xvec and jac related to the equation of Stilde: Stilde_t + (Stilde * <Chat>_t) / <Chat> + (1 / <Chat>) * Flux_x + (Flux / B * <Chat>) * B_x = 0
-        # First, Stilde only:
-        Xvec[:lx-1] += X[:lx-1] * (2. - Chat_old[:lx-1] / Chat[:lx-1]) - X_old[:lx-1]
-        jac += sps.csc_matrix(((2. - Chat_old[:lx-1, 0] / Chat[:lx-1, 0]), (range(lx-1), range(lx-1))), shape=jac.shape)
-        # Second, (1 / <Chat>) * Flux_x + (Flux / B * <Chat>) * B_x
-        # Define local variable N^(n+1) = [(-3Flux_i + 4Flux_i+1 - Flux_i+2) / (2 * dx) + (Flux_i * (B_i)_x) / B_i]
-        N[:-2] = (-3 * X[lx:2*lx-2] + 4 * X[lx+1:2*lx-1] - X[lx+2:2*lx]) / (2 * self.dx[0]) + X[lx:2*lx-2] * self.Bx[:-2] / self.B[:-2]
-        N[-2] = (-X[2*lx-3] + X[2*lx-1]) / (2 * self.dx[0]) + X[2*lx-2] * self.Bx[-2] / self.B[-2]
-        N_old[:-2] = (-3 * X_old[lx:2*lx-2] + 4 * X_old[lx+1:2*lx-1] - X_old[lx+2:2*lx]) / (2 * self.dx[0]) + X_old[lx:2*lx-2] * self.Bx[:-2] / self.B[:-2]
-        N_old[-2] = (-X_old[2*lx-3] + X_old[2*lx-1]) / (2 * self.dx[0]) + X_old[2*lx-2] * self.Bx[-2] / self.B[-2]
-        # Fill Xvec
-        Xvec[:lx-1] += self.Mhat * self.dt * N[:-1] * theta / Chat[:-1] + self.dt * self.Mhat * N_old[:-1] * (1. - theta) / Chat_old[:-1]
-        # Fill jac
-        jac_F_i = self.Mhat * theta * self.dt * (-3. / (2. * self.dx[0]) + (self.Bx[:-2, 0] / self.B[:-2, 0])) / Chat[:-2, 0]
-        jac_F_i1 = 2. * self.Mhat * theta * self.dt / (self.dx[0] * Chat[:-2, 0])
-        jac_F_i2 = -self.Mhat * theta * self.dt / (2 * self.dx[0] * Chat[:-2, 0])
-        jac += sps.csc_matrix((jac_F_i, (range(lx-2), range(lx, 2*lx-2))), shape=jac.shape)
-        jac += sps.csc_matrix((jac_F_i1, (range(lx-2), range(lx+1, 2*lx-1))), shape=jac.shape)
-        jac += sps.csc_matrix((jac_F_i2, (range(lx-2), range(lx+2, 2*lx))), shape=jac.shape)
-        jac += sps.csc_matrix(([-self.Mhat * theta * self.dt / (2 * self.dx[0, 0] * Chat[-2, 0])], ([lx-2], [2*lx-3])), shape=jac.shape)
-        jac += sps.csc_matrix(([self.Mhat * theta * self.dt * self.Bx[-2, 0] / ( self.B[-2, 0] * Chat[-2, 0])], ([lx-2], [2*lx-2])), shape=jac.shape)
-        jac += sps.csc_matrix(([self.Mhat * theta * self.dt / (2 * self.dx[0, 0] * Chat[-2, 0])], ([lx-2], [2*lx-1])), shape=jac.shape)
-        # Boundary condition at the weir Flux = Flux_river
-        Friver = self.interpretValues(self.input.v('Friver'))
-        Xvec[lx-1] = X[2*lx-1] + Friver
-        jac += sps.csc_matrix(([1.], ([lx-1], [2*lx-1])), shape=jac.shape)
+        # Establish initial minimum stock Smax, such that f=0.999
+        Smax = np.array([0.999])  # initial guess
+        F = self.erodibility_stock_relation(alpha2[[0]], Smax) - np.array([0.999])
+        while max(abs(F)) > 10 ** -4 :
+            dfdS = self.erodibility_stock_relation_der(alpha2[[0]], Smax)
+            Smax = Smax - F / dfdS
+            F = self.erodibility_stock_relation(alpha2[[0]], Smax) - np.array([0.999])
 
-        # Fill Xvec and jac related to the equation of Flux: Flux - Tf - Ff_x = 0
-        # First, Flux only:
-        Xvec[lx+1:2*lx] += X[lx+1:2*lx]
-        jac += sps.csc_matrix((np.ones(lx-1), (range(lx+1, 2*lx), range(lx+1, 2*lx))), shape=jac.shape)
-        # Second, -Tf -Ff_x only: -T_i * f_i - F_i * (f_i-2 - 4f_i-1 + 3f_i) / (2 * dx)
-        # Fill Xvec backward euler from index=2:end
-        Xvec[lx+2:2*lx] += -T[2:] * X[2*lx+2:] - F[2:] * (X[2*lx:3*lx-2] - 4 * X[2*lx+1:3*lx-1] + 3 * X[2*lx+2:]) / (2 * self.dx[0])
-        # Fill Xvec central differences for index=1
-        Xvec[lx+1] += -T[1] * X[2*lx+1] - F[1] * (-X[2*lx] + X[2*lx+2]) / (2 * self.dx[0])
-        # Fill jac
-        jac_f_i = -T[2:, 0] - 3 * F[2:, 0] / (2 * self.dx[0])
-        jac_f_i1 = 2 * F[1:-1, 0] / self.dx[0]
-        jac_f_i2 = -F[:-2, 0] / (2 * self.dx[0])
-        jac += sps.csc_matrix((jac_f_i, (range(lx+2, 2*lx), range(2*lx+2, 3*lx))), shape=jac.shape)
-        jac += sps.csc_matrix((jac_f_i1, (range(lx+2, 2*lx), range(2*lx+1, 3*lx-1))), shape=jac.shape)
-        jac += sps.csc_matrix((jac_f_i2, (range(lx+2, 2*lx), range(2*lx, 3*lx-2))), shape=jac.shape)
-        jac += sps.csc_matrix(([F[1, 0] / (2 * self.dx[0, 0])], ([lx+1], [2*lx])), shape=jac.shape)
-        jac += sps.csc_matrix(([-T[1, 0]], ([lx+1], [2*lx+1])), shape=jac.shape)
-        jac += sps.csc_matrix(([-F[1, 0] / (2 * self.dx[0, 0])], ([lx+1], [2*lx+2])), shape=jac.shape)
-        # Boundary condition at sea: f = fsea
-        Xvec[lx] = X[2*lx] - self.FSEA
-        jac += sps.csc_matrix(([1.], ([lx], [2*lx])), shape=jac.shape)
+        # Newton-Raphson iteration towards actual Shat
+        #   init
+        Shat = f
+        F = self.erodibility_stock_relation(alpha2, Shat) - f
 
-        # Fill Xvec and jacobian for the algebraic relation: f - f(Stilde) = 0, when using the exact relation between S and f
-        if self.input.v('concept')[1] == 'exact':
-            Xvec[2*lx:] += X[2*lx:] - self.erodibility_stock_relation(self.ALPHA2, X[:lx])
-            jac += sps.csc_matrix((-self.erodibility_stock_relation_der(self.ALPHA2, X[:lx])[:, 0], (range(2*lx, 3*lx), range(lx))), shape=jac.shape)
-            jac += sps.csc_matrix((np.ones(lx), (range(2*lx, 3*lx), range(2*lx, 3*lx))), shape=jac.shape)
+        i = 0
+        while max(abs(F)) > self.TOL and i < 50:
+            i += 1
+            dfdS = self.erodibility_stock_relation_der(alpha2, Shat)
+            Shat = Shat - F / (dfdS + 10 ** -12)
+            F = self.erodibility_stock_relation(alpha2, Shat) - f
+            if i == 50:
+                f = self.erodibility_stock_relation(alpha2, Shat)
+
+        Shat = np.minimum(Shat, Smax)
+        return Shat*alpha1
+
+    def timestepping(self, T, F, alpha1, alpha2, Told, Fold, alpha1old, alpha2old, Xold, fsea, G):
+        """        """
+        jmax = self.input.v('grid', 'maxIndex', 'x')
+        A = np.zeros((4, jmax+1))
+        rhs = np.zeros((jmax+1))
+
+        Sold = Xold[jmax + 1:]
+        hatSold = Sold/alpha1old
+        fold = Xold[:jmax+1]
+        h = self.erodibility_stock_relation(alpha2old, hatSold)
+        hder = self.erodibility_stock_relation_der(alpha2old, hatSold)
+        hda2 = self.erodibility_stock_relation_da2(alpha2old, hatSold)
+        beta = h - hder*hatSold + hda2*(alpha2-alpha2old)
+
+        Tx = np.gradient(T, self.x, edge_order=2)
+        Fx = np.gradient(F, self.x, edge_order=2)
+        dif = self.B*F
+
+        adv = self.B*T+self.Bx*F+self.B*Fx
+        BTx = self.B*Tx+self.Bx*T
+
+        Txold = np.gradient(Told, self.x, edge_order=2)
+        Fxold = np.gradient(Fold, self.x, edge_order=2)
+        dif_old = self.B*Fold
+        adv_old = self.B*Told+self.Bx*Fold+self.B*Fxold
+        BTx_old = self.B*Txold+self.Bx*Told
+
+        # interior
+        A[0, 2:] = + self.theta*np.minimum(adv[1:-1], 0)*hder[2:]/(alpha1[2:]*self.dx[1:]) + self.theta*dif[1:-1]/(0.5*(self.dx[1:]+self.dx[:-1]))*hder[2:]/alpha1[2:]/self.dx[1:]
+        A[1, 1:-1] = self.B[1:-1]/self.dt + self.theta*BTx[1:-1]*hder[1:-1]/alpha1[1:-1] + \
+                     self.theta*np.maximum(adv[1:-1], 0)*hder[1:-1]/(alpha1[1:-1]*self.dx[:-1]) - self.theta*np.minimum(adv[1:-1], 0)*hder[1:-1]/(alpha1[1:-1]*self.dx[1:]) \
+                     - self.theta*dif[1:-1]/(0.5*(self.dx[1:]+self.dx[:-1]))*hder[1:-1]/alpha1[1:-1]*(1./self.dx[1:]+1./self.dx[:-1])
+        A[2, :-2] = -self.theta*np.maximum(adv[1:-1], 0)*hder[:-2]/(alpha1[:-2]*self.dx[:-1]) + self.theta*dif[1:-1]/(0.5*(self.dx[1:]+self.dx[:-1]))*hder[:-2]/alpha1[:-2]/self.dx[:-1]
+
+        rhs[1:-1] = self.B[1:-1]/self.dt*Sold[1:-1] - self.theta*BTx[1:-1]*beta[1:-1] - self.theta*np.maximum(adv[1:-1], 0)*(beta[1:-1]-beta[:-2])/self.dx[:-1] - self.theta*np.minimum(adv[1:-1], 0)*(beta[2:]-beta[1:-1])/self.dx[1:] \
+                    -self.theta*dif[1:-1]*((beta[2:]-beta[1:-1])/self.dx[1:] - (beta[1:-1]-beta[:-2])/self.dx[:-1])/(0.5*(self.dx[1:]+self.dx[:-1])) \
+                    + (1-self.theta) * (-BTx_old[1:-1]*fold[1:-1] - np.maximum(adv_old[1:-1], 0)*(fold[1:-1]-fold[:-2])/self.dx[:-1] - np.minimum(adv_old[1:-1], 0)*(fold[2:]-fold[1:-1])/self.dx[1:] \
+                                      -dif_old[1:-1]*((fold[2:]-fold[1:-1])/self.dx[1:] - (fold[1:-1]-fold[:-2])/self.dx[:-1])/(0.5*(self.dx[1:]+self.dx[:-1])))
+        rhs[1:-1] += -self.B[1:-1]*G[1:-1]
+
+        # Quick fix for ensuring positivity (Patankar, 1980); could be neater for greater accuracy
+        A[1, 1:-1] += -np.minimum(rhs[1:-1], 0)/(Sold[1:-1]+1.e-6)
+        rhs[1:-1] = np.maximum(rhs[1:-1], 0)
+
+        # Boundaries
+        #   x=0
+        if hder[0] == 0:
+            A[1, 0] = 1
+            rhs[0] = Sold[0]
         else:
-            raise KnownError('Approximation stock or availability concept is not implemented in the upwind scheme. Use module DynamicAvailability.')
+            A[1, 0] = hder[0]/alpha1[0]
+            rhs[0] = fsea - h[0] + hder[0]*hatSold[0]
 
-        # Convert jacobian matrix to dense matrix
-        jac = jac.todense()
-        return Xvec, jac
+        #   x=L
+        if hder[-1] == 0:
+            A[1, -1] = 1        # TODO - needs correction; VIOLATION OF MASS BALANCE. This line will only apply in case Q1 = 0
+            rhs[-1] = Sold[-1]
+            self.logger.warning('f=1 at upstream boundary. The code is not correct for this case and mass balance may be violated. Please investigate.')
+        else:
+            A[1, -1] = self.B[-1]*T[-1]*hder[-1]/alpha1[-1] + 3./2.*self.B[-1]*F[-1]*hder[-1]/alpha1[-1]/self.dx[-1]
+            A[2, -2] = -2.*self.B[-1]*F[-1]*hder[-2]/alpha1[-2]/self.dx[-1]
+            A[3, -3] = 0.5*self.B[-1]*F[-1]*hder[-3]/alpha1[-3]/self.dx[-1]
+            rhs[-1] = -self.B[-1]*T[-1]*beta[-1] - self.B[-1]*F[-1]*(3./2.*beta[-1] - 2.*beta[-2] + 0.5*beta[-3])/self.dx[-1]
+            rhs[-1] += -self.B[-1]*G[-1]
 
-    def stability_availability(self, A, T, F, D, aeq):#TODO: discuss with George if this is still useful
-        """Calculates the eigenvalues and eigenvectors of the Sturm-Liousville problem related to the dynamic 
-        availability concept
-        
-        Parameters
-            A - variable (BF)_x/B
-            T - advection function
-            F - diffusion function
-            D - see Eq. (5) above
-            aeq  - availability in morphodynamic equilibrium
+            #   alternative first order
+            # A[1, -1] = self.B[-1]*T[-1]*hder[-1]/alpha1[-1] + self.B[-1]*F[-1]*hder[-1]/alpha1[-1]/self.dx[-1]
+            # A[2, -2] = -1.*self.B[-1]*F[-1]*hder[-2]/alpha1[-2]/self.dx[-1]
+            # rhs[-1] = -self.B[-1]*T[-1]*beta[-1] - self.B[-1]*F[-1]*(1*beta[-1] - 1.*beta[-2])/self.dx[-1]
+            # rhs[-1] += self.B[-1]*G[-1]
 
-        Returns:
-             eigval - eigenvalues
-             eigvec - eigenvectors
-        """
-        M = np.zeros((len(self.x), 1))
-        # initialize Jacobian matrix with zeros
-        jac = sps.dia_matrix((len(self.x), len(self.x)))
-        # define the values for the diagonals for the interior points for the jacobian matrix to the generalized
-        # eigenvalue problem
-        R = (1 - self.FCAP * aeq[1:-1] * self.FSEA)**2
-        M[1:-1] = self.gamma * (self.H[0] * R / (self.input.v('ell') + D[1:-1] * R * self.H[0]))
-        jval_c = -2 * M * F / self.dx[0]**2
-        jval_l = M * (F / self.dx[0] - (A - T) / 2.) / (self.dx[0])
-        jval_r = M * (F / self.dx[0] + (A - T) / 2.) / (self.dx[0])
-        # Modify jacobian matrix to use it for the standard eigenvalue problem.
-        jval_c[-2] += 4 * jval_r[-2] / 3 # Sturm-Liousville modification
-        jval_l[-2] += -jval_r[-2] / 3 # Sturm-Liousville modification
-        jac += sps.diags([jval_l[1:, 0], jval_c[:, 0], jval_r[:-1, 0]], [-1, 0, 1])
-        jac = jac[1:-1, 1:-1]
-        #Determine eigenvalues and eigenvectors
-        jacd = jac.todense()
-        eigval, eigvec = linalg.eig(jacd)
-        return eigval, eigvec
 
-    def stability_stock(self, A, T, F, alpha1):#TODO: same as stability_availability...
-        """Calculates the eigenvalues and eigenvectors of the Sturm-Liousville problem related to the dynamic
-        erodibility concept
+        try:
+            S = scipy.linalg.solve_banded((2, 1), A, rhs, overwrite_ab=False, overwrite_b=False)
+        except:
+            print(Xold[:jmax+1])
+            raise KnownError('Time integration failed.')
 
-        Parameters
-            A - variable (BF)_x/B
-            T - advection function
-            F - diffusion function
-            aeq  - availability in morphodynamic equilibrium
-            alpha1 - factor indicating the maximum amount of sediment in the water column in a tidally averaged sense
 
-        Returns:
-             eigval - eigenvalues
-             eigvec - eigenvectors
-        """
-        M = np.zeros((len(self.x), 1))
-        # initialize Jacobian matrix with zeros
-        jac = sps.dia_matrix((len(self.x), len(self.x)))
-        # define the values for the diagonals for the interior points for the jacobian matrix to the generalized
-        # eigenvalue problem
-        M[1:-1] = self.Mhat / alpha1[1:-1]
-        jval_c = -2 * M * F / self.dx[0]**2
-        jval_l = M * (F / self.dx[0] - (A - T) / 2.) / (self.dx[0])
-        jval_r = M * (F / self.dx[0] + (A - T) / 2.) / (self.dx[0])
-        # Modify jacobian matrix to use it for the standard eigenvalue problem.
-        jval_c[-2] += 4 * jval_r[-2] / 3 # Sturm-Liousville modification
-        jval_l[-2] += -jval_r[-2] / 3 # Sturm-Liousville modification
-        jac += sps.diags([jval_l[1:, 0], jval_c[:, 0], jval_r[:-1, 0]], [-1, 0, 1])
-        jac = jac[1:-1, 1:-1]
-        #Determine eigenvalues and eigenvectors
-        jacd = jac.todense()
-        eigval, eigvec = linalg.eig(jacd)
-        return eigval, eigvec
+        f = self.erodibility_stock_relation(alpha2, S/alpha1)
+        X = np.concatenate((f, S), axis=0)
 
-    def interpretValues(self, values):#TODO: make a separate script! To nifty???
+        return X
+
+    def interpretValues(self, values):
         """inpterpret values on input as space-separated list or as pure python input
 
         Parameters
@@ -494,45 +430,83 @@ class DynamicAvailability(EquilibriumAvailability):
         #   try to interpret as python string
         if any([i in valString for i in ['(', '[', ',', '/', '*', '+', '-']]):
             try:
-                if valString is None or valString=='':
-                    valuespy = None
-                else:
-                    valuespy = eval(valString)
+                valuespy = None
+                exec('valuespy ='+valString)
                 return valuespy
             except Exception as e:
-                try: errorString = ': '+ str(e)
-                except: errorString = ''
-                raise KnownError('Failed to interpret input as python command %s in input: %s' %(errorString, valString), e)
+                raise KnownError('Failed to interpret input as python command in input', e)
 
         # case 2: else interpret as space-separated list
         else:
             return values
 
-    def erodibility_stock_relation(self,alpha2, Shat):
-        #Define masks where the bottom is empty, partly covered or covered
-        empty = np.where(Shat < 1 - alpha2)[0]
-        part_cover = np.where((Shat >= 1 - alpha2) & (Shat <= 1 + alpha2))[0]
-        cover = np.where(Shat > 1 + alpha2)[0]
-        #Build f
-        f = np.full(Shat.shape, np.nan)
-        f[empty] = Shat[empty]
-        f[cover] = 1.
-        xi = np.full(f.shape, np.nan)
-        xi[part_cover] = np.arcsin((Shat[part_cover] - 1.) / alpha2[part_cover])
-        f[part_cover] = (Shat[part_cover] * (0.5 - xi[part_cover] / np.pi) + 0.5 +
-                        xi[part_cover] / np.pi - alpha2[part_cover] * np.cos(xi[part_cover]) / np.pi)
-        return np.real(f)
+    # def stability_availability(self, A, T, F, D, aeq):
+    #     """Calculates the eigenvalues and eigenvectors of the Sturm-Liousville problem related to the dynamic
+    #     availability concept
+    #
+    #     Parameters
+    #         A - variable (BF)_x/B
+    #         T - advection function
+    #         F - diffusion function
+    #         D - see Eq. (5) above
+    #         aeq  - availability in morphodynamic equilibrium
+    #
+    #     Returns:
+    #          eigval - eigenvalues
+    #          eigvec - eigenvectors
+    #     """
+    #     M = np.zeros((len(self.x), 1))
+    #     # initialize Jacobian matrix with zeros
+    #     jac = sps.dia_matrix((len(self.x), len(self.x)))
+    #     # define the values for the diagonals for the interior points for the jacobian matrix to the generalized
+    #     # eigenvalue problem
+    #     R = (1 - self.FCAP * aeq[1:-1] * self.FSEA)**2
+    #     M[1:-1] = self.gamma * (self.H[0] * R / (self.input.v('ell') + D[1:-1] * R * self.H[0]))
+    #     jval_c = -2 * M * F / self.dx[0]**2
+    #     jval_l = M * (F / self.dx[0] - (A - T) / 2.) / (self.dx[0])
+    #     jval_r = M * (F / self.dx[0] + (A - T) / 2.) / (self.dx[0])
+    #     # Modify jacobian matrix to use it for the standard eigenvalue problem.
+    #     jval_c[-2] += 4 * jval_r[-2] / 3 # Sturm-Liousville modification
+    #     jval_l[-2] += -jval_r[-2] / 3 # Sturm-Liousville modification
+    #     jac += sps.diags([jval_l[1:, 0], jval_c[:, 0], jval_r[:-1, 0]], [-1, 0, 1])
+    #     jac = jac[1:-1, 1:-1]
+    #     #Determine eigenvalues and eigenvectors
+    #     jacd = jac.todense()
+    #     eigval, eigvec = linalg.eig(jacd)
+    #     return eigval, eigvec
 
-    def erodibility_stock_relation_der(self,alpha2, Shat):
-        #Define masks where the bottom is empty, partly covered or covered
-        empty = np.where(Shat <= 1 - alpha2)[0]
-        part_cover = np.where((Shat > 1 - alpha2) & (Shat < 1 + alpha2))[0]
-        cover = np.where(Shat >= 1 + alpha2)[0]
-        #Build df/dS
-        dfdS = np.full(Shat.shape, np.nan)
-        dfdS[empty] = 1.
-        dfdS[cover] = 0.
-        xi = np.full(dfdS.shape, np.nan)
-        xi[part_cover] = np.arcsin((Shat[part_cover] - 1.) / alpha2[part_cover])
-        dfdS[part_cover] = 0.5 - xi[part_cover] / np.pi
-        return np.real(dfdS)
+    # def stability_stock(self, A, T, F, alpha1):
+    #     """Calculates the eigenvalues and eigenvectors of the Sturm-Liouville problem related to the dynamic
+    #     erodibility concept
+    #
+    #     Parameters
+    #         A - variable (BF)_x/B
+    #         T - advection function
+    #         F - diffusion function
+    #         aeq  - availability in morphodynamic equilibrium
+    #         alpha1 - factor indicating the maximum amount of sediment in the water column in a tidally averaged sense
+    #
+    #     Returns:
+    #          eigval - eigenvalues
+    #          eigvec - eigenvectors
+    #     """
+    #     M = np.zeros((len(self.x), 1))
+    #     # initialize Jacobian matrix with zeros
+    #     jac = sps.dia_matrix((len(self.x), len(self.x)))
+    #     # define the values for the diagonals for the interior points for the jacobian matrix to the generalized
+    #     # eigenvalue problem
+    #     M[1:-1] = self.Mhat / alpha1[1:-1]
+    #     jval_c = -2 * M * F / self.dx[0]**2
+    #     jval_l = M * (F / self.dx[0] - (A - T) / 2.) / (self.dx[0])
+    #     jval_r = M * (F / self.dx[0] + (A - T) / 2.) / (self.dx[0])
+    #     # Modify jacobian matrix to use it for the standard eigenvalue problem.
+    #     jval_c[-2] += 4 * jval_r[-2] / 3 # Sturm-Liousville modification
+    #     jval_l[-2] += -jval_r[-2] / 3 # Sturm-Liousville modification
+    #     jac += sps.diags([jval_l[1:, 0], jval_c[:, 0], jval_r[:-1, 0]], [-1, 0, 1])
+    #     jac = jac[1:-1, 1:-1]
+    #     #Determine eigenvalues and eigenvectors
+    #     jacd = jac.todense()
+    #     eigval, eigvec = linalg.eig(jacd)
+    #     return eigval, eigvec
+
+
