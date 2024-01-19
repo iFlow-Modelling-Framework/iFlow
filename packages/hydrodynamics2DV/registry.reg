@@ -16,6 +16,10 @@ packagePath
 input           L B H xgrid zgrid fgrid xoutputgrid zoutputgrid foutputgrid# R
 output          grid outputgrid
 
+module          MTS_Grid
+input           L B H xgrid zgrid fgrid tgrid xoutputgrid zoutputgrid foutputgrid toutputgrid sn_cycles # R
+output          MTS_grid MTS_outputGrid num_sn_cycles
+
 module      Calibration
 packagePath
 inputInit   calibrationParameter changeFactor measurementset @calibrationParameter @measurementset
