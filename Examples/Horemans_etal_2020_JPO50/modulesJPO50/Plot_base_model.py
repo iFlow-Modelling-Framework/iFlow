@@ -49,12 +49,13 @@ class Plot_base_model:
         else:
             self.input.addData('csubt', (self.input.v('c0') + self.input.v('c1') + self.input.v('c2')) * 1000)
 
-        step.contourplot('x', 'z', 'csubt', f=0, sublevel=False, operation=np.abs, plotno=1)
+        step.contourplot('x', 'z', 'u1', f=0, subplots='sublevel', operation=np.real, plotno=1)
+        step.contourplot('x', 'z', 'csubt', f=0, sublevel=False, operation=np.abs, plotno=2)
         st.show()
 
         ############### Plot modeled settling velocity distribution ################
         self.input.addData('ws0ms', self.input.v('ws0') * 1000)
-        step.contourplot('x', 'z', 'ws0ms', f=0, sublevel=False, operation=np.abs, plotno=2)
+        step.contourplot('x', 'z', 'ws0ms', f=0, sublevel=False, operation=np.abs, plotno=3)
         st.show()
 
         ############### Plot transport capacity mechanisms ###############

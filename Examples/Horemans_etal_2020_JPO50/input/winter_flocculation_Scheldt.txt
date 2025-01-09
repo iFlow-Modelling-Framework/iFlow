@@ -7,6 +7,14 @@
 # Date: Aug 2020
 # Author: D.M.L. Horemans
 
+## Sensitivity ##
+module      general.Sensitivity
+variables   kB finf Q
+kB          5600.
+finf        0.00336
+Q           233.
+loopstyle   permutations # simultaneous or permutations
+
 ## calcQ ##
 module modulesJPO50.calcQ
 QTributary  34.4 53.8 11.8
@@ -32,7 +40,7 @@ zoutputgrid    equidistant     50
 foutputgrid    integer         2
 
 ## Hydrodynamics ##
-module      hydrodynamics2DV.HydroLead hydrodynamics2DV.HydroFirst turbulence2DV.KEFittedTruncated turbulence2DV.DiffusivityUndamped
+module      hydrodynamics2DV.HydroLead hydrodynamics2DV.HydroFirstNumerical turbulence2DV.KEFittedTruncated turbulence2DV.DiffusivityUndamped
 submodules  tide river baroc adv nostress stokes source
 A0			0 1.77 0 0
 A1			0 0 0.14 0
@@ -59,20 +67,12 @@ xc          37.760e3
 xl          25.299e3
 
 ## Sediment ##
-module      sediment2DV.EquilibriumAvailability sediment2DV.SedimentCapacity
+module      sediment2DV.EquilibriumAvailability sediment2DV.SedimentCapacityNumerical
 submodules  erosion noflux sedadv fallvel
 Kh          100
 erosion_formulation Partheniades # Chernetsky
 sedbc       csea
 csea        0.06
-
-## Sensitivity ##
-module      general.Sensitivity
-variables   kB finf Q
-kB          5600.
-finf        0.00336
-Q           233.
-loopstyle   permutations # simultaneous or permutations
 
 ## Flocculation ##
 module      sediment2DV.Flocculation
@@ -95,3 +95,5 @@ NaNProblem      False
 
 ## Plot
 module                  modulesJPO50.Plot_base_model
+
+requirements    c0
