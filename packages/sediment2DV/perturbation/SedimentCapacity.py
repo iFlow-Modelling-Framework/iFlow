@@ -249,15 +249,12 @@ class SedimentCapacity:
         hatc2 = np.zeros((len(self.x), len(self.z), 3), dtype=complex)
         if self.input.has('u1', 'river'):
             u1b = self.input.v('u1', 'river', range(0, len(self.x)), len(self.z)-1, 0)
-            T = np.linspace(0, 2*np.pi, 100)
-            utid = np.zeros((len(self.x), len(T)), dtype='complex')
-            ucomb = np.zeros((len(self.x), len(T)), dtype='complex')
-            for i, t in enumerate(T):
-                utid[:, i] = 0.5 * (self.u0[:, -1] * np.exp(1j*t) + np.conj(self.u0[:, -1]) * np.exp(-1j*t))
-                ucomb[:, i] = u1b + 0.5 * (self.u0[:, -1] * np.exp(1j*t) + np.conj(self.u0[:, -1]) * np.exp(-1j*t))
-            uabs_tid = np.mean(np.abs(utid), axis=1)
-            uabs_tot = np.mean(np.abs(ucomb), axis=1)
-            uabs_eps = uabs_tot.reshape(len(self.x), 1) - uabs_tid.reshape(len(self.x), 1)
+            t = np.linspace(0, 2*np.pi, 2000)[None,:-1]     # TODO   COULD OPTIMISE THIS IN TERMS OF TIME AND MEMORY.
+            utid = np.abs(self.u0[:, -1])[:, None]*np.cos(t)
+            ucomb = u1b[:, None] + utid
+            uabs_tid = np.mean(np.abs(utid), keepdims=True, axis=1)
+            uabs_tot = np.mean(np.abs(ucomb), keepdims=True, axis=1)
+            uabs_eps = uabs_tot - uabs_tid
 
             # erosion
             if self.input.v('erosion_formulation') == 'Partheniades':
@@ -334,13 +331,12 @@ class SedimentCapacity:
         """
         # CAlCULATE THE PART OF C12 DUE TO THE ADVECTION OF SEDIMENT
         # Define variables
-        self.Av0 = self.input.v('Av', x=self.x/self.L, z=0, f=[0])
         self.H = self.HR
-        lambda_M2 = np.sqrt(self.WS**2 + 4 * 1j * self.SIGMA * self.Av0)
-        r1_M2 = (lambda_M2 - self.WS) / (2 * self.Av0)
-        r2_M2 = -(lambda_M2 + self.WS) / (2 * self.Av0)
-        var1 = self.WS + self.Av0 * r1_M2
-        var2 = self.WS + self.Av0 * r2_M2
+        lambda_M2 = np.sqrt(self.WS**2 + 4 * 1j * self.SIGMA * self.Kv0)
+        r1_M2 = (lambda_M2 - self.WS) / (2 * self.Kv0)
+        r2_M2 = -(lambda_M2 + self.WS) / (2 * self.Kv0)
+        var1 = self.WS + self.Kv0 * r1_M2
+        var2 = self.WS + self.Kv0 * r2_M2
         # Extract the forcing term that is a function of a(x) and a_x(x)
         chi_a_M0 = self.u0 * self.c00x + self.w0 * self.c00z
         chi_a_M4 = 0.5 * (np.conj(self.u0) * self.c04x + np.conj(self.w0) * self.c04z)
@@ -350,11 +346,11 @@ class SedimentCapacity:
         hatc12_sedadv = []
         for f in chi:
             int_r = np.trapz((var2 * np.exp(-r2_M2 * self.zarr) - var1 * np.exp(-r1_M2 * self.zarr)) * f /
-                             (self.Av0 * (r2_M2 - r1_M2)), x=-self.zarr, axis=1).reshape(len(self.x), 1)
+                             (self.Kv0 * (r2_M2 - r1_M2)), x=-self.zarr, axis=1).reshape(len(self.x), 1)
             A = - r2_M2 * np.exp(-r2_M2 * self.H) * int_r / (r2_M2 * var1 * np.exp(-r2_M2 * self.H) - r1_M2 * var2 * np.exp(-r1_M2 *self.H))
             B = - A * r1_M2 * np.exp((r2_M2 - r1_M2) * self.H) / r2_M2
-            C = np.fliplr(integrate.cumtrapz(np.fliplr(f * np.exp(-r1_M2 * self.zarr) / (self.Av0 * (r2_M2 - r1_M2))), x=-self.zarr, axis=1, initial=0))
-            D = np.fliplr(integrate.cumtrapz(np.fliplr(f * np.exp(-r2_M2 * self.zarr) / (self.Av0 * (r2_M2 - r1_M2))), x=-self.zarr, axis=1, initial=0))
+            C = np.fliplr(integrate.cumtrapz(np.fliplr(f * np.exp(-r1_M2 * self.zarr) / (self.Kv0 * (r2_M2 - r1_M2))), x=-self.zarr, axis=1, initial=0))
+            D = np.fliplr(integrate.cumtrapz(np.fliplr(f * np.exp(-r2_M2 * self.zarr) / (self.Kv0 * (r2_M2 - r1_M2))), x=-self.zarr, axis=1, initial=0))
             c12 = np.zeros((len(self.x), len(self.z), 3), dtype=complex)
             c12[:, :, 1] = (A - C) * np.exp(r1_M2 * self.zarr) + (B + D) * np.exp(r2_M2 * self.zarr)
             hatc12_sedadv.append(c12)
