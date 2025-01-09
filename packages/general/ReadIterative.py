@@ -48,7 +48,13 @@ class ReadIterative:
         if self.input.v('variables') == 'all':
             varlist = None
         else:
-            varlist = ny.toList(self.input.v('variables'))+['grid']
+            varlist = ny.toList(self.input.v('variables'))+['grid']+['__variableOnGrid']+['__derivative']
         d = ny.pickleload(os.path.join(self.folder, file), varlist)
+        temp1 = file.split('Q')
+        d['Q1']=float(temp1[1].split('_')[0])
+        temp1 = file.split('U')
+        d['QM2']=float(temp1[1].split('_')[0])
+        temp1 = file.split('Kh')
+        d['Kh']=float(temp1[1].split('_')[0])
         d['experimentnumber'] = iteration
         return d

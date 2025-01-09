@@ -50,7 +50,7 @@ def integrate(u, dimNo, low, high, grid, *args, gridname='grid', **kwargs):
             incr = -1
 
         # Determine primitive function over each cell
-        Ju = primitive(u, dimNo, low, maxHigh, grid, INTMETHOD=INTMETHOD, *args)
+        Ju = primitive(u, dimNo, low, maxHigh, grid, INTMETHOD=INTMETHOD, gridname=gridname, *args)
 
         # sum the primitive over each cell with respect to low
         size = [j for j in Ju.shape]

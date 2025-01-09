@@ -51,6 +51,7 @@ class DataContainer:
         self._data = {}
         self._data['__variableOnGrid'] = {}
         self._data['__derivative'] = {}
+        self._data['__outputGrid'] = {}
 
         for i in [j for j in args if j is not None]:
             self._data.update(i)
@@ -225,7 +226,7 @@ class DataContainer:
     ####################################################################################################################
     # Methods for data retrieval: d, n, d, dd
     ####################################################################################################################
-    def v(self, key, *args, reshape=True, copy=False, _operation=None, _dim=None, grid='grid',  **coordinates):
+    def v(self, key, *args, reshape=True, copy=False, _operation=None, _dim=None, grid=None,  **coordinates):
         """Check and retrieve a value with key 'key' and optional subkeys provided in args. Specific elements of the
         data can be retrieved using either list/array indices provided in args or dimensionless positions on the grid
         axes in the named arguments 'coordinates'. In case of using indices or grid positions, the data will,
@@ -337,6 +338,9 @@ class DataContainer:
         keys = (key,)+subkeys
         indices = tuple([i for i in args if not isinstance(i, str)])
 
+        if grid is None:
+            grid = self.__findGridForVariable(keys, grid='grid', check=False)
+
         # STEP 1
         value = self._data      # use value as a running variable that is reduced step by step
         value = self.__unwrapDictionaries(value, *keys)
@@ -383,7 +387,7 @@ class DataContainer:
         elif isinstance(value, np.ndarray):
             # find grid belonging to this variable (only needed when using indices/coordinates/taking derivative)
             if (indices or coordinates) or _operation=='d':
-                gridnameVariable = self.__findGridForVariable(keys)
+                gridnameVariable = self.__findGridForVariable(keys, grid=grid)
             else:
                 gridnameVariable = None
 
@@ -460,7 +464,7 @@ class DataContainer:
         elif isinstance(value, types.MethodType):
             # find grid belonging to this variable (only needed when using indices/coordinates/taking derivative)
             if (indices or coordinates) or _operation=='d':
-                gridnameVariable = self.__findGridForVariable(keys)
+                gridnameVariable = self.__findGridForVariable(keys, grid=grid)
             else:
                 gridnameVariable = None
 
@@ -616,12 +620,13 @@ class DataContainer:
         # Derivative
         ############################################################################################################
         elif operation == 'd':
-            for dir in list(set(sorted(dim))): # loop over all dimensions once
+            splitDim = self.splitDimString(dim, gridname)    # dim can contain a concatenation; split and order in order of grid dimensions
+            for dir in list(set(splitDim)): # loop over all dimensions once
                 if isinstance(value, Number) or value.size==1:   # return 0 for derivative of constant (either a number or array with one element)
                     value = 0.
 
                 else:
-                    order = len([i for i in dim if i==dir]) # collect the number of occurances of this dimension
+                    order = len([i for i in splitDim if i==dir]) # collect the number of occurances of this dimension
                     if order == 1:
                         value = nf.derivative(value, dir, self.slice(gridname), *indices, gridname=gridname)
                     elif order == 2:
@@ -660,8 +665,9 @@ class DataContainer:
         ############################################################################################################
         elif operation == 'd':
             if all([(var in coordinates.keys()) for var in functiondims]):  # i.e. check if coordinates contains all variables
-                for dir in list(set(sorted(dim))): # loop over all dimensions once
-                    order = len([i for i in dim if i==dir]) # collect the number of occurances of this dimension
+                splitDim = self.splitDimString(dim, gridname)    # dim can contain a concatenation; split and order in order of grid dimensions
+                for dir in list(set(splitDim)): # loop over all dimensions once
+                    order = len([i for i in splitDim if i==dir]) # collect the number of occurances of this dimension
                     if order == 1:
                         value = derivativeOfFunction.derivativeOfFunction(value, dir, self.slice(gridname), gridname=gridname, epsilon = 1e-4, **coordinates)
                     elif order == 2:
@@ -756,7 +762,7 @@ class DataContainer:
                 value = value.reshape(shape)
         return value
 
-    def __findGridForVariable(self, keyset):
+    def __findGridForVariable(self, keyset, grid, check=True):
         """ Find grid on which the variable with key(s) in keyset is registered. If nothing is found, fall back on the
         default grid 'grid'. Also check for availability of this grid.
 
@@ -770,17 +776,18 @@ class DataContainer:
         for k in keyset:
             gridname = gridname.get(k)
             if gridname is None:
-                gridname = 'grid'
+                gridname = grid
                 break
             if not isinstance(gridname, dict):
                 break
 
-        # some checks on the gridname and grid to provide useful error messages in case of problems
-        if not isinstance(gridname, str): # raise Exception if gridname is not a string, something wrongly registered
-            raise KnownError('__variableOnGrid not properly defined for variable %s: definition in '+
-                             '__variableOnGrid has more sub-dictionaries than the data itself.'%(keyset[0]))
-        if self._data.get(gridname) is None:    # raise exception if grid is not available
-            raise KnownError('Processing of variable %s requires grid with name %s, which does not exist'%(keyset[0], gridname))
+        if check:
+            # some checks on the gridname and grid to provide useful error messages in case of problems
+            if not isinstance(gridname, str): # raise Exception if gridname is not a string, something wrongly registered
+                raise KnownError('__variableOnGrid not properly defined for variable %s: definition in '+
+                                 '__variableOnGrid has more sub-dictionaries than the data itself.'%(keyset[0]))
+            if self._data.get(gridname) is None:    # raise exception if grid is not available
+                raise KnownError('Processing of variable %s requires grid with name %s, which does not exist'%(keyset[0], gridname))
         return gridname
 
     def __buildDict(self, key, data):
@@ -805,3 +812,14 @@ class DataContainer:
             # dictionary.pop(key[0])
             del dictionary[key[0]]
         return
+
+    def splitDimString(self, string, gridname):
+        string_split = []
+        dims = self._data[gridname]['dimensions']
+        for dim in dims:
+            temp = string.split(dim)
+            string_split += [dim]*(len(string.split(dim))-1)
+            string = ''.join(temp)      # join the split string but now without the dimensions already covered. Prevents double counting in case of dimensions with partly overlapping names (e.g. eta and t)
+        if len(string):
+            raise KnownError('Argument dim does not contain a concatenation of dimensions present in this grid. Left over dimensions after splitting are %s'%(string))
+        return string_split

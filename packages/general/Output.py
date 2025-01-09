@@ -29,10 +29,6 @@ class Output:
     def __init__(self, input):
         self.input = input
         self.ext = '.p'      # file extension
-        if self.input.has('outputgrid'):
-            self.outputgridName = self.input.v('outputgrid')
-        else:
-            self.outputgridName = 'outputgrid'
         return
 
     def run(self):
@@ -96,21 +92,26 @@ class Output:
         # add __variableOnGrid
         saveData.merge(self.input.slice('__variableOnGrid'))
 
+        # add __outputGrid
+        saveData.merge(self.input.slice('__outputGrid'))
+
         # add all grids (incl grid and outputgrid) if available to saveData and to a dedicated DC
         grids = DataContainer()
-        gridslist = ['grid', self.outputgridName]
-        gridsRegister = [i for i in self.input.getAllKeys() if '__variableOnGrid' in i]
-        for i in gridsRegister:
-            gridslist.append(self.input.v(*i))
-        for i in list(set(gridslist)):
+        gridslist = list(set(['grid'] + list(self.input._data['__variableOnGrid'].values()) + list(self.input._data['__outputGrid'].values())))
+        for i in gridslist:
             grids.merge(self.input.slice(i))
             saveData.merge(self.input.slice(i))
+            grid_addition = {}
+            grid_addition['__variableOnGrid'] = {}
+            grid_addition['__variableOnGrid'][i] = i
+            saveData.merge(grid_addition)
 
-        # add reference level to outputgrid
-        if allVars.v('R') is not None:
-            allVars.merge({self.outputgridName:{'low':{'z':saveData.v('R', x=saveData.v(self.outputgridName, 'axis', 'x'))}}})     # add reference level to outputgrid
-            saveData.merge({self.outputgridName:{'low':{'z':saveData.v('R', x=saveData.v(self.outputgridName, 'axis', 'x'))}}})     # add reference level to outputgrid
-            grids.merge({self.outputgridName:{'low':{'z':saveData.v('R', x=saveData.v(self.outputgridName, 'axis', 'x'))}}})     # add reference level to outputgrid
+        for i in gridslist:
+            # add reference level to all grids
+            if allVars.v('R') is not None:
+                allVars.merge({i:{'low':{'z':saveData.v('R', x=saveData.v(i, 'axis', 'x'))}}})     # add reference level to outputgrid
+                saveData.merge({i:{'low':{'z':saveData.v('R', x=saveData.v(i, 'axis', 'x'))}}})     # add reference level to outputgrid
+                grids.merge({i:{'low':{'z':saveData.v('R', x=saveData.v(i, 'axis', 'x'))}}})     # add reference level to outputgrid
 
         ################################################################################################################
         # Convert data using output grid (if this is provided)
@@ -159,6 +160,8 @@ class Output:
         subkeys = [i for i in saveData.getAllKeys() if i[0][:2]!='__'] + [i for i in saveData.getAllKeys() if i[0][:2]=='__'] # make sure underscored variables are at the end
         gridkeys = [i for i in subkeys if i[0] in grids._data.keys() and i[0][:2]!='__']
         variableOnGrid = DataContainer()
+        for key in [i for i in variableOnGrid._data.keys() if i[:2]=='__']:
+            variableOnGrid._data.pop(key)
 
         # check keywords saveAnalytical and dontConvert
         saveAnalytical = toList(self.input.v('saveAnalytical')) or []
@@ -204,9 +207,15 @@ class Output:
             #   c. Arrays, functions + not saveAnalytical and other
             else:
                 if keys in gridkeys:
-                    gridname = keys[0]
+                    gridname = keys[0]  # grids should not be evaluated
                 else:
-                    gridname = self.outputgridName
+                    inputgrid = 'grid' # for all other variables, determine the outputgrid. First set default and check whether this is correct below
+                    for i in range(1,len(keys)+1)[::-1]:
+                        v = saveData.v('__variableOnGrid', *keys[:i])
+                        if v is not None:
+                            inputgrid = v
+                            break
+                    gridname = saveData.v('__outputGrid', inputgrid)
 
                 data, _ = callDataOnGrid(saveData, keys, gridname, False)
 
@@ -214,9 +223,12 @@ class Output:
             convertedData.merge(self._buildDicts(keys, data))
             convertedData.addData('__variableOnGrid', variableOnGrid._data)
 
-        # replace grid by outputgrid and merge into the dataset
-        d = {'grid':convertedData._data[self.outputgridName]}
-        convertedData._data.pop(self.outputgridName)
+        # replace grids by their outputgrids and merge into the dataset
+        d = {}
+        for g in saveData.getKeysOf('__outputGrid'):
+            outgridname = saveData.v('__outputGrid', g)
+            d.update({g:convertedData._data[outgridname]})
+            convertedData._data.pop(outgridname)
         convertedData.merge(d)
 
         return convertedData

@@ -33,3 +33,5 @@ from .splitModuleName import splitModuleName
 from .toMatrix import toMatrix
 from .invfft2 import invfft2
 from .savitzky_golay import savitzky_golay
+from .extcumsum import extcumsum
+from .makeStaggered2DGrid import makeStaggered2DGrid

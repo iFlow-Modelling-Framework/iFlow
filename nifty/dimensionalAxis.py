@@ -46,4 +46,4 @@ def dimensionalAxis(grid, dim, *args, gridname='grid', **kwargs):
                 dimlessaxis[i] = grid.v(gridname, 'axis', i).reshape(grid.v(gridname, 'maxIndex', i)+1)
         dimlessaxis['copy'] = copy
         #dimlessaxis[dim] = grid.v(gridname, 'axis', dim).reshape(grid.v(gridname, 'maxIndex', dim)+1)
-        return np.multiply(grid.v(gridname, 'axis', dim ,**dimlessaxis), (grid.v(gridname, 'high', dim, **dimlessaxis)-grid.v(gridname, 'low', dim, **dimlessaxis)))+grid.v(gridname, 'low', dim, **dimlessaxis)
+        return np.multiply(grid.v(gridname, 'axis', dim ,**dimlessaxis, grid=gridname), (grid.v(gridname, 'high', dim, **dimlessaxis, grid=gridname)-grid.v(gridname, 'low', dim, **dimlessaxis, grid=gridname)))+grid.v(gridname, 'low', dim, **dimlessaxis, grid=gridname)

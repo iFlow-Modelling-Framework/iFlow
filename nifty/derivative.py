@@ -35,7 +35,7 @@ def derivative(u, dimNo, grid, *args, gridname='grid',**kwargs):
         dimNo = grid.v(gridname, 'dimensions').index(dim)
 
     # take derivative along this axis, ignoring grid contraction
-    der = axisDerivative(u, dim, dimNo, grid, *args, **kwargs)
+    der = axisDerivative(u, dim, dimNo, grid, *args, gridname=gridname, **kwargs)
 
     # add effects of grid contraction
     contr = grid.v(gridname, 'contraction')[:,dimNo]
@@ -49,13 +49,13 @@ def derivative(u, dimNo, grid, *args, gridname='grid',**kwargs):
                 elif u.shape[num] == 1:
                     axisrequest[j] = [0]
             axisrequest['copy'] = 'all'             # dimensional axis copied over frequency domain (necessary from v 2.4)
-            axis = ny.dimensionalAxis(grid, contrDimNo, **axisrequest)
+            axis = ny.dimensionalAxis(grid, contrDimNo, gridname=gridname, **axisrequest)
             # take derivative of axis
-            axis_der = axisDerivative(axis, dim, dimNo, grid, *args, gridname='grid', **kwargs)
+            axis_der = axisDerivative(axis, dim, dimNo, grid, *args, gridname=gridname, **kwargs)
             # if u has more dimensions than the grid, append these
             axis_der = axis_der.reshape(axis_der.shape+(1,)*(len(u.shape) - len(axis_der.shape)))
             # grid contraction
-            der = der - axis_der*axisDerivative(u, grid.v(gridname, 'dimensions')[contrDimNo], contrDimNo, grid, *args, gridname='grid', **kwargs)
+            der = der - axis_der*axisDerivative(u, grid.v(gridname, 'dimensions')[contrDimNo], contrDimNo, grid, *args, gridname=gridname, **kwargs)
 
     return der
 
@@ -99,8 +99,8 @@ def axisDerivative(u, dim, dimNo, grid, *args, gridname='grid', **kwargs):
             downInd = np.asarray([0] + list(range(0, maxIndex)))
         downInds[dimNo] = downInd
 
-        upaxis = np.multiply(grid.v(gridname, 'axis', dim, *upInds, copy='all'), (grid.v(gridname, 'high', dim, *upInds, copy='all')-grid.v(gridname, 'low', dim, *upInds, copy='all')))+grid.v(gridname, 'low', dim, *upInds, copy='all')
-        downaxis = np.multiply(grid.v(gridname, 'axis', dim, *downInds, copy='all'), (grid.v(gridname, 'high', dim, *downInds, copy='all')-grid.v(gridname, 'low', dim, *downInds, copy='all')))+grid.v(gridname, 'low', dim, *downInds, copy='all')
+        upaxis = np.multiply(grid.v(gridname, 'axis', dim, *upInds, copy='all', grid=gridname), (grid.v(gridname, 'high', dim, *upInds, copy='all', grid=gridname)-grid.v(gridname, 'low', dim, *upInds, copy='all', grid=gridname)))+grid.v(gridname, 'low', dim, *upInds, copy='all', grid=gridname)
+        downaxis = np.multiply(grid.v(gridname, 'axis', dim, *downInds, copy='all', grid=gridname), (grid.v(gridname, 'high', dim, *downInds, copy='all', grid=gridname)-grid.v(gridname, 'low', dim, *downInds, copy='all', grid=gridname)))+grid.v(gridname, 'low', dim, *downInds, copy='all', grid=gridname)
 
         ux = (u[np.ix_(*upInds)]-u[np.ix_(*downInds)])/(upaxis-downaxis)
     elif DERMETHOD == 'FORWARD':    # first order forward

@@ -7,17 +7,15 @@ Requires parameters: alpha, beta, gamma, xc and xl
 Date: September 2018
 Authors: Y.M. Dijkstra
 """
-from src.old.functionTemplates import FunctionBase
 import numpy as np
 from packages.functions.checkVariables import checkVariables
 
 
-class TangentLinear(FunctionBase):
+class TangentLinear():
     #Variables
         
     #Methods
     def __init__(self, dimNames, data):
-        FunctionBase.__init__(self, dimNames)
         self.L = float(data.v('L'))
         self.alpha = float(data.v('alpha'))
         self.beta = float(data.v('beta'))
