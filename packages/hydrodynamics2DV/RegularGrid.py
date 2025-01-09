@@ -59,7 +59,8 @@ class RegularGrid:
             axisSize.append(self.input.v(var)[1])
             axisOther.append(self.input.v(var)[2:])
         d['outputgrid'] = makeRegularGrid(dimensions, axisTypes, axisSize, axisOther, enclosures, contraction, copy)
-
+        d['__outputGrid'] = {}
+        d['__outputGrid']['grid'] = 'outputgrid'
         return d
 
 
