@@ -269,7 +269,7 @@ class iFlowBuilder:
         unplacedList = [i for i in moduleList if i.getRunModule()]     # list with modules not placed in the call stack
 
         ## 2. Build
-        block, unplacedList, outputList = self.__buildBlock(unplacedList, inputInitMods)
+        block, unplacedList, outputList, _ = self.__buildBlock(unplacedList, inputInitMods)
 
         ## 3. Check for errors or nonconformities
         # a. there are vars required on output, but not calculated
@@ -364,14 +364,14 @@ class iFlowBuilder:
                     if mod.isIterative():               # for iterative module: create a new block that includes the iterative module and put the block in the call stack
                         # check if this module iterates together with others
                         co_iterators = [i for i in unplacedList if i in toList(mod.getIteratesWith())]
-                        newblock, unplacedList, outputListAdd = self.__buildIterativeBlock(unplacedList, inputMods, mods=co_iterators+[mod])
+                        newblock, unplacedList, outputListAdd, inputMods = self.__buildIterativeBlock(unplacedList, inputMods, mods=co_iterators+[mod])
                         callStack.append(newblock)
 
                     elif mod.isControllerModule():      # for controller: put the controller in the call stack but not the controlled block; this will be passed to the controller to instantiate and run manually.
                         callStack.append(mod)
                         unplacedList.pop(i)
                         self.updateInputMods(inputMods, mod)
-                        newblock, unplacedList, outputListControlledModules = self.__buildControlledBlock(unplacedList, inputMods, mod)
+                        newblock, unplacedList, outputListControlledModules, inputMods = self.__buildControlledBlock(unplacedList, inputMods, mod)
                         outputListAdd = mod.getOutputVariables() # Do not include the output of the controlled modules in the output of this block.
                         mod.addControlledBlock(newblock)
 
@@ -390,7 +390,7 @@ class iFlowBuilder:
             ## 3. check the progress made in the last iteration
             if listSizeBefore == listSizeAfter or not unplacedList:
                 block = StandardBlock(callStack, self._memProfiler)
-                return block, unplacedList, outputList
+                return block, unplacedList, outputList, inputMods
 
 
     def __buildIterativeBlock(self, unplacedList, inputMods, mods):
@@ -437,14 +437,14 @@ class iFlowBuilder:
                     if mod.isIterative():         # for iterative module: create a new block that includes the iterative module and put the block in the call stack
                         # check if this module iterates together with others
                         co_iterators = [i for i in unplacedList if i in toList(mod.getIteratesWith())]
-                        newblock, unplacedList, outputListAdd = self.__buildIterativeBlock(unplacedList, inputMods, mods=co_iterators+[mod])
+                        newblock, unplacedList, outputListAdd, inputMods = self.__buildIterativeBlock(unplacedList, inputMods, mods=co_iterators+[mod])
                         callStack.append(newblock)
 
                     elif mod.isControllerModule():      # for controller: put the controller in the call stack but not the controlled block; this will be passed to the controller to instantiate and run manually.
                         callStack.append(mod)
                         unplacedList.pop(i)
                         self.updateInputMods(inputMods, mod)
-                        newblock, unplacedList, outputListControlledModules = self.__buildControlledBlock(unplacedList, inputMods, mod)
+                        newblock, unplacedList, outputListControlledModules, inputMods = self.__buildControlledBlock(unplacedList, inputMods, mod)
                         outputListAdd = mod.getOutputVariables() # Do not include the output of the controlled modules in the output of this block.
                         mod.addControlledBlock(newblock)
 
@@ -481,7 +481,7 @@ class iFlowBuilder:
             mod.updateSubmoduleListIteration(outputList)
 
         block = IterativeBlock(callStack, mods, self._memProfiler)
-        return block, unplacedList, outputList
+        return block, unplacedList, outputList, inputMods
 
 
     def __buildControlledBlock(self, unplacedList, inputMods, controller):
@@ -522,14 +522,14 @@ class iFlowBuilder:
                     if mod.isIterative():         # for iterative module: create a new block that includes the iterative module and put the block in the call stack
                         # check if this module iterates together with others
                         co_iterators = [i for i in unplacedList if i in toList(mod.getIteratesWith())]
-                        newblock, unplacedList, outputListAdd = self.__buildIterativeBlock(unplacedList, inputMods, mods=co_iterators+[mod])
+                        newblock, unplacedList, outputListAdd, inputMods = self.__buildIterativeBlock(unplacedList, inputMods, mods=co_iterators+[mod])
                         callStack.append(newblock)
 
                     elif mod.isControllerModule():      # for controller: put the controller in the call stack but not the controlled block; this will be passed to the controller to instantiate and run manually.
                         callStack.append(mod)
                         unplacedList.pop(i)
                         self.updateInputMods(inputMods, mod)
-                        newblock, unplacedList, outputListControlledModules = self.__buildControlledBlock(unplacedList, inputMods, mod)
+                        newblock, unplacedList, outputListControlledModules, inputMods = self.__buildControlledBlock(unplacedList, inputMods, mod)
                         outputListAdd = mod.getOutputVariables() # Do not include the output of the controlled modules in the output of this block.
                         mod.addControlledBlock(newblock)
 
@@ -568,7 +568,7 @@ class iFlowBuilder:
             mod.updateSubmoduleListIteration(output_prep_list)
 
         block = StandardBlock(callStack, self._memProfiler)
-        return block, unplacedList, outputList
+        return block, unplacedList, outputList, inputMods
 
 
     def __loadInputRequirements(self, init=False, control=False, prepare=False, iterator=False):
