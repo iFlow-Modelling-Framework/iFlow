@@ -1,0 +1,7 @@
+module      RoughnessHyperbolicTangent
+input       L z0_est z0_riv xc xl
+output      z0*
+
+module      CombinedDepth
+input       H1 alpha1 B0 L alpha resolution
+output      L B H

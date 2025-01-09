@@ -1,0 +1,99 @@
+# Input file for the Loire estuary
+#
+# Date: 07-03-19
+# Authors: R.J.A. de Goede
+
+iterator    turbulence2DV.KEFittedMAW sediment2DV.HinderedSettling_bed
+
+## Sensitivity
+module      general.Sensitivity
+variables   alpha
+alpha	    np.linspace(0,1,200)
+loopstyle	a 
+
+## Geometry ##
+module      modulesJGR129.CombinedDepth
+resolution  300
+L           147.e3
+B0      type    functions.Polynomial
+        C       -1.411e-12  4.002e-7   -3.419e-2   1.178e3
+
+alpha1  0
+H1      type    functions.PolynomialLinear
+        C       3.3700e-22  -5.5896e-17 3.1182e-12 -6.2472e-08 9.3100e-05 1.01806e+01 #old wrt m MSL
+        XL      6.0564e+04
+
+alpha2  1
+H2      type    functions.Multipoly
+        C       -7.2 -0.000217 17 1.1e4 0.4e4 48e3 4e3
+
+## Grid ##
+module	    hydrodynamics2DV.RegularGrid
+xgrid		equidistant     300
+zgrid	    equidistant     100
+fgrid		integer         2
+
+xoutputgrid    equidistant     100
+zoutputgrid    equidistant     50
+foutputgrid    integer         2
+
+##Roughness##
+module      modulesJGR129.RoughnessHyperbolicTangent
+z0_est      0.01
+z0_riv      0.05
+xc          55.e3
+xl          5.e3
+
+## Hydrodynamics ##
+module      hydrodynamics2DV.HydroLead hydrodynamics2DV.HydroFirst salinity2DV.MacCreadyModel turbulence2DV.KEFittedMAW
+submodules  river tide baroc adv nostress stokes
+A0			0 1.28 0   # 1.28(neap) or 2.30(spring)
+A1			0 0 0.20   # 0.20(neap) or 0.24(spring)
+phase0		0 0 0
+phase1		0 0 -155 # -155(neap) or -148(spring)
+Q0			0.
+Q1          250
+
+## Salinity
+Kh          600
+ssea        31
+sigrho_sal  2.5
+
+## Turbulence ##
+roughnessParameter  z0*
+n                   0.
+profile             uniform
+ignoreSubmodule
+referenceLevel      True
+Avmin               0.0001
+lambda              1
+includeSalinity     True
+truncationOrder     1
+uzmin               0.03
+Ribedmax            2.
+sigma_rho           1
+
+## Sediment ##
+module      sediment2DV.SedimentCapacity sediment2DV.EquilibriumAvailability sediment2DV.HinderedSettling_bed
+submodules  erosion noflux sedadv #mixing
+finf        0.03
+Kh          100
+erosion_formulation Partheniades
+sedbc       csea
+csea        0.2
+friction    skin_friction
+
+#Qsed        0.1
+mhs         5
+cgel        100.
+ws00        2e-3
+wsmin       1e-6
+
+## Output ##
+module          general.Output
+path	        output/paperMar2023/deepening_csea02_neap
+filename        alpha=@{'alpha'}
+iteratesWith    general.Sensitivity
+
+requirements zeta0 zeta1 H B u0 u1 c0 c1 c2 T F a f Kv R Ri skin_friction ws0 Av Roughness s0
+## End ##
