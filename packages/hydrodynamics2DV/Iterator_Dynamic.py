@@ -16,9 +16,9 @@ import logging
 class Iterator_Dynamic():
     # Variables
     logger = logging.getLogger(__name__)
-    OutputList = ['zeta0', 'zeta1', 'u0', 'u1', 'c0', 'c1', 'a', 'f', 'F', 'T', 'sediment_transport'] # a -> stock. f -> erodibility
-    verticalsize = [1, 1, None, None, None, None, 1, 1, 1, 1, 1]
-    frequencysize = [None, None, None, None, None, None, 1, 1, 1, 1, 1]
+    OutputList = ['zeta0', 'zeta1', 'u0', 'u1', 'c0', 'c1', 'a', 'f', 'F', 'T', 'sediment_transport', 'Av', 'Ri'] # a -> stock. f -> erodibility
+    verticalsize = [1, 1, None, None, None, None, 1, 1, 1, 1, 1, 1, 1]
+    frequencysize = [None, None, None, None, None, None, 1, 1, 1, 1, 1, 1, 1]
 
     # Methods
     def __init__(self, input, block):       
@@ -53,9 +53,6 @@ class Iterator_Dynamic():
 
         if len(Qarray)==1:
             Qarray = Qarray*(t2_nsteps+1)
-
-        elif len(Qarray) == self.input.v('MTS_grid', 'maxIndex', 't')+1:
-            Qarray = Qarray*num_cycles
 
         elif len(Qarray)!=t2_nsteps+1:
             from src.util.diagnostics.KnownError import KnownError

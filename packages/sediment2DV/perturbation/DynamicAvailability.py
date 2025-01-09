@@ -265,7 +265,7 @@ class DynamicAvailability(EquilibriumAvailability):
         rhs[1:-1] = a*(-beta[2:]) + b*(-beta[1:-1]) + c*(-beta[:-2]) + 0.5*(self.dx[1:]+self.dx[:-1])/dt*B[1:-1]*Sold[1:-1]
         rhs[1:-1] += - 0.5*(source[1:-1]+source[2:]) + 0.5*(source[1:-1]+source[:-2])
 
-        # Quick fix for ensuring positivity (Patankar, 1980); could be neater for greater accuracy
+        # Quick fix for ensuring positivity (Patankar, 1980); could be neater for greater accuracy # remove, is inaccurate
         # A[1, 1:-1] += -np.minimum(rhs[1:-1], 0)/(Sold[1:-1]+1.e-6)
         # rhs[1:-1] = np.maximum(rhs[1:-1], 0)
 

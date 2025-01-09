@@ -1,0 +1,99 @@
+# Input file for the Loire estuary
+#
+
+iterator    turbulence2DV.KEFittedMAW sediment2DV.HinderedSettling_bed
+
+## Sensitivity
+module      general.Sensitivity
+variables   csea finf phaseM0
+csea        0.3
+finf        0.03
+phaseM0     [[0,0,0]]
+loopstyle   a b c
+
+## Geometry ##
+module  hydrodynamics2DV.Geometry2DV
+L       147000.
+B0      type    functions.Polynomial
+        C       -1.411e-12  4.002e-7   -3.419e-2   1.178e3
+H0      type    functions.Multipoly
+        C       -7.2 -0.000217 17 1.1e4 0.4e4 48e3 4e3
+
+## Grid ##
+module	    hydrodynamics2DV.RegularGrid hydrodynamics2DV.GridTime
+xgrid		equidistant     300
+zgrid	    equidistant     100
+fgrid		integer         2
+tgrid       equidistant         2400              # number of time steps
+sn_cycles                       12                # number of spring-neap cycles
+
+xoutputgrid    equidistant     100
+zoutputgrid    equidistant     5
+foutputgrid    integer         2
+toutputgrid    equidistant         240           # Grid for output of MTS_data (MTS=multiple time scales)
+
+## Roughness ##
+module      modules.RoughnessHyperbolicTangent
+z0_est      0.01
+z0_riv      0.05
+xc          55.e3
+xl          5.e3
+
+## Hydrodynamics ##
+module      hydrodynamics2DV.HydroLead hydrodynamics2DV.HydroFirst salinity2DV.MacCreadyModel turbulence2DV.KEFittedMAW  hydrodynamics2DV.Iterator_Dynamic
+submodules  river tide baroc adv nostress stokes
+Q1          250
+Q0          0
+AM0		    0 1.75 0                        # Tidal amplitude at x=0 leading order
+AM1		    0 0 0.20                        # Tidal amplitude at x=0 first order
+phaseM0		0 0 0                           # Tidal phase at x=0 leading order
+phaseM1		0 0 -148                        # Tidal phase at x=0 first order
+AS0         0 0.65 0                        # (Solar) tidal amplitude at x=0 leading order
+AS1         0 0 0.007                        # (Solar) tidal amplitude at x=0 first order
+phaseS0     0 103 0                         # (Solar) tidal phase at x=0 leading order
+phaseS1     0 0 110                         # (Solar) tidal phase at x=0 first order
+sigmaS2     1.35e-4                         # Angular frequency of the S2 tide
+
+## Salinity
+Kh          600
+ssea        31
+sigrho_sal  2.5
+
+## Turbulence ##
+roughnessParameter  z0*
+n                   0.
+profile             uniform
+ignoreSubmodule
+referenceLevel      True
+Avmin               0.0001
+lambda              1
+includeSalinity     True
+truncationOrder     1
+uzmin               0.03
+Ribedmax            2.
+sigma_rho           1
+
+initial_condition_sediment     equilibrium
+
+## Sediment ##
+module      sediment2DV.SedimentCapacity sediment2DV.DynamicAvailability sediment2DV.HinderedSettling_bed
+#module      sediment2DV.SedimentCapacity sediment2DV.EquilibriumAvailability sediment2DV.HinderedSettling_bed
+submodules  erosion noflux sedadv #mixing
+Kh          100
+erosion_formulation Partheniades
+sedbc       csea
+friction    skin_friction
+
+mhs         5
+cgel        100.
+ws00        2e-3
+wsmin       1e-6
+
+## Output ##
+module          general.Output
+path	        output/spring_neap/Loire
+filename        Loire_dynamic_csea@{'csea'}_M@{'finf'}
+iteratesWith    general.Sensitivity
+
+requirements  MTS_c0 MTS_c1 MTS_f MTS_a ws0 Av MTS_zeta0 MTS_u0 MTS_T MTS_F MTS_sediment_transport MTS_Av MTS_Ri finf csea
+## End ##

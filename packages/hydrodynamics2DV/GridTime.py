@@ -10,7 +10,7 @@ Based on "RegularGrid.py" by Y.M.Dijkstra
 from nifty import makeRegularGrid
 
 
-class MTS_Grid:
+class GridTime:
     # Variables
 
     # Methods

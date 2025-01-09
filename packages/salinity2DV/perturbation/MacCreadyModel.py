@@ -28,7 +28,7 @@ class MacCreadyModel:
 
         Av = np.real(self.input.v('Av', range(0, jmax+1), [0], 0))
         Kv = np.real(self.input.v('Kv', range(0, jmax+1), [0], 0))/sigrho_sal
-        sf = self.input.v('Roughness', range(0, jmax+1), [0], 0)
+
         g = self.input.v('G')
         beta = self.input.v('BETA')
         ssea = self.input.v('ssea')
@@ -38,8 +38,8 @@ class MacCreadyModel:
         Kh = self.input.v('Kh')
         # Kh = np.maximum(Kh*np.sqrt(B/B[0,0]),Kh/10)
 
-        R = (Av/(sf*H))
-
+        # R = (Av/(sf*H))
+        R = 0.5
         P1 = (1/6-1/2*zeta**2)/(R+1/3)
         P2 = (.5*zeta**2-.5-R)*(1/8+.5*R)/(R+1/3)+1/6*(zeta**3+1)+.5*R
         P3 = (1/24*zeta**4-1/12*zeta**2+7/360)/(R+1/3)

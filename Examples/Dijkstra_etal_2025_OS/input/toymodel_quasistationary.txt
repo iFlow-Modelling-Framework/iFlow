@@ -1,0 +1,88 @@
+# Input File of the t2-iterator
+
+## Sensitivity
+module      general.Sensitivity
+variables   finf AM0
+finf        np.logspace(-6,-2,21)[:-1]
+AM0         [[0,1.39,0]]            # DUMMY DEPENDENCY TO CONSTRUCT THE CALL STACK CORRECTLY; NEEDS MORE WORK IN THE SRC
+loopstyle   a b
+
+## Geometry ############################################################################################################
+module  hydrodynamics2DV.Geometry2DV
+L       64.e3                                   # Length
+B0 	    type    functions.Exponential                # Width
+ 	    C0      8e2
+        Lc      30e3
+H0      type    functions.Polynomial          # Depth
+        C      -5.73426315894755e-19	5.78831103899930e-14	-1.63209037302404e-09	-7.05558726725272e-05	10.4734418731734 #Depth Ems 2004
+
+## Grid ################################################################################################################
+module	    hydrodynamics2DV.RegularGrid hydrodynamics2DV.GridTime           # Computation grid
+xgrid	    equidistant         200                 # cells in x-direction
+zgrid	    equidistant         50                  # cells in z-direction
+fgrid	    integer             2                   # frequency components
+tgrid       equidistant         20                  # number of time steps
+sn_cycles                       1                   # number of spring-neap cycles
+
+xoutputgrid    equidistant      50                  # Grid for saving output
+zoutputgrid    equidistant      2
+foutputgrid    integer          2
+toutputgrid    equidistant      160         # Grid for output of MTS_data (MTS=multiple time scales)
+
+## SPRING NEAP #################################################################
+module    hydrodynamics2DV.Iterator_Dynamic
+AM0		    0 1.39 0                                # Tidal amplitude at x=0 leading order
+AM1		    0 0 0.17                                # Tidal amplitude at x=0 first order
+phaseM0		0 334.68 0                                   # Tidal phase at x=0 leading order
+phaseM1		0 0 138.03                              # Tidal phase at x=0 first order
+AS0          0 0.35 0                              # (Solar) tidal amplitude at x=0 leading order
+AS1          0 0 0.013                      # (Solar) tidal amplitude at x=0 first order
+phaseS0      0 47.33 0
+phaseS1      0 0 356.33
+sigmaS2      1.35e-4
+Sinit        0          #Start with empty stock
+Q1           45                                   # River discharge first order
+
+initial_condition_sediment      stock  # initial stocks are determined by the iterator object
+
+## Hydrodynamics #######################################################################################################
+module          hydrodynamics2DV.HydroLead hydrodynamics2DV.HydroFirst
+submodules      tide river adv stokes nostress baroc
+s0              0.049
+Q0		        0                                    # River discharge leading order (only numerical model)
+
+
+## Turbulence ##########################################################################################################
+module		turbulence2DV.TurbulenceUniform
+Av0amp      0.012                                   # Eddy viscosity amplitude (constant uniform)
+Av0phase	0.
+sf0		    0.049                                    # Partial slip roughness parameter
+m		    0.                                      # Av = Av0amp (H/H0)^m
+n		    0.                                      # sf = sf0 (H/H0)^n
+
+module      turbulence2DV.DiffusivityUndamped
+sigma_rho   1.                                      # Prandt-Schmidt number
+
+# Salinity ############################################################################################################
+module      	salinity2DV.SaltHyperbolicTangent
+ssea        	30                                  # Salinity parameters s = ssea/2*(1-tanh((x-xc)/xl))
+xc          	-3.5e3
+xl          	11.e3
+
+## Sediment ############################################################################################################
+module      	      sediment2DV.SedimentCapacity sediment2DV.EquilibriumAvailability
+submodules            erosion noflux sedadv
+erosion_formulation   Partheniades
+initial               stock  # initial stocks are determined by the iterator object
+sedbc                 csea
+csea                  20.e-3
+ws0                   2.e-3
+Kh                    100
+
+## Plotting ############################################################################################################
+module          general.Output
+path	        output/spring_neap/toymodel/
+filename        toymodel_quasistationary_M@{'finf'}
+iteratesWith    general.Sensitivity
+
+requirements  Av num_sn_cycles MTS_c0 MTS_c1 MTS_f MTS_a MTS_zeta0 MTS_u0 MTS_T MTS_F MTS_sediment_transport
