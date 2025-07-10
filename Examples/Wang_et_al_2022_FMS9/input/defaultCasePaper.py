@@ -19,7 +19,7 @@ class defaultCasePaper:
                 'ChannelLabel': ['1', '2', '3', '4'],                   # You can give names to the channels here. Output per channel is saved under these names.
                 'Sea': np.array([1, 2]) - 1,                            # numbers of the channels with sea connection; make sure these are the lowest numbers. count starts from 0
                 'River': np.array([4]) - 1,                             # numbers of the channels with river connection
-                'Vertex': np.array([[1, 2, -3], [3,-4]]),               # numbers of the channels meeting at junction. This is a list of lists, where each element in the outer list is a junction and the inner lists contain the numbers of the channels involved. A minus sign indicates that downstream directed flow is out of the channel.
+                'Vertex': [[1, 2, -3], [3,-4]],               # numbers of the channels meeting at junction. This is a list of lists, where each element in the outer list is a junction and the inner lists contain the numbers of the channels involved. A minus sign indicates that downstream directed flow is out of the channel.
                 'ColourLabel': ['b', 'r', 'darkorange',  'orange']      # colour label for plotting (optional) per channel
             }
 

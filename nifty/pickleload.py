@@ -10,7 +10,7 @@ from src.util.diagnostics.KnownError import KnownError
 import src.DataContainer
 
 
-def pickleload(filepath, variables):
+def pickleload(filepath, variables, var_optional=None):
     d = {}
     if filepath[-2:] != '.p':
         filepath = filepath+'.p'
@@ -39,6 +39,11 @@ def pickleload(filepath, variables):
                 raise KnownError('Could not load variable %s from file %s' % (key, filepath))
             # load data
             d[key] = alldata[key]
+    if var_optional is not None:
+        for key in var_optional:
+            if key in alldata:
+                d[key] = alldata[key]
+                variables.append(key)
 
     # convert instances to functions
     __convertfunction(d, variables)

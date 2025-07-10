@@ -1,0 +1,9 @@
+module       general.ReadSingle
+folder          output
+file            testfile_5
+variables       network_output network_settings
+
+## Plot ##
+plot      	    plot_network.Plot
+
+requirements network_output u0 u1 zeta0 zeta1 H B L network_settings channelNumber s0 f c0 T

@@ -36,8 +36,10 @@ class ReadSingle:
 
         if self.input.v('variables') == 'all':
             varlist = None
+            var_optional = None
         else:
-            varlist = ny.toList(self.input.v('variables'))+['grid']+['__variableOnGrid']+['__derivative']
-        d = ny.pickleload(os.path.join(folder, file), varlist)
+            varlist = ny.toList(self.input.v('variables'))+['__variableOnGrid']+['__derivative']
+            var_optional = ['grid']
+        d = ny.pickleload(os.path.join(folder, file), varlist, var_optional)
 
         return d

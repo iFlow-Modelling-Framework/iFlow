@@ -18,3 +18,8 @@ module          HydroFirst_reverse
 packagePath
 input           grid Av Roughness OMEGA G A1 phase1
 output          u1_reverse zeta1_reverse
+
+module          NetworkOutput
+input           @output.requirements path filename outputgrid network_output # optional 'iteratesWith'
+output          outputDirectory
+outputModule		True

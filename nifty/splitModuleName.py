@@ -13,10 +13,10 @@ def splitModuleName(compositeName, separator='.'):
     If separator is its default '.'
     Separator can be set to ., / or \\ to change the separation marker in the result
 
-    If the compositeName does not contain ., \ or //, the first return variable is empty and the second returns compositeName
+    If the compositeName does not contain ., \\ or //, the first return variable is empty and the second returns compositeName
 
     Parameters:
-        compositeName (str) - name separated by dots or a path (separated by \ or /)
+        compositeName (str) - name separated by dots or a path (separated by \\ or /)
         separator ('.', '/' or '\\') - separation character in end result
 
     Result:

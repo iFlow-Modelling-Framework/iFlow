@@ -39,11 +39,11 @@ class Output:
         """
         self.logger.info('Saving output')
 
-        saveData = self.prepData()
+        saveData = self.prepData(self.input)
         d = self.saveData(saveData)
         return d
 
-    def prepData(self):
+    def prepData(self, inputData):
         ################################################################################################################
         # Get all variables from input, config and modules
         #   config and input variables are saved always (since iFlow3 also when overwritten by data of different type in modules)
@@ -69,8 +69,8 @@ class Output:
         configInputKeys = allVars.getAllKeys()
 
         # merge data from the modules (overwrite input/config data)
-        self.__checkInputOverrides(allVars, self.input)  # check if there is overwritten data and write warning if overwritten with different data type. May signal unexpected behaviour.
-        allVars.merge(self.input)
+        self.__checkInputOverrides(allVars, inputData)  # check if there is overwritten data and write warning if overwritten with different data type. May signal unexpected behaviour.
+        allVars.merge(inputData)
         del inputvars, reader, data
 
         ################################################################################################################
@@ -90,17 +90,19 @@ class Output:
             saveData.merge(self._buildDicts(key, allVars.v(*key)))
 
         # add __variableOnGrid
-        saveData.merge(self.input.slice('__variableOnGrid'))
+        saveData.merge(inputData.slice('__variableOnGrid'))
 
         # add __outputGrid
-        saveData.merge(self.input.slice('__outputGrid'))
+        saveData.merge(inputData.slice('__outputGrid'))
 
         # add all grids (incl grid and outputgrid) if available to saveData and to a dedicated DC
         grids = DataContainer()
-        gridslist = list(set(['grid'] + list(self.input._data['__variableOnGrid'].values()) + list(self.input._data['__outputGrid'].values())))
+        gridslist = list(set(list(inputData._data['__variableOnGrid'].values()) + list(inputData._data['__outputGrid'].values())))
+        if inputData.v('grid'):
+            gridslist = list(set(list(['grid'] + gridslist)))
         for i in gridslist:
-            grids.merge(self.input.slice(i))
-            saveData.merge(self.input.slice(i))
+            grids.merge(inputData.slice(i))
+            saveData.merge(inputData.slice(i))
             grid_addition = {}
             grid_addition['__variableOnGrid'] = {}
             grid_addition['__variableOnGrid'][i] = i

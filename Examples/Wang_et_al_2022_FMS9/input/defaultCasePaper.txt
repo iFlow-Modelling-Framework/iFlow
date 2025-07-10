@@ -23,7 +23,12 @@ module       sediment2DV.SedimentCapacity network2DV.NetworkEquilibriumAvailabil
 submodules   erosion noflux sedadv
 
 ## Plot ##
-plot      	    plot_network.Plot
+#plot      	    plot_network.Plot
 
-requirements    network_output
+## Output ##############################################################################################################
+module          network2DV.NetworkOutput
+path	        output
+filename        testfile
+
+requirements    u0 u1 zeta0 zeta1 H B L network_settings channelNumber s0 f c0 T
 
