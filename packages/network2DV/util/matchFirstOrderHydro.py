@@ -104,12 +104,12 @@ def matchFirstOrderHydro(input, channel_list):
                 zeta1_0[mod].append([zeta1[0], zeta1_2[0]])
                 zeta1_L[mod].append([zeta1[-1], zeta1_2[-1]])
 
-                ### depth-integrated horizontal velocity of mode
-                u0_DA = ny.integrate(u1, 'z', kmax, 0, dc, [0], range(kmax+1), [2])
+                ### depth-integrated horizontal velocity of mode 2
+                u0_DA = ny.integrate(u1, 'z', kmax, 0, dc, [0], range(kmax+1), [2])[0][0]
                 uL_DA = 0
 
                 ### depth-integrated horizontal velocity of mode 2
-                uL_2_DA = ny.integrate(u1_2, 'z', kmax, 0, dc, [jmax], range(kmax+1), [2])
+                uL_2_DA = ny.integrate(u1_2, 'z', kmax, 0, dc, [jmax], range(kmax+1), [2])[0][0]
                 u0_2_DA = 0
 
                 B_0 = dc.v('B', 0)
