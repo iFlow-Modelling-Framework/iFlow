@@ -37,7 +37,7 @@ class GridTime:
         enclosures = [(0, self.input.v('L')),
                       (self.input.v('R'), self.input.n('H')),
                       None,
-                      (0, self.input.v('sn_cycles'))]
+                      (self.input.v('startDay'), self.input.v('endDay'))]
         contraction = [[], ['x'], [], []]     # Enclosures of each dimension depend on these parameters
         copy = [1, 1, 0, 1]                  # Copy lower-dimensional arrays over these dimensions. 1: yes, copy. 0: no, only keep in the zero-index
 
@@ -51,7 +51,6 @@ class GridTime:
             axisSize.append(self.input.v(var)[1])
             axisOther.append(self.input.v(var)[2:])
         d['MTS_grid'] = makeRegularGrid(dimensions, axisTypes, axisSize, axisOther, enclosures, contraction, copy)
-        d['num_sn_cycles'] = self.input.v('sn_cycles')
 
         # output grid
         axisTypes = []

@@ -140,7 +140,7 @@ class Step:
                 d.pop('dim')
             axisData[gridAxisNo] = ny.dimensionalAxis(self.input.slice('grid'), axis[gridAxisNo], **d)
             if kwargs.get('operation'):
-                if kwargs.get('operation') is not np.angle:
+                if kwargs.get('operation')!= np.angle:
                     axisData[dataAxisNo] = kwargs['operation'](axisData[dataAxisNo])
                 else:
                     axisData[dataAxisNo] = -kwargs['operation'](axisData[dataAxisNo]) * 180 / np.pi
@@ -150,7 +150,7 @@ class Step:
             axisData[dataAxisNo] = axisData[dataAxisNo]*conv_data
             axisData[gridAxisNo] = axisData[gridAxisNo]*conv_grid
 
-            if sublevel and subplots is None:
+            if sublevel and subplots==None:
                 lab = combi[-1]
                 try:
                     lab = cf.names[lab]
@@ -320,7 +320,7 @@ class Step:
             axis1_dim = ny.dimensionalAxis(self.input.slice('grid'), axis1, **d)
             axis2_dim = ny.dimensionalAxis(self.input.slice('grid'), axis2, **d)
             if kwargs.get('operation'):
-                if kwargs.get('operation') is not np.angle:
+                if kwargs.get('operation')!= np.angle:
                     value = kwargs['operation'](value)
                 else:
                     value = -kwargs['operation'](value) * 180 / np.pi
@@ -548,10 +548,10 @@ class Step:
                     c = c / c.max()
                     ln += sp.plot(xdim, c, '--', color='grey', label=r'$\langle\bar{c}\rangle$')
                     labels = [l.get_label() for l in ln]
-                    if legend is 'out':
+                    if legend=='out':
                         plt.legend(ln, labels, bbox_to_anchor=(1.02, 0), loc=3, borderaxespad=0., fontsize=cf.fontsize2,
                                    labelspacing=0.1, handlelength=0.1, handletextpad=0.4)
-                    elif legend is 'in':
+                    elif legend=='in':
                         plt.legend(ln, labels, loc='upper left', borderaxespad=0.2, fontsize=cf.fontsize2,
                                    labelspacing=0.1, handlelength=0.1, handletextpad=0.4, frameon=False)
                     plt.title('Advective Transport')
@@ -559,10 +559,10 @@ class Step:
                     sp2 = sp.twinx()
                     ln += sp2.plot(xdim, c, '--', color='grey', label=r'$\langle\bar{c}\rangle$')
                     labels = [l.get_label() for l in ln]
-                    if legend is 'out':
+                    if legend=='out':
                         plt.legend(ln, labels, bbox_to_anchor=(1.3, 0), loc=3, borderaxespad=0., fontsize=cf.fontsize2,
                                    labelspacing=0.1, handlelength=0.1, handletextpad=0.4)
-                    elif legend is 'in':
+                    elif legend=='in':
                         plt.legend(ln, labels, loc='upper left', borderaxespad=0.2, fontsize=cf.fontsize2,
                                    labelspacing=0.1, handlelength=0.1, handletextpad=0.4, frameon=False)
                     plt.title('Advective Transport', y=1.09)
@@ -581,7 +581,7 @@ class Step:
                 if concentration:
                     if scale:
                         sp.set_ylabel(r'$\mathcal{T}$ / $\mathcal{T}_{max}$, $c$ / $c_{max}$ (-)', fontsize = cf.fontsize)
-                        if legend is 'in':
+                        if legend=='in':
                             sp.set_ylim([-1.1, 1.1])
                         else:
                             sp.set_ylim([-1.1, 1.1])
@@ -592,7 +592,7 @@ class Step:
                 else:
                     if scale:
                         sp.set_ylabel(r'$\mathcal{T}$ / $\mathcal{T}_{max}$ (' + yunitT + ')', fontsize = cf.fontsize)
-                        if legend is 'in':
+                        if legend=='in':
                             sp.set_ylim([-1.1, 1.1])
                         else:
                             sp.set_ylim([-1.1, 1.1])
@@ -628,10 +628,10 @@ class Step:
                         c = c / c.max()
                         ln += sp.plot(xdim, c, '--', color='grey', label=r'$\langle\bar{c}\rangle$')
                         labels = [l.get_label() for l in ln]
-                        if legend is 'out':
+                        if legend=='out':
                             plt.legend(ln, labels, bbox_to_anchor=(1.02, 0), loc=3, borderaxespad=0., fontsize=cf.fontsize2,
                                        labelspacing=0.1, handlelength=0.1, handletextpad=0.4)
-                        elif legend is 'in':
+                        elif legend=='in':
                             plt.legend(ln, labels, loc='upper left', borderaxespad=0.2, fontsize=cf.fontsize2,
                                        labelspacing=0.1, handlelength=0.1, handletextpad=0.4, frameon=False)
                         if subplot_number == 0:
@@ -647,10 +647,10 @@ class Step:
                         sp2 = sp.twinx()
                         ln += sp2.plot(xdim, c, '--', color='grey', label=r'$\langle\bar{c}\rangle$')
                         labels = [l.get_label() for l in ln]
-                        if legend is 'out':
+                        if legend=='out':
                             plt.legend(ln, labels, bbox_to_anchor=(1.3, 0), loc=3, borderaxespad=0., fontsize=cf.fontsize2,
                                        labelspacing=0.1, handlelength=0.1, handletextpad=0.4)
-                        elif legend is 'in':
+                        elif legend=='in':
                             plt.legend(ln, labels, loc='upper left', borderaxespad=0.2, fontsize=cf.fontsize2,
                                        labelspacing=0.1, handlelength=0.1, handletextpad=0.4, frameon=False)
                         if subplot_number == 0:
@@ -663,10 +663,10 @@ class Step:
                                 pass
                             plt.title(title, y=1.09, fontsize=cf.fontsize)
                 else:
-                    if legend is 'out':
+                    if legend=='out':
                         plt.legend(bbox_to_anchor=(1.02, 0), loc=3, borderaxespad=0., fontsize=cf.fontsize2,
                                labelspacing=0.1, handlelength=0.1, handletextpad=0.4)
-                    elif legend is 'in':
+                    elif legend=='in':
                         plt.legend(ln, labels, loc='upper left', borderaxespad=0.2, fontsize=cf.fontsize2,
                                    labelspacing=0.1, handlelength=0.1, handletextpad=0.4, frameon=False)
                     if subplot_number == 0:
@@ -697,7 +697,7 @@ class Step:
                                 sp.set_ylabel(r'$\mathcal{T}$ / $\mathcal{T}_{max}$, $c$ / $c_{max}$ (-)', fontsize=cf.fontsize)
                             else:
                                 sp.set_ylabel(r'$\mathcal{T}$ / $\mathcal{T}_{max}$ (-)', fontsize=cf.fontsize)
-                            if legend is 'in':
+                            if legend=='in':
                                 sp.set_ylim([-1.1, 1.1])
                             else:
                                 sp.set_ylim([-1.1, 1.1])
@@ -708,7 +708,7 @@ class Step:
                     else:
                         if scale:
                             sp.set_ylabel(r'$\mathcal{T}$ / $\mathcal{T}_{max}$ (' + yunitT + ')', fontsize=cf.fontsize)
-                            if legend is 'in':
+                            if legend=='in':
                                 sp.set_ylim([-1.1, 1.1])
                             else:
                                 sp.set_ylim([-1.1, 1.1])

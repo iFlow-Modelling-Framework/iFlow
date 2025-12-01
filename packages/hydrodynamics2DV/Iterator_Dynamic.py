@@ -33,47 +33,45 @@ class Iterator_Dynamic():
         jmax = self.input.v('grid', 'maxIndex', 'x')
         kmax = self.input.v('grid', 'maxIndex', 'z')
         fmax = self.input.v('grid', 'maxIndex', 'f')
+        
+        secondsPerDay = 3600*24
+        t2 = (self.input.v('MTS_grid', 'axis', 't')*(self.input.v('MTS_grid', 'high', 't') - self.input.v('MTS_grid', 'low', 't')) + self.input.v('MTS_grid', 'low', 't')).flatten()*secondsPerDay     # slow time axis in seconds (NB MTS_grid stores it in days)
+        t2max = self.input.v('MTS_grid', 'maxIndex', 't')
         store = {}
 
-        # SPRING NEAP INPUT
-        sigmaM0 = self.input.v('OMEGA')
-        sigmaS0 = self.input.v('sigmaS2')
+        # compute seaward tidal BCs
+        bc_0, bc_1 = self.calc_subtidal_bcs(t2)
 
-        num_cycles = self.input.v('num_sn_cycles')
-        period_sn0 = np.abs(2 * np.pi / (sigmaS0 - sigmaM0))
-        t2_nsteps = self.input.v('MTS_grid', 'maxIndex', 't')
-        t_axis = self.input.v('MTS_grid', 'axis', 't').flatten()
+        # Discharge input
+        Qarray = ny.toList(self.input.v('Q1')) 
 
-        t2_range = t_axis*period_sn0*num_cycles
+        if len(Qarray) == 1:
+            Qarray = Qarray*(t2max+1)
 
-        bc_0, bc_1 = self.calc_subtidal_bcs()
-
-        # DISCHARGE INPUT
-        Qarray = ny.toList(self.input.v('Q1')) # In this case the river discharge (time series) is constant and given by Q1. For changing Q during the spring-neap cycle, this variable has to be varied per iteration
-
-        if len(Qarray)==1:
-            Qarray = Qarray*(t2_nsteps+1)
-
-        elif len(Qarray)!=t2_nsteps+1:
+        elif len(Qarray) != t2max+1:
             from src.util.diagnostics.KnownError import KnownError
-            raise KnownError('Number of elements of Q1 incompatible; should be 1, equal to number of steps per SN cycle or equal to total number of time steps')
+            raise KnownError('Number of elements of Q1 incompatible; should be 1, equal to number of time steps.')
 
         ################################################################################################################
         # time integrate
         ################################################################################################################
-        for iteration in range(0, t2_nsteps):
-            self.logger.info('Time integration iteration ' + str(iteration+1) + '/' + str(t2_nsteps))
+        for iteration in range(0, t2max):
+            self.logger.info('Time integration iteration ' + str(iteration+1) + '/' + str(t2max))
             ## 1. Prepare input
             #       Offer the input only at the next time step to allow for implicit timestepping schemes only.
             d_in = {}
-            d_in['dt'] = np.real(t2_range[iteration+1])-np.real(t2_range[iteration])
+            d_in['dt'] = np.real(t2[iteration+1])-np.real(t2[iteration])
 
+            # Seaward boundary input
             d_in['A0'] = np.abs(bc_0[iteration+1, :])
             d_in['A1'] = np.abs(bc_1[iteration+1, :])
             d_in['phase0'] = np.angle(bc_0[iteration+1, :], deg=True)
             d_in['phase1'] = np.angle(bc_1[iteration+1, :], deg=True)
 
+            # Discharge input
             d_in['Q1'] = Qarray[iteration+1]
+            
+            # Sediment stock input
             if iteration==0:
                 IC = self.input.v('initial_condition_sediment')
                 d_in['initial_condition_sediment'] = IC
@@ -131,7 +129,7 @@ class Iterator_Dynamic():
 
         return d
         
-    def calc_subtidal_bcs(self):
+    def calc_subtidal_bcs(self, t2):
         """Define the seaward boundary conditions for all t.""" 
         #np.tile is used to match the dimensions of t2 (nsteps,) and inputs (3,)
         
@@ -152,23 +150,14 @@ class Iterator_Dynamic():
         sigma_sn0 = (sigmaS0 - sigmaM0)
         sigma_sn1 = 2*sigma_sn0
         
-        num_cycles = self.input.v('num_sn_cycles')
-        period_sn0 = np.abs(2 * np.pi / (sigmaS0 - sigmaM0))
-        timeshift = self.input.v('time_shift')
-        if timeshift is not None:
-            t_axis = (self.input.v('MTS_grid', 'axis', 't').flatten()+timeshift)
-        else:
-            t_axis = self.input.v('MTS_grid', 'axis', 't').flatten()
-
-        t2_range = t_axis*period_sn0*num_cycles
-        
         ## Process
         AM0 = np.asarray(AM0, dtype='complex')
         AM1 = np.asarray(AM1, dtype='complex')
         
-        AS0 = np.tile(np.asarray(AS0, dtype='complex'), (len(t2_range), 1))  # Note that the amplitudes are tiled
-        AS1 = np.tile(np.asarray(AS1, dtype='complex'), (len(t2_range), 1))  # Note that the amplitudes are tiled
-        # Get phases IN RADIANS (used in this module!)
+        AS0 = np.tile(np.asarray(AS0, dtype='complex'), (len(t2), 1))  # Note that the amplitudes are tiled
+        AS1 = np.tile(np.asarray(AS1, dtype='complex'), (len(t2), 1))  # Note that the amplitudes are tiled
+        
+        # Phases on input are in degrees, convert to radians
         phaseM0 = np.asarray(phaseM0, dtype='complex')/180*np.pi
         phaseS0 = np.asarray(phaseS0, dtype='complex')/180*np.pi
         phaseM1 = np.asarray(phaseM1, dtype='complex')/180*np.pi
@@ -177,14 +166,14 @@ class Iterator_Dynamic():
         sigma_sn0 = np.asarray(sigma_sn0, dtype='complex')
         sigma_sn1 = np.asarray(sigma_sn1, dtype='complex')
         
-        T2_array = np.transpose(np.tile(t2_range, (len(phaseS0), 1))) # Make an array such that "t_2 + phase" can be calculated elementwise
+        T2_array = np.transpose(np.tile(t2, (len(phaseS0), 1))) # Make an array such that "t_2 + phase" can be calculated elementwise
         
-        res_0 = np.tile(AM0 * np.exp(1j * phaseM0), (len(t2_range), 1)) #Dummy variable
-        res_1 = np.tile(AM1 * np.exp(1j * phaseM1), (len(t2_range), 1)) #Dummy variable
+        res_0 = np.tile(AM0 * np.exp(1j * phaseM0), (len(t2), 1)) #Dummy variable
+        res_1 = np.tile(AM1 * np.exp(1j * phaseM1), (len(t2), 1)) #Dummy variable
         
         # Define the leading and first order seaward boundary conditions
-        bc_0 = res_0 + AS0 * np.exp(1j * (sigma_sn0 * T2_array + np.tile(phaseS0, (len(t2_range), 1) )))
-        bc_1 = res_1 + AS1 * np.exp(1j * (sigma_sn1 * T2_array + np.tile(phaseS1, (len(t2_range), 1) )))
+        bc_0 = res_0 + AS0 * np.exp(1j * (sigma_sn0 * T2_array + np.tile(phaseS0, (len(t2), 1) )))
+        bc_1 = res_1 + AS1 * np.exp(1j * (sigma_sn1 * T2_array + np.tile(phaseS1, (len(t2), 1) )))
 
         return bc_0, bc_1
     

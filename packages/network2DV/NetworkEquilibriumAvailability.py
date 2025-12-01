@@ -637,7 +637,7 @@ class NetworkEquilibriumAvailability():
             
             x = self.xd[str(channel)]
             dx = x[1:] - x[:-1]
-            f0uncap = np.exp(-integrate.cumtrapz(self.T[str(channel)] / self.F[str(channel)], dx=dx, axis=0, initial=0))
+            f0uncap = np.exp(-integrate.cumulative_trapezoid(self.T[str(channel)] / self.F[str(channel)], dx=dx, axis=0, initial=0))
             
             f0uncap[np.where(f0uncap==np.inf)] = 0
             f0uncap[np.where(np.isnan(f0uncap))] = 0

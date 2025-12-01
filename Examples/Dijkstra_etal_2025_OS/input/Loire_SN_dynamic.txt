@@ -25,7 +25,8 @@ xgrid		equidistant     300
 zgrid	    equidistant     100
 fgrid		integer         2
 tgrid       equidistant         2400              # number of time steps
-sn_cycles                       12                # number of spring-neap cycles
+startDay                        0
+endDay                          180                 # about 12 spring-neap cycles
 
 xoutputgrid    equidistant     100
 zoutputgrid    equidistant     5
@@ -52,7 +53,7 @@ AS0         0 0.65 0                        # (Solar) tidal amplitude at x=0 lea
 AS1         0 0 0.007                        # (Solar) tidal amplitude at x=0 first order
 phaseS0     0 103 0                         # (Solar) tidal phase at x=0 leading order
 phaseS1     0 0 110                         # (Solar) tidal phase at x=0 first order
-sigmaS2     1.35e-4                         # Angular frequency of the S2 tide
+sigmaS2     1.454e-4                         # Angular frequency of the S2 tide
 
 ## Salinity
 Kh          600

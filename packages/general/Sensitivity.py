@@ -68,7 +68,7 @@ class Sensitivity:
         stop = False
 
         # stop if iteration number exceeds number of prescribed variables
-        if self.iteration >= np.product(self.numLoops):
+        if self.iteration >= np.prod(self.numLoops):
             stop = True
         return stop
 

@@ -230,7 +230,7 @@ class HydroFirst:
         ################################################################################################################
         # Calculate M0 water level
         zeta[1, :, 0, 0] = (gammaM0.reshape(len(self.x), 1) / (self.G * self.H**2. * (self.H / (3. * self.Av0) + 1. / self.sf))).reshape(len(self.x))
-        zeta[0, 1:, 0, 0] = integrate.cumtrapz(zeta[1, :, 0, 0], x=self.x)
+        zeta[0, 1:, 0, 0] = integrate.cumulative_trapezoid(zeta[1, :, 0, 0], x=self.x)
 
         # Calculate M0 flow velocity
         u[0, :, :, 0] = (((self.zarr**2. - self.H**2.) / (2 * self.Av0) - self.H / self.sf) * self.G * zeta[1, :, 0, 0].reshape(len(self.x), 1))
@@ -287,7 +287,7 @@ class HydroFirst:
         # Calculate M0 water level
         zeta[1, :, 0, 0] = (-(self.Av0 * xiM0.reshape(len(self.x), 1) * (self.H / 2. + self.Av0 / self.sf)) /
                             (self.G * self.H * (self.H / 3. + self.Av0 / self.sf))).reshape(len(self.x))
-        zeta[0, 1:, 0, 0] = integrate.cumtrapz(zeta[1, :, 0, 0], x=self.x)
+        zeta[0, 1:, 0, 0] = integrate.cumulative_trapezoid(zeta[1, :, 0, 0], x=self.x)
 
         # Calculate M0 flow velocity
         u[0, :, :, 0] = (((self.zarr ** 2 - self.H ** 2) / (2 * self.Av0) - self.H / self.sf) * self.G *
@@ -343,8 +343,8 @@ class HydroFirst:
         # M0 contribution
         ################################################################################################################
         # Particular solution Up of the advection term
-        f = np.fliplr(integrate.cumtrapz(np.fliplr(etaM0 * self.zarr), x=-self.zarr, axis=1, initial=0))
-        g = np.fliplr(integrate.cumtrapz(np.fliplr(etaM0), x=-self.zarr, axis=1, initial=0)) * self.zarr
+        f = np.fliplr(integrate.cumulative_trapezoid(np.fliplr(etaM0 * self.zarr), x=-self.zarr, axis=1, initial=0))
+        g = np.fliplr(integrate.cumulative_trapezoid(np.fliplr(etaM0), x=-self.zarr, axis=1, initial=0)) * self.zarr
         Up = g - f
         # Vertical integral of the advection term
         h = np.trapz(etaM0, x=-self.zarr, axis=1)
@@ -353,7 +353,7 @@ class HydroFirst:
         # Calculate M0 water level
         zeta[1, :, 0, 0] = ((k.reshape(len(self.x), 1) / self.H - (self.H / 2. + self.Av0 / self.sf) * h.reshape(len(self.x), 1)) /
                             (self.G * self.H * (self.H / 3. + self.Av0 / self.sf))).reshape(len(self.x))
-        zeta[0, 1:, 0, 0] = integrate.cumtrapz(zeta[1, :, 0, 0], x=self.x)
+        zeta[0, 1:, 0, 0] = integrate.cumulative_trapezoid(zeta[1, :, 0, 0], x=self.x)
         # Calculate M0 flow velocity
         u[0, :, :, 0] = (((self.zarr**2. - self.H**2.) / (2 * self.Av0) - self.H / self.sf) * self.G * zeta[1, :, 0, 0].reshape(len(self.x), 1) +
                          (Up / self.Av0) - (self.zarr / self.Av0 + self.H / self.Av0 + 1. / self.sf) * h.reshape(len(self.x), 1))
@@ -363,10 +363,10 @@ class HydroFirst:
         ################################################################################################################
         # Calculate variables
         # G1 variable from manual, separated in an (a) and a (b) part first
-        G1a = np.fliplr(integrate.cumtrapz(np.fliplr(etaM4 * np.exp(-self.r * self.zarr)),
+        G1a = np.fliplr(integrate.cumulative_trapezoid(np.fliplr(etaM4 * np.exp(-self.r * self.zarr)),
                                            x=-self.zarr, axis=1, initial=0))
         # G1a = np.append(G1a, np.zeros((len(self.x), 1)), axis=1)
-        G1b = np.fliplr(integrate.cumtrapz(np.fliplr(etaM4 * np.exp(self.r * self.zarr)),
+        G1b = np.fliplr(integrate.cumulative_trapezoid(np.fliplr(etaM4 * np.exp(self.r * self.zarr)),
                                            x=-self.zarr, axis=1, initial=0))
         # G1b = np.append(G1b, np.zeros((len(self.x), 1)), axis=1)
         G1 = (np.exp(self.r * self.zarr) * G1a -
@@ -381,7 +381,7 @@ class HydroFirst:
         # kmax = etaM4.shape[-1]-1
         # G1_int = ny.integrate(G1, 'z', kmax, 0, self.input, INTMETHOD='INTERPOLSIMPSON')
         G1r = G1 + 1e-16
-        G1_int = np.sum(-(self.zarr[:,1:]-self.zarr[:,:-1])/np.log(G1r[:,1:]/G1r[:,:-1])*(G1r[:,1:]-G1r[:,:-1]), axis=1, keepdims=True)
+        G1_int = np.sum(-(self.zarr[:,1:]-self.zarr[:,:-1])/(np.log(G1r[:,1:]/G1r[:,:-1])+1e-10)*(G1r[:,1:]-G1r[:,:-1]), axis=1, keepdims=True)
         G1_int[-1,:] = 0
         # G1_int -= -(self.zarr[:,[-1]]-self.zarr[:,[0]])*G1[:,[1]]/10
         Fadv1 = (G2.reshape(len(self.x), 1) * (1. - self.alpha) / (self.Av0 * self.r**2.) -
@@ -425,7 +425,7 @@ class HydroFirst:
         # Calculate M0 water level
         zeta[1, :, 0, 0] = -(self.H * self.BETA * sx * (self.H / (8. * self.Av0) + 1. / (2. * self.sf)) /
                              (self.H / (3. * self.Av0) + 1. / self.sf)).reshape(len(self.x))
-        zeta[0, 1:, 0, 0] = integrate.cumtrapz(zeta[1, :, 0, 0], x=self.x)
+        zeta[0, 1:, 0, 0] = integrate.cumulative_trapezoid(zeta[1, :, 0, 0], x=self.x)
 
         # Calculate M0 flow velocity
         u[0, :, :, 0] = (((self.zarr ** 2. - self.H ** 2.) / (2 * self.Av0) - self.H / self.sf) * self.G * zeta[1, :, 0, 0].reshape(len(self.x), 1) -
@@ -452,5 +452,5 @@ class HydroFirst:
         # YMD REFERENCE LEVEL 15-08-17
         Rx = self.input.d('R', x=self.x/self.L, dim='x')       # YMD Reference level 15-08-17
         zeta[1, :, 0, 0] = zeta[1, :, 0, 0] - Rx
-        zeta[0, 1:, 0, 0] = integrate.cumtrapz(zeta[1, :, 0, 0], x=self.x)
+        zeta[0, 1:, 0, 0] = integrate.cumulative_trapezoid(zeta[1, :, 0, 0], x=self.x)
         return zeta, u

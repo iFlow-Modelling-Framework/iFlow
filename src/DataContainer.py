@@ -218,7 +218,7 @@ class DataContainer:
         keys = (key,)+subkeys
         value = self.__unwrapDictionaries(self._data, *keys)
 
-        if value is None or value == []:
+        if value is None:
             return False
         else:
             return True
@@ -347,7 +347,7 @@ class DataContainer:
 
         # STEP 2.
         # return None if nothing was found
-        if value is None or value == []:
+        if value is None or (isinstance(value, list) and value == []):
             return None
 
         ################################################################################################################
@@ -735,7 +735,13 @@ class DataContainer:
             value = value.reshape(newShape)
 
         #   then recast into right shape
-        copy = self._data[gridname]['copy'][:len(shape)]
+        try:
+            copy = self._data[gridname]['copy'][:len(shape)]
+        except:
+            if self._data.get(gridname) is None:
+                copy = np.ones(len(shape))
+            else:
+                copy = np.ones(len(self._data[gridname]['dimensions']))[:len(shape)]
         extensionMatrix = np.ones(shape)
 
         if not copyDims == 'all':

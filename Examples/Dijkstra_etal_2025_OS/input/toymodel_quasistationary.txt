@@ -22,7 +22,8 @@ xgrid	    equidistant         200                 # cells in x-direction
 zgrid	    equidistant         50                  # cells in z-direction
 fgrid	    integer             2                   # frequency components
 tgrid       equidistant         20                  # number of time steps
-sn_cycles                       1                   # number of spring-neap cycles
+startDay                        0
+endDay                          14.9                 # about 1 spring-neap cycle
 
 xoutputgrid    equidistant      50                  # Grid for saving output
 zoutputgrid    equidistant      2
@@ -39,7 +40,7 @@ AS0          0 0.35 0                              # (Solar) tidal amplitude at 
 AS1          0 0 0.013                      # (Solar) tidal amplitude at x=0 first order
 phaseS0      0 47.33 0
 phaseS1      0 0 356.33
-sigmaS2      1.35e-4
+sigmaS2      1.454e-4                         # Angular frequency of the S2 tide
 Sinit        0          #Start with empty stock
 Q1           45                                   # River discharge first order
 

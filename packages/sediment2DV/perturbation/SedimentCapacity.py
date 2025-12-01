@@ -315,8 +315,8 @@ class SedimentCapacity:
     #                          (self.Kv0 * (r2_M2 - r1_M2)), x=-self.zarr, axis=1).reshape(len(self.x), 1)
     #         A = - r2_M2 * np.exp(-r2_M2 * self.HR) * int_r / (r2_M2 * var1 * np.exp(-r2_M2 * self.HR) - r1_M2 * var2 * np.exp(-r1_M2 *self.HR))
     #         B = - A * r1_M2 * np.exp((r2_M2 - r1_M2) * self.HR) / r2_M2
-    #         C = np.fliplr(integrate.cumtrapz(np.fliplr(f * np.exp(-r1_M2 * self.zarr) / (self.Kv0 * (r2_M2 - r1_M2))), x=-self.zarr, axis=1, initial=0))
-    #         D = np.fliplr(integrate.cumtrapz(np.fliplr(f * np.exp(-r2_M2 * self.zarr) / (self.Kv0 * (r2_M2 - r1_M2))), x=-self.zarr, axis=1, initial=0))
+    #         C = np.fliplr(integrate.cumulative_trapezoid(np.fliplr(f * np.exp(-r1_M2 * self.zarr) / (self.Kv0 * (r2_M2 - r1_M2))), x=-self.zarr, axis=1, initial=0))
+    #         D = np.fliplr(integrate.cumulative_trapezoid(np.fliplr(f * np.exp(-r2_M2 * self.zarr) / (self.Kv0 * (r2_M2 - r1_M2))), x=-self.zarr, axis=1, initial=0))
     #         c12 = np.zeros((len(self.x), len(self.z), 3), dtype=complex)
     #         c12[:, :, 1] = (A - C) * np.exp(r1_M2 * self.zarr) + (B + D) * np.exp(r2_M2 * self.zarr)
     #         hatc12_sedadv.append(c12)
@@ -349,8 +349,8 @@ class SedimentCapacity:
                              (self.Kv0 * (r2_M2 - r1_M2)), x=-self.zarr, axis=1).reshape(len(self.x), 1)
             A = - r2_M2 * np.exp(-r2_M2 * self.H) * int_r / (r2_M2 * var1 * np.exp(-r2_M2 * self.H) - r1_M2 * var2 * np.exp(-r1_M2 *self.H))
             B = - A * r1_M2 * np.exp((r2_M2 - r1_M2) * self.H) / r2_M2
-            C = np.fliplr(integrate.cumtrapz(np.fliplr(f * np.exp(-r1_M2 * self.zarr) / (self.Kv0 * (r2_M2 - r1_M2))), x=-self.zarr, axis=1, initial=0))
-            D = np.fliplr(integrate.cumtrapz(np.fliplr(f * np.exp(-r2_M2 * self.zarr) / (self.Kv0 * (r2_M2 - r1_M2))), x=-self.zarr, axis=1, initial=0))
+            C = np.fliplr(integrate.cumulative_trapezoid(np.fliplr(f * np.exp(-r1_M2 * self.zarr) / (self.Kv0 * (r2_M2 - r1_M2))), x=-self.zarr, axis=1, initial=0))
+            D = np.fliplr(integrate.cumulative_trapezoid(np.fliplr(f * np.exp(-r2_M2 * self.zarr) / (self.Kv0 * (r2_M2 - r1_M2))), x=-self.zarr, axis=1, initial=0))
             c12 = np.zeros((len(self.x), len(self.z), 3), dtype=complex)
             c12[:, :, 1] = (A - C) * np.exp(r1_M2 * self.zarr) + (B + D) * np.exp(r2_M2 * self.zarr)
             hatc12_sedadv.append(c12)

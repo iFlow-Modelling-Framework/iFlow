@@ -17,8 +17,8 @@ input           L B H xgrid zgrid fgrid xoutputgrid zoutputgrid foutputgrid# R
 output          grid outputgrid
 
 module          GridTime
-input           L B H xgrid zgrid fgrid tgrid xoutputgrid zoutputgrid foutputgrid toutputgrid sn_cycles # R
-output          MTS_grid MTS_outputGrid num_sn_cycles
+input           L B H xgrid zgrid fgrid tgrid xoutputgrid zoutputgrid foutputgrid toutputgrid startDay endDay # R
+output          MTS_grid MTS_outputGrid
 
 module      Calibration
 packagePath
@@ -38,7 +38,7 @@ module          Iterator_Dynamic
 controller      True
 controls        zeta0 zeta1 u0 u1 f T F a c0 c1
 prepares        A0 A1 phase0 phase1 Sinit Q1 dt
-input           AM0 AM1 phaseM0 phaseM1 AS0 AS1 phaseS0 phaseS1 sigmaS2 OMEGA MTS_grid Q1 num_sn_cycles grid initial_condition_sediment if{finit,@{initial_condition_sediment}=='erodibility'} if{Sinit,@{initial_condition_sediment}=='stock'}
+input           AM0 AM1 phaseM0 phaseM1 AS0 AS1 phaseS0 phaseS1 sigmaS2 OMEGA MTS_grid Q1 grid initial_condition_sediment if{finit,@{initial_condition_sediment}=='erodibility'} if{Sinit,@{initial_condition_sediment}=='stock'}
 output          MTS_c0 MTS_c1 MTS_f MTS_zeta0 MTS_u0 MTS_a MTS_T MTS_F MTS_Av MTS_Ri MTS_sediment_transport initial_condition_sediment
 
 ########################################################################################################################

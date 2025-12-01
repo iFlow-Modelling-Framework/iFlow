@@ -320,9 +320,9 @@ class EquilibriumAvailability:
         if np.all(G == 0):
             P = np.zeros(jmax+1)
         else:
-            P = integrate.cumtrapz(G / (F - 10 ** -6) * np.exp(integrate.cumtrapz(T / F, dx=dx, axis=0, initial=0)), dx=dx, axis=0, initial=0)
+            P = integrate.cumulative_trapezoid(G / (F - 10 ** -6) * np.exp(integrate.cumulative_trapezoid(T / F, dx=dx, axis=0, initial=0)), dx=dx, axis=0, initial=0)
 
-        exponent = np.exp(-integrate.cumtrapz(T / F, dx=dx, axis=0, initial=0))
+        exponent = np.exp(-integrate.cumulative_trapezoid(T / F, dx=dx, axis=0, initial=0))
 
         # Boundary conditions (analytical solution)
             # BC 1: total amount of sediment in the system

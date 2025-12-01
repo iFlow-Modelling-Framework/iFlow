@@ -48,7 +48,7 @@ class GriddedX():
 
         # reshape x with L
         if x[-1]<self.L:
-            raise KnownError('Depth file does not specify depth over the full length of the system.')
+            raise KnownError('File does not specify variable over the full length of the system.')
         var = scipy.interpolate.interp1d(data[:, 0]/self.L, data[:, 1])
         try:
             varx_orig = data[:, 2]
