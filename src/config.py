@@ -9,7 +9,7 @@
 # Logging system
 ConsoleLoggingLevel = 'info'   # 'off', 'debug', 'info', 'warning', 'error' or 'critical'. Recommended is 'info'
 FileLoggingLevel = 'off'      # 'off', 'debug', 'info', 'warning', 'error' or 'critical'. Recommended is 'info' or 'off' (i.e. no log file)
-Profiler = True
+Profiler = False
 
 DERMETHOD = 'CENTRAL'           #'FORWARD'/'CENTRAL2'
 SECONDDERMETHOD = 'CENTRAL'
